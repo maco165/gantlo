@@ -17,6 +17,9 @@ export const NOT_IMPLEMENTED: Status = { code: 501, reason: 'Not Implemented', j
 /** 知らない道 */
 export const NOT_FOUND: Status = { code: 404, reason: 'Not Found', ja: 'この URL のページはありません' };
 
+/** 計画を保存した (PUT /plan) */
+export const PLAN_SAVED: Status = { code: 200, reason: 'OK', ja: 'この順で学ぶ計画を保存しました' };
+
 /** 答えが合った */
 export const ANSWER_OK: Status = { code: 200, reason: 'OK', ja: '正解です' };
 

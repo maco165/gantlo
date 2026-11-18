@@ -14,6 +14,7 @@ import { useMobileNav } from './lib/useMobileNav';
 import { useProgress } from './lib/useProgress';
 import Home from './screens/Home';
 import LessonScreen from './screens/LessonScreen';
+import Plan from './screens/Plan';
 import StatusPage from './screens/StatusPage';
 
 const PAGE_TITLES: Record<PageName, string> = { plan: '計画 (Gantt)', review: '復習', progress: '進捗', glossary: '用語集', settings: '設定' };
@@ -37,7 +38,8 @@ export default function App() {
   }, [title]);
 
   let screen;
-  if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
+  if (route.name === 'page' && route.page === 'plan') screen = <Plan key={nav} progress={progress} updateProgress={updateProgress} />;
+  else if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'course') screen = <StatusPage title={title ?? ''} request={`GET /course/${route.course}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'lesson') {
     const lesson = findLesson(route.lessonId);
@@ -48,7 +50,7 @@ export default function App() {
       <StatusPage title={title ?? ''} request={`GET ${window.location.pathname}`} status={NOT_FOUND} />
     );
   } else if (route.name === 'notFound') screen = <StatusPage title={title ?? ''} request={`GET ${window.location.pathname}`} status={NOT_FOUND} />;
-  else screen = <Home />;
+  else screen = <Home progress={progress} />;
 
   return (
     <InternationalizationProvider locale="ja-JP" messages={{ 'ja-JP': jaJP }}>
