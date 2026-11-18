@@ -12,12 +12,16 @@
           "choices": [
             { "id": "a", "text": "RAND の Paul Baran らと、英国 NPL の Donald Davies と Roger Scantlebury" },
             { "id": "b", "text": "CERN の Tim Berners-Lee と Robert Cailliau", "why": "CERN で生まれたのは 1989 年の WWW で、パケット交換より後です。" },
-            { "id": "c", "text": "ベル研究所の Ken Thompson と Dennis Ritchie", "why": "UNIX と C の作者で、パケット交換の研究者としては挙がっていません。" },
-            { "id": "d", "text": "Netscape の技術者たち", "why": "Netscape は 1990 年代の会社で、SSL を出した側です。" }
+            { "id": "c", "text": "ベル研究所の Ken Thompson と Dennis Ritchie", "why": "ベル研究所で UNIX を作った人たちで、パケット交換の研究者としては挙がっていません。" },
+            { "id": "d", "text": "Netscape の技術者たち", "why": "Netscape は SSL 3.0 の仕様を公開した会社で、パケット交換の研究者としては挙がっていません。" }
           ],
           "answer": "a",
           "explanation": "ISOC の文書 (Leiner・Cerf・Kahn ら、インターネットを作った当人たちが書いたもの) は、ARPA の Larry Roberts が学会で英国 NPL の Davies と Scantlebury のパケット網の論文に出会い、RAND の Paul Baran らの研究も知った、と書いています。RAND の論文は 1964 年です。",
-          "sources": ["https://www.internetsociety.org/internet/history-internet/brief-history-internet/"]
+          "sources": [
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/",
+            "https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html",
+            "https://www.rfc-editor.org/rfc/rfc2246#section-3"
+          ]
         },
         {
           "id": "tech-history-l5-q2",
@@ -103,7 +107,10 @@
           ],
           "answer": "a",
           "explanation": "WIDE プロジェクトの「WIDE Project のあゆみ」では、1984 年の項に「JUNET 運用開始」、1985 年に「WIDE 研究会 (WIDE プロジェクト前身) 発足」と「日本語メール開始 (JUNET)」、1986 年に「WIDE プロジェクト開始」とあります。",
-          "sources": ["https://www.wide.ad.jp/About/history.html"]
+          "sources": [
+            "https://www.wide.ad.jp/About/history.html",
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/"
+          ]
         }
       ]
     },
@@ -127,7 +134,9 @@
           "explanation": "CERN の「The birth of the Web」は、英国の科学者 Tim Berners-Lee が 1989 年に CERN で WWW を考え、世界の大学や研究所の科学者が情報を自動で共有したいという求めに応えるためだった、と書いています。W3C の本人の経歴のページも、1989 年に CERN で発明し、1990 年に最初のクライアントとサーバーを書き、URI・HTTP・HTML の仕様が広がるにつれて磨かれた、と書いています。",
           "sources": [
             "https://home.cern/science/computing/the-birth-of-the-web/",
-            "https://www.w3.org/People/Berners-Lee/"
+            "https://www.w3.org/People/Berners-Lee/",
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/",
+            "https://ics.uci.edu/~fielding/pubs/dissertation/top.htm"
           ]
         },
         {
@@ -156,9 +165,13 @@
           "prompt": "古い HTTP/1.0 で要求を送って、違いを見てみたい。HTTP/1.0 を使わせる curl のオプションを埋めてください。",
           "code": "curl -sI {{blank}} https://example.com/",
           "blanks": [{ "answers": ["--http1.0", "-0"] }],
-          "output": "HTTP/1.0 200 OK\n...",
-          "explanation": "-0 (--http1.0) は、curl に既定の版ではなく HTTP/1.0 で要求させます (curl のマニュアル)。HTTP/1.0 は RFC 1945 (1996 年 5 月) にまとめられた版です。",
-          "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc1945"]
+          "output": "HTTP/1.1 200 OK\n...",
+          "explanation": "-0 (--http1.0) は、curl に既定の版ではなく HTTP/1.0 で要求させます (curl のマニュアル)。HTTP/1.0 は RFC 1945 (1996 年 5 月) にまとめられた版です。ただし応答の版はサーバーが選びます。RFC 9110 の 6.2 は、サーバーは要求のメジャー版以下で自分が準拠する最も高い版で返すべき (SHOULD) と書くので、HTTP/1.1 のサーバーは HTTP/1.0 の要求にも HTTP/1.1 200 OK で返します。送った要求の行 (> HEAD / HTTP/1.0) は -v を付けると見られます。",
+          "sources": [
+            "https://curl.se/docs/manpage.html",
+            "https://www.rfc-editor.org/rfc/rfc1945",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-6.2"
+          ]
         },
         {
           "id": "tech-history-l6-q4",
@@ -172,7 +185,10 @@
           ],
           "answer": "a",
           "explanation": "RFC 9114 の要旨は、QUIC にはストリームの多重化、ストリームごとの流量制御、接続の確立の遅れの少なさなど HTTP の運び手として望ましい性質がある、と書き、HTTP の意味論を QUIC の上に対応づけるのが HTTP/3 だと述べています。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc9114"]
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9114",
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/"
+          ]
         },
         {
           "id": "tech-history-l6-q5",
@@ -200,7 +216,10 @@
           ],
           "answer": "a",
           "explanation": "CERN の「The birth of the Web」に、1993 年 4 月 30 日に CERN が WWW のソフトウェアをパブリックドメインにし、のちに開かれたライセンスでも出したことが、Web が栄える助けになった、とあります。",
-          "sources": ["https://home.cern/science/computing/the-birth-of-the-web/"]
+          "sources": [
+            "https://home.cern/science/computing/the-birth-of-the-web/",
+            "https://www.rfc-editor.org/rfc/rfc7540"
+          ]
         }
       ]
     },
@@ -222,7 +241,11 @@
           ],
           "answer": "a",
           "explanation": "Fielding の博士論文「Architectural Styles and the Design of Network-based Software Architectures」は UC Irvine の 2000 年のもので、第 5 章の題が「Representational State Transfer (REST)」です。",
-          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/top.htm"]
+          "sources": [
+            "https://ics.uci.edu/~fielding/pubs/dissertation/top.htm",
+            "https://home.cern/science/computing/the-birth-of-the-web/",
+            "https://www.rfc-editor.org/rfc/rfc9110"
+          ]
         },
         {
           "id": "tech-history-l7-q2",
@@ -236,7 +259,11 @@
           ],
           "answer": "a",
           "explanation": "RFC 1945 (1996 年 5 月) の冒頭の著者は T. Berners-Lee (MIT/LCS)、R. Fielding (UC Irvine)、H. Frystyk (MIT/LCS) です。HTTP/1.1 の RFC 2068 の著者にも R. Fielding (UC Irvine) が入っています。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc1945", "https://www.rfc-editor.org/rfc/rfc2068"]
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1945",
+            "https://www.rfc-editor.org/rfc/rfc2068",
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/"
+          ]
         },
         {
           "id": "tech-history-l7-q3",
@@ -294,7 +321,10 @@
           ],
           "answer": "a",
           "explanation": "第 5.1.5 節は、REST をほかの様式と分ける中心の特徴は部品のあいだの統一されたインターフェースの重視だと書き、その引き換えに、決まった形でやり取りするのでアプリごとに最適な形より効率が落ちる、とも述べています。",
-          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm"]
+          "sources": [
+            "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm",
+            "https://www.rfc-editor.org/rfc/rfc4627"
+          ]
         }
       ]
     },
@@ -316,7 +346,10 @@
           ],
           "answer": "a",
           "explanation": "RFC 1630 の著者は T. Berners-Lee (CERN)、日付は 1994 年 6 月で、副題は「ネットワーク上のものの名前と住所を表す統一の構文」です。中では FTP・Gopher・WAIS・Prospero の住所を URI に対応づける書き方にも触れています。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc1630"]
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1630",
+            "https://www.rfc-editor.org/rfc/rfc3986"
+          ]
         },
         {
           "id": "tech-history-l8-q2",
@@ -344,7 +377,10 @@
           ],
           "answer": "a",
           "explanation": "RFC 3986 の冒頭には「Obsoletes: 2732, 2396, 1808」とあります。RFC 9110 は 2022 年の HTTP の意味論の文書で、RFC 3986 より後です。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc3986"]
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc3986",
+            "https://www.rfc-editor.org/rfc/rfc9110"
+          ]
         },
         {
           "id": "tech-history-l8-q4",

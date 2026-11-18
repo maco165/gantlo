@@ -32,7 +32,13 @@
           ],
           "answer": "a",
           "explanation": "RFC 1341 の冒頭は、N. Borenstein (Bellcore)、N. Freed (Innosoft)、1992 年 6 月です。今の MIME の第 1 部は RFC 2045 (1996 年 11 月、Freed と Borenstein) で、RFC 1521 などを置き換えています。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc1341", "https://www.rfc-editor.org/rfc/rfc2045"]
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1341",
+            "https://www.rfc-editor.org/rfc/rfc2045",
+            "https://www.rfc-editor.org/rfc/rfc1630",
+            "https://www.rfc-editor.org/rfc/rfc882",
+            "https://www.rfc-editor.org/rfc/rfc4627"
+          ]
         },
         {
           "id": "tech-history-l9-q3",
@@ -102,7 +108,11 @@
           ],
           "answer": "a",
           "explanation": "RFC 3629 の第 1 節に、UTF-8 は 1992 年 9 月に Ken Thompson が、Rob Pike の示した設計の条件に導かれて考えた、とあります。Thompson の設計は X/Open の XOJIG で標準化され、FSS-UTF、UTF-2 を経て UTF-8 という名になりました。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc3629#section-1"]
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc3629#section-1",
+            "https://www.unicode.org/history/publicationdates.html",
+            "https://home.cern/science/computing/the-birth-of-the-web/"
+          ]
         },
         {
           "id": "tech-history-l10-q2",
@@ -116,7 +126,10 @@
           ],
           "answer": "a",
           "explanation": "RFC 3629 の第 1 節は、目的を「Plan9 のオペレーティングシステムで、混乱を起こさずに使える UCS の変換の形式を決めること」と書いています。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc3629#section-1"]
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc3629#section-1",
+            "https://www.rfc-editor.org/rfc/rfc4627"
+          ]
         },
         {
           "id": "tech-history-l10-q3",
@@ -181,7 +194,12 @@
           ],
           "answer": "a",
           "explanation": "RFC 4627「The application/json Media Type for JavaScript Object Notation (JSON)」の冒頭は D. Crockford (JSON.org)、2006 年 7 月で、分類は Informational です。今の正本は RFC 8259 (2017 年 12 月、T. Bray 編、Standards Track) です。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc4627", "https://www.rfc-editor.org/rfc/rfc8259"]
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc4627",
+            "https://www.rfc-editor.org/rfc/rfc8259",
+            "https://www.rfc-editor.org/rfc/rfc2045",
+            "https://ics.uci.edu/~fielding/pubs/dissertation/top.htm"
+          ]
         },
         {
           "id": "tech-history-l11-q2",
@@ -201,7 +219,7 @@
           "id": "tech-history-l11-q3",
           "kind": "http",
           "format": "json",
-          "prompt": "JSON の真偽の値と空の値を書きます。RFC 8259 の決まりで正しい書き方を空欄に埋めてください。",
+          "prompt": "公開済み (真) で、削除の日時は無し (空) のデータを JSON で書きます。RFC 8259 の決まりで正しい書き方を空欄に埋めてください。",
           "code": "{\n  \"name\": \"gantlo\",\n  \"published\": {{blank}},\n  \"deletedAt\": {{blank}}\n}",
           "blanks": [
             { "answers": ["true"] },

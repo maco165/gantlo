@@ -22,7 +22,7 @@
         {
           "id": "tech-history-l1-q2",
           "kind": "order",
-          "prompt": "Spring の始まりの出来事を、古い順に並べてください。",
+          "prompt": "Spring と DI にまつわる出来事を、古い順に並べてください。",
           "items": [
             { "id": "book", "text": "Rod Johnson の著書『Expert One-on-One J2EE Design and Development』が出る" },
             { "id": "fowler", "text": "Martin Fowler が記事で「Dependency Injection」という呼び名を示す" },
@@ -99,7 +99,10 @@
           ],
           "answer": "a",
           "explanation": "Spring の公式ブログに、Phil Webb による 2014 年 4 月 1 日付の「Spring Boot 1.0 GA Released」があります。",
-          "sources": ["https://spring.io/blog/2014/04/01/spring-boot-1-0-ga-released"]
+          "sources": [
+            "https://spring.io/blog/2014/04/01/spring-boot-1-0-ga-released",
+            "https://spring.io/blog/2004/03/24/spring-framework-1-0-final-released"
+          ]
         },
         {
           "id": "tech-history-l2-q2",
@@ -174,7 +177,10 @@
           ],
           "answer": "a",
           "explanation": "Gray の論文 (Tandem の技術報告 TR 81.3、1981 年 6 月。VLDB 1981 で発表) の要約は、トランザクションを atomicity・durability・consistency を持つ状態の変換と書いています。isolation を加えて 4 つを ACID とまとめたのは、1983 年の Härder と Reuter の論文です。",
-          "sources": ["https://jimgray.azurewebsites.net/papers/thetransactionconcept.pdf"]
+          "sources": [
+            "https://jimgray.azurewebsites.net/papers/thetransactionconcept.pdf",
+            "https://doi.org/10.1145/289.291"
+          ]
         },
         {
           "id": "tech-history-l3-q2",
@@ -188,7 +194,10 @@
           ],
           "answer": "a",
           "explanation": "Härder と Reuter の論文は、atomicity・consistency・isolation・durability の 4 つを (ACID) と書き、トランザクションを支えるかどうかをシステムの品質の「ACID test」と呼んでいます。掲載は ACM Computing Surveys の 15 巻 4 号 (1983 年 12 月) です。",
-          "sources": ["https://doi.org/10.1145/289.291"]
+          "sources": [
+            "https://doi.org/10.1145/289.291",
+            "https://doi.org/10.1145/362384.362685"
+          ]
         },
         {
           "id": "tech-history-l3-q3",
@@ -299,7 +308,7 @@
             { "id": "a", "text": "プロキシを通らないので、save() にトランザクションは掛からない" },
             { "id": "b", "text": "save() に新しいトランザクションが掛かる", "why": "this での呼び出しはプロキシではなく対象のオブジェクトそのものに届くので、アドバイスが働きません。" },
             { "id": "c", "text": "コンパイルエラーになる", "why": "コンパイルは通ります。実行時にトランザクションが黙って掛からないのが落とし穴です。" },
-            { "id": "d", "text": "起動時に例外が出て、アプリが止まる", "why": "例外は出ません。公式文書は注釈が黙って無視されることがあると書いています。" }
+            { "id": "d", "text": "起動時に例外が出て、アプリが止まる", "why": "例外は出ません。公式文書は、自己呼び出しは @Transactional があっても実行時のトランザクションにならないと書いています。" }
           ],
           "answer": "a",
           "explanation": "公式文書は、プロキシの方式 (既定) では外からプロキシを通って入る呼び出しだけが横取りされ、対象のオブジェクトが自分のメソッドを呼ぶ自己呼び出し (self-invocation) は、そのメソッドに @Transactional があっても実行時のトランザクションにならない、と書いています。AOP の文書も、this.bar() のような呼び出しはプロキシではなく this に届くと説明しています。",
