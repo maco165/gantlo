@@ -15,10 +15,12 @@
 //  12. どの画面でも、文が「…」で切られていない (問題文・選択肢・手順・解説・結果の一覧)
 //  13. 390 幅で、# だけが変わる戻るでもスマホのメニューが閉じ、レッスンは何問目かが変わらない
 // ホームと計画の画面 (R-6・R-17・R-18) は scripts/e2e-home-plan.mjs が確かめる。
+// 復習と設定の画面 (R-13) は scripts/e2e-review-settings.mjs が確かめる。
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runHomeAndPlan } from './e2e-home-plan.mjs';
+import { runReviewAndSettings } from './e2e-review-settings.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -391,6 +393,8 @@ try {
   await run(browser, 'pc', 1280, 860);
   // ホームと計画の画面 (R-6・R-17・R-18)
   await runHomeAndPlan(browser, { base: BASE, check, noHorizontalOverflow });
+  // 復習と設定の画面 (R-13)
+  await runReviewAndSettings(browser, { base: BASE, check, noHorizontalOverflow });
 } catch (e) {
   console.log(`FAIL 実行中に止まりました: ${e.message}`);
   failures++;
