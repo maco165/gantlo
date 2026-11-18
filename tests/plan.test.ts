@@ -101,6 +101,14 @@ describe('計画を組む (R-17)', () => {
     expect(planOrder(reloaded)).toEqual(['security', 'main']);
   });
 
+  it('保存した計画のコースが空なら、既定の順で学ぶ', () => {
+    expect(planOrder({ ...emptyProgress(), plan: { courses: [] } })).toEqual([...DEFAULT_ORDER]);
+  });
+
+  it('保存するとき、重なったコースを落とし、最初の位置を残す', () => {
+    expect(savePlan(emptyProgress(), ['security', 'main', 'security', 'spring', 'main'])?.plan).toEqual({ courses: ['security', 'main', 'spring'] });
+  });
+
   it('計画が無いときは、全コースを既定の順 (本編 → 追加のコース) で学ぶ', () => {
     expect(planOrder(emptyProgress())).toEqual([...DEFAULT_ORDER]);
     expect(DEFAULT_ORDER[0]).toBe('main');

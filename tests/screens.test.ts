@@ -4,8 +4,10 @@ import { act, createElement, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import LessonNetwork from '../src/components/LessonNetwork';
+import Waterfall from '../src/components/Waterfall';
 import { LESSONS } from '../src/content/index';
 import type { Lesson } from '../src/content/types';
+import { stageStates } from '../src/lib/journey';
 import { savePlan } from '../src/lib/plan';
 import { STORAGE_KEY, completeLesson, emptyProgress, loadProgress, type Progress } from '../src/lib/progress';
 import { useProgress } from '../src/lib/useProgress';
@@ -80,6 +82,31 @@ describe('ホームの学ぶ順にレッスンが無いとき', () => {
     await render(completeLesson(savePlan(emptyProgress(), ['main'])!, 'main-a', { correct: 1, total: 1 }, 10, now));
     expect(host.textContent).toContain('学ぶ順のレッスンを全部済ませました');
     expect(host.textContent).not.toContain('まだレッスンがありません');
+  });
+});
+
+describe('ウォーターフォールの段の表示', () => {
+  const sample: Lesson[] = ['a', 'b'].map((id) => ({ id, title: id, course: 'main', stage: 'dns', questions: [] }));
+  const row = () => host.querySelector('.wf__row[data-stage="dns"]')!;
+  const draw = (ids: string[]) => {
+    const p = ids.reduce((acc, id) => completeLesson(acc, id, { correct: 1, total: 1 }, 10, now), emptyProgress());
+    return act(async () => root.render(createElement(Waterfall, { states: stageStates(p, sample) })));
+  };
+
+  it('紐づくレッスンが 2 つの段で 1 つ済めば、学習済みで 206、塗りは 50%', async () => {
+    await draw(['a']);
+    expect(row().getAttribute('data-learned')).toBe('true');
+    expect(row().querySelector('.wf__status')?.textContent?.trim()).toBe('206');
+    expect((row().querySelector('.wf__fill') as HTMLElement).style.width).toBe('50%');
+  });
+
+  it('全部済めば 200、塗りは 100%。まだなら — で塗りは 0%', async () => {
+    await draw(['a', 'b']);
+    expect(row().querySelector('.wf__status')?.textContent?.trim()).toBe('200');
+    expect((row().querySelector('.wf__fill') as HTMLElement).style.width).toBe('100%');
+    await draw([]);
+    expect(row().querySelector('.wf__status')?.textContent?.trim()).toBe('—');
+    expect((row().querySelector('.wf__fill') as HTMLElement).style.width).toBe('0%');
   });
 });
 
