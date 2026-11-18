@@ -13,7 +13,14 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const DIST = path.join(ROOT, 'dist');
 
 // ポートは開かない (middlewareMode・hmr なし)。vite.config.ts の base (/gantlo/) と import.meta.glob をそのまま使うために vite で読む
-const server = await createServer({ root: ROOT, logLevel: 'error', appType: 'custom', server: { middlewareMode: true, hmr: false, ws: false } });
+const server = await createServer({
+  root: ROOT,
+  logLevel: 'error',
+  appType: 'custom',
+  server: { middlewareMode: true, hmr: false, ws: false },
+  // 依存の事前の束ね (optimizeDeps) は SSR の読み込みに要らない。始めると、閉じたときに node_modules/.vite に deps_temp_* が残る
+  optimizeDeps: { noDiscovery: true, include: [] },
+});
 try {
   const { sitePages, NOT_FOUND_PAGE } = await server.ssrLoadModule('/src/prerender/pages.ts');
   const { renderPage, sitemapXml } = await server.ssrLoadModule('/src/prerender/html.ts');
