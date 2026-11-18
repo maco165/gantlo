@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react';
 // 検索エンジンは # の後ろを別のページとして扱わないため。
 export type PageName = 'plan' | 'review' | 'progress' | 'glossary' | 'settings';
 export type CourseId = 'main' | 'spring' | 'tech-history' | 'mgmt-history' | 'security';
-export type Route = { name: 'home' } | { name: 'page'; page: PageName } | { name: 'course'; course: CourseId } | { name: 'notFound' };
+export type Route =
+  | { name: 'home' }
+  | { name: 'page'; page: PageName }
+  | { name: 'course'; course: CourseId }
+  /** レッスンの id があるかは画面の側で見る (無ければ 404)。経路は問題データを読まない */
+  | { name: 'lesson'; lessonId: string }
+  | { name: 'notFound' };
 
 /** サイトの置き場所 (vite の base。/gantlo/) */
 export const BASE = import.meta.env.BASE_URL;
@@ -31,6 +37,14 @@ export function parseRoute(pathname: string): Route {
     const course = COURSES.find((c) => c.id === parts[1]);
     if (course) return { name: 'course', course: course.id };
   }
+  if (parts.length === 2 && parts[0] === 'lesson') {
+    // 壊れた %xx (例: %E0) は decodeURIComponent が投げるので、知らない道として扱う
+    try {
+      return { name: 'lesson', lessonId: decodeURIComponent(parts[1]) };
+    } catch {
+      return { name: 'notFound' };
+    }
+  }
   return { name: 'notFound' };
 }
 
@@ -41,7 +55,8 @@ export const lessonHref = (lessonId: string) => `${BASE}lesson/${encodeURICompon
 
 /**
  * 同じサイトの中のリンクなら、そのリンクを返す (ページを読み直さずに画面だけ切り替える)。
- * 修飾キー付き・左以外のボタン・新しいタブ・保存・別のサイト・置き場所の外のリンクは奪わず null を返す
+ * 修飾キー付き・左以外のボタン・新しいタブ・保存・別のサイト・置き場所の外のリンクは奪わず null を返す。
+ * 今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) も奪わない。ブラウザの # の移動に任せ、画面を移ったことにしない
  */
 export function isInternalClick(e: MouseEvent): HTMLAnchorElement | null {
   if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return null;
@@ -49,6 +64,7 @@ export function isInternalClick(e: MouseEvent): HTMLAnchorElement | null {
   if (!a || a.target === '_blank' || a.hasAttribute('download')) return null;
   const url = new URL(a.href, window.location.href);
   if (url.origin !== window.location.origin || !url.pathname.startsWith(BASE)) return null;
+  if (url.hash !== '' && url.pathname === window.location.pathname) return null;
   return a;
 }
 
@@ -60,14 +76,29 @@ export function scrollToTop() {
 }
 
 /**
- * 今の画面と、画面を移る操作の回数 (nav) を返す。nav は同じ画面のリンクを押したときも、戻るでも増える。
- * スマホのメニューは nav が変わったら閉じる
+ * 今の画面と、2 つの合図を返す。
+ * - nav: 画面を移る操作の回数。同じ画面のリンクを押したときも、戻るでも増える。
+ *   ただし # だけが違うリンクと、# だけが変わる戻る・進むでは増やさない (道が同じなので画面は移っていない)。
+ *   画面をやり直す合図 (レッスンの key) に使う
+ * - close: 移動の操作の回数。nav が増えるときと、# だけが変わる戻る・進むでも増える。スマホのメニューを閉じる合図に使う
  */
-export function useRoute(): { route: Route; nav: number } {
-  const [state, setState] = useState(() => ({ route: parseRoute(window.location.pathname), nav: 0 }));
+export function useRoute(): { route: Route; nav: number; close: number } {
+  const [state, setState] = useState(() => ({ route: parseRoute(window.location.pathname), nav: 0, close: 0 }));
   useEffect(() => {
-    const go = (pathname: string) => setState((s) => ({ route: parseRoute(pathname), nav: s.nav + 1 }));
-    const onPop = () => go(window.location.pathname);
+    // # の移動でも popstate が来るので、道が変わったかを最後に見た道と比べる
+    let lastPath = window.location.pathname;
+    const go = (pathname: string) => {
+      lastPath = pathname;
+      setState((s) => ({ route: parseRoute(pathname), nav: s.nav + 1, close: s.close + 1 }));
+    };
+    const onPop = () => {
+      // 道が同じ戻る・進むは # だけの移動 (同じ道を pushState することはない)。画面はそのままで、メニューだけ閉じる
+      if (window.location.pathname === lastPath) {
+        setState((s) => ({ ...s, close: s.close + 1 }));
+        return;
+      }
+      go(window.location.pathname);
+    };
     const onClick = (e: MouseEvent) => {
       const a = isInternalClick(e);
       if (!a) return;

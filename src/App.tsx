@@ -6,12 +6,14 @@ import { gothicTheme } from '@astryxdesign/theme-gothic/built';
 import { useEffect } from 'react';
 import AppSideNav, { AppMobileNav } from './components/AppSideNav';
 import MobileBar from './components/MobileBar';
+import { findLesson } from './content/index';
 import { COURSES, useRoute, type PageName, type Route } from './lib/route';
 import { SITE_NAME, SITE_TAGLINE } from './lib/site';
 import { NOT_FOUND, NOT_IMPLEMENTED } from './lib/status';
 import { useMobileNav } from './lib/useMobileNav';
 import { useProgress } from './lib/useProgress';
 import Home from './screens/Home';
+import LessonScreen from './screens/LessonScreen';
 import Plan from './screens/Plan';
 import StatusPage from './screens/StatusPage';
 
@@ -21,14 +23,15 @@ const PAGE_TITLES: Record<PageName, string> = { plan: '計画 (Gantt)', review: 
 export function titleOf(route: Route): string | null {
   if (route.name === 'page') return PAGE_TITLES[route.page];
   if (route.name === 'course') return COURSES.find((c) => c.id === route.course)?.title ?? null;
+  if (route.name === 'lesson') return findLesson(route.lessonId)?.title ?? 'ページが見つかりません';
   if (route.name === 'notFound') return 'ページが見つかりません';
   return null;
 }
 
 export default function App() {
-  const { route, nav } = useRoute();
+  const { route, nav, close } = useRoute();
   const title = titleOf(route);
-  const [navOpen, setNavOpen] = useMobileNav(nav);
+  const [navOpen, setNavOpen] = useMobileNav(close);
   const [progress, updateProgress] = useProgress();
   useEffect(() => {
     document.title = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | ガントチャートで計画する ${SITE_TAGLINE}`;
@@ -38,7 +41,15 @@ export default function App() {
   if (route.name === 'page' && route.page === 'plan') screen = <Plan key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'course') screen = <StatusPage title={title ?? ''} request={`GET /course/${route.course}`} status={NOT_IMPLEMENTED} />;
-  else if (route.name === 'notFound') screen = <StatusPage title={title ?? ''} request={`GET ${window.location.pathname}`} status={NOT_FOUND} />;
+  else if (route.name === 'lesson') {
+    const lesson = findLesson(route.lessonId);
+    // nav を key にして、同じレッスンのリンクを押し直したときも 1 問目から始める
+    screen = lesson ? (
+      <LessonScreen key={`${lesson.id}-${nav}`} lesson={lesson} progress={progress} updateProgress={updateProgress} />
+    ) : (
+      <StatusPage title={title ?? ''} request={`GET ${window.location.pathname}`} status={NOT_FOUND} />
+    );
+  } else if (route.name === 'notFound') screen = <StatusPage title={title ?? ''} request={`GET ${window.location.pathname}`} status={NOT_FOUND} />;
   else screen = <Home progress={progress} />;
 
   return (
