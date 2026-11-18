@@ -84,7 +84,8 @@
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc1035#section-4.2.1",
             "https://www.rfc-editor.org/rfc/rfc1035#section-4.1.1",
-            "https://www.rfc-editor.org/rfc/rfc7766#section-4"
+            "https://www.rfc-editor.org/rfc/rfc7766#section-4",
+            "https://www.rfc-editor.org/rfc/rfc7766#section-5"
           ]
         }
       ]
@@ -365,9 +366,9 @@
           "tool": "openssl",
           "prompt": "TLS 1.3 だけで接続できるか試したい。版を TLS 1.3 に限るオプションを埋めてください。",
           "code": "openssl s_client -connect example.com:443 {{blank}} -brief </dev/null",
-          "blanks": [{ "answers": ["-tls1_3"] }],
+          "blanks": [{ "answers": ["-tls1_3", "-min_protocol TLSv1.3"] }],
           "output": "CONNECTION ESTABLISHED\nProtocol version: TLSv1.3\nCiphersuite: TLS_AES_256_GCM_SHA384\n...",
-          "explanation": "-tls1_3 は TLS 1.3 だけを申し出て受け入れるオプションです (openssl(1) の TLS Version Options)。-brief は接続の要点だけを出します (openssl-s_client の説明)。相手が TLS 1.3 に対応していなければ、ハンドシェイクが失敗します。",
+          "explanation": "-tls1_3 は TLS 1.3 だけを申し出て受け入れるオプションです (openssl(1) の TLS Version Options)。最低の版を TLS 1.3 にする -min_protocol TLSv1.3 でも、今の OpenSSL では同じ結果になります。-brief は接続の要点だけを出します (openssl-s_client の説明)。相手が TLS 1.3 に対応していなければ、ハンドシェイクが失敗します。",
           "sources": [
             "https://docs.openssl.org/master/man1/openssl/",
             "https://docs.openssl.org/master/man1/openssl-s_client/"
@@ -380,7 +381,7 @@
           "choices": [
             { "id": "a", "text": "接続をまたいで同じデータを送り直されない (リプレイされない) 保証がない" },
             { "id": "b", "text": "ふつうの 1-RTT のデータと同じ安全性を持つ", "why": "RFC 8446 は 0-RTT のデータの安全性が他より弱いと明記しています。" },
-            { "id": "c", "text": "証明書の検証を省くので速くなる", "why": "速いのは、前の接続で得た鍵 (PSK) を使って 1 往復待たずに送れるからです。" },
+            { "id": "c", "text": "サーバーの Finished を受け取ってから送る", "why": "Finished を待ってから送るのはふつうの 1-RTT のデータです。0-RTT のデータは、前の接続で得た鍵 (PSK) を使い、最初の ClientHello に続けて送ります。" },
             { "id": "d", "text": "暗号化されずに送られる", "why": "0-RTT のデータも、申し出た PSK から作った鍵で暗号化されます。" }
           ],
           "answer": "a",

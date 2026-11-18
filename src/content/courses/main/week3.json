@@ -273,9 +273,9 @@
             { "id": "d", "text": "コメントで、処理には影響しない", "why": "$ref は参照の識別子で、ツールはこれをたどって定義を使います。" }
           ],
           "answer": "a",
-          "explanation": "Reference Object の $ref は必須で、URI の形の参照の識別子でなければなりません (MUST)。Components Object は、文書の中で使い回すオブジェクト (schemas など) を置く場所です。content の鍵はメディアタイプです。",
+          "explanation": "Media Type Object の schema は Schema Object で、Schema Object は JSON Schema (Draft 2020-12) の上位集合です。その中の $ref は JSON Schema の参照のキーワードで、ここでは同じ文書の components の schemas に置いた User を指します。仕様は、Reference Object と、$ref を持つ Schema Object は別物だと注意しています。Components Object は、文書の中で使い回すオブジェクトを置く場所です。",
           "sources": [
-            "https://spec.openapis.org/oas/latest.html#reference-object",
+            "https://spec.openapis.org/oas/latest.html#schema-object",
             "https://spec.openapis.org/oas/latest.html#components-object"
           ]
         }

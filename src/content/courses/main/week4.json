@@ -84,9 +84,12 @@
           "format": "http",
           "prompt": "トークンを返す応答です。キャッシュに残さないようにするヘッダーの値を埋めてください。",
           "code": "HTTP/1.1 200 OK\nContent-Type: application/json;charset=UTF-8\nCache-Control: {{blank}}\nPragma: no-cache\n\n{\"access_token\": \"2YotnFZFEjr1zCsicMWpAA\", \"token_type\": \"Bearer\", \"expires_in\": 3600}",
-          "blanks": [{ "answers": ["no-store"] }],
-          "explanation": "RFC 6749 の 5.1 は、トークンや資格などの秘密の情報を含む応答に、Cache-Control: no-store と Pragma: no-cache を付けなければならない (MUST) としています。expires_in はアクセストークンの寿命の秒数で、付けることが勧められています (RECOMMENDED)。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-5.1"]
+          "blanks": [{ "answers": ["no-store"], "match": "header-name" }],
+          "explanation": "RFC 6749 の 5.1 は、トークンや資格などの秘密の情報を含む応答に、Cache-Control: no-store と Pragma: no-cache を付けなければならない (MUST) としています。expires_in はアクセストークンの寿命の秒数で、付けることが勧められています (RECOMMENDED)。キャッシュの指示の名前は大文字と小文字を区別せずに比べます (RFC 9111 5.2)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc6749#section-5.1",
+            "https://www.rfc-editor.org/rfc/rfc9111#section-5.2"
+          ]
         }
       ]
     },
@@ -252,13 +255,14 @@
             { "id": "a", "text": "URL はブラウザの履歴やサーバーのログに残りやすく、トークンが盗まれやすい" },
             { "id": "b", "text": "URL には長さの上限があり、トークンが入らない", "why": "RFC 6750 が挙げる理由は長さではなく、URL が記録されやすいという安全の弱さです。" },
             { "id": "c", "text": "クエリーは TLS で暗号化されない", "why": "https ではクエリーも暗号化されます。問題は、届いた先や手元で記録に残ることです。" },
-            { "id": "d", "text": "クエリーで送ることは仕様で禁止されている", "why": "禁止 (MUST NOT) ではなく、ほかの方法が使えない限り使うべきでない (SHOULD NOT) とされています。" }
+            { "id": "d", "text": "クエリーで送ることは仕様で禁止されている", "why": "RFC 6750 の 2.3 では SHOULD NOT でしたが、RFC 6750 を更新した RFC 9700 の 4.3.2 で、クライアントはクエリーでアクセストークンを渡してはならない (MUST NOT) となりました。ただし禁止は決まりであって、避けるべき理由そのもの (記録に残って盗まれやすいこと) ではありません。" }
           ],
           "answer": "a",
-          "explanation": "RFC 6750 の 2.3 は、トークンを含む URL が記録される見込みが高いなどの弱さから、ヘッダーや本文で送れない場合を除き、クエリーの方法を使うべきでない (SHOULD NOT) としています。5.3 も、履歴やログからトークンが盗まれ得るとして、ページの URL で渡すべきでないと勧めています。",
+          "explanation": "RFC 6750 の 2.3 は、トークンを含む URL が記録される見込みが高いなどの弱さから、ヘッダーや本文で送れない場合を除き、クエリーの方法を使うべきでない (SHOULD NOT) としています。5.3 も、履歴やログからトークンが盗まれ得るとして、ページの URL で渡すべきでないと勧めています。今の OAuth のセキュリティの BCP の RFC 9700 (RFC 6750 を更新) は、4.3.2 でブラウザの履歴に残る危険を挙げ、クエリーで渡すことを MUST NOT にしました。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc6750#section-2.3",
-            "https://www.rfc-editor.org/rfc/rfc6750#section-5.3"
+            "https://www.rfc-editor.org/rfc/rfc6750#section-5.3",
+            "https://www.rfc-editor.org/rfc/rfc9700#section-4.3.2"
           ]
         },
         {
