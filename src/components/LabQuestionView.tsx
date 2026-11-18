@@ -41,7 +41,14 @@ export default function LabQuestionView({
       <QuestionHead kind={`実習 · 手元の端末で動かす · ${head}`} prompt={question.prompt} />
       <CheckboxList label="手順" description="1 つずつ動かし、できたら印を付けます" value={checked} onChange={setChecked} hasDividers isReadOnly={done}>
         {question.steps.map((s, i) => (
-          <CheckboxListItem key={i} value={String(i)} label={`${i + 1}. ${s.text}`} description={s.command ? <Code>{s.command}</Code> : undefined} />
+          // 文字列の label は 1 行に切られるので、Text で渡して折り返させ、印を 1 行目にそろえる
+          <CheckboxListItem
+            key={i}
+            value={String(i)}
+            align="first-line"
+            label={<Text>{`${i + 1}. ${s.text}`}</Text>}
+            description={s.command ? <Code>{s.command}</Code> : undefined}
+          />
         ))}
       </CheckboxList>
 

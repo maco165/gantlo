@@ -208,7 +208,9 @@ function ResultView({
             return (
               <ListItem
                 key={q.id}
-                label={q.prompt}
+                align="first-line"
+                // 文字列の label は 1 行に切られるので、Text で渡して問題文を折り返させる
+                label={<Text>{q.prompt}</Text>}
                 startContent={<code className={`result__code result__code--${o}`}>{l.code}</code>}
                 endContent={<Text type="supporting">{l.ja}</Text>}
               />
