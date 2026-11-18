@@ -6,6 +6,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import LessonNetwork from '../src/components/LessonNetwork';
 import { LESSONS } from '../src/content/index';
 import type { Lesson } from '../src/content/types';
+import { savePlan } from '../src/lib/plan';
 import { STORAGE_KEY, completeLesson, emptyProgress, loadProgress, type Progress } from '../src/lib/progress';
 import { useProgress } from '../src/lib/useProgress';
 import Home from '../src/screens/Home';
@@ -61,6 +62,24 @@ describe('ホーム (R-6)', () => {
     expect(text('[data-header="X-Today-XP"] dd')).toBe('15 / 30');
     expect(text('[data-header="X-Streak"] dd')).toBe('1 日連続');
     expect(text('.status__code')).toBe('206');
+  });
+});
+
+describe('ホームの学ぶ順にレッスンが無いとき', () => {
+  const sample: Lesson[] = [{ id: 'main-a', title: 'main-a', course: 'main', stage: 'http', questions: [] }];
+  const render = (p: Progress) => act(async () => root.render(createElement(Home, { progress: p, now, lessons: sample })));
+
+  it('レッスンの無いコースだけの計画では、全部済ませたとは出さず、計画へのリンクを出す', async () => {
+    await render(savePlan(emptyProgress(), ['spring'])!);
+    expect(host.textContent).toContain('学ぶ順のコースにまだレッスンがありません');
+    expect(host.textContent).not.toContain('全部済ませました');
+    expect(host.querySelector('.home__next a')?.getAttribute('href')).toBe('/gantlo/plan/');
+  });
+
+  it('レッスンがあって全部済んだときだけ、全部済ませたと出す', async () => {
+    await render(completeLesson(savePlan(emptyProgress(), ['main'])!, 'main-a', { correct: 1, total: 1 }, 10, now));
+    expect(host.textContent).toContain('学ぶ順のレッスンを全部済ませました');
+    expect(host.textContent).not.toContain('まだレッスンがありません');
   });
 });
 
