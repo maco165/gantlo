@@ -76,22 +76,27 @@ export function scrollToTop() {
 }
 
 /**
- * 今の画面と、画面を移る操作の回数 (nav) を返す。nav は同じ画面のリンクを押したときも、戻るでも増える。
- * ただし # だけが違うリンクと、# だけが変わる戻る・進むでは増やさない (道が同じなので画面は移っていない)。
- * スマホのメニューは nav が変わったら閉じる
+ * 今の画面と、2 つの合図を返す。
+ * - nav: 画面を移る操作の回数。同じ画面のリンクを押したときも、戻るでも増える。
+ *   ただし # だけが違うリンクと、# だけが変わる戻る・進むでは増やさない (道が同じなので画面は移っていない)。
+ *   画面をやり直す合図 (レッスンの key) に使う
+ * - close: 移動の操作の回数。nav が増えるときと、# だけが変わる戻る・進むでも増える。スマホのメニューを閉じる合図に使う
  */
-export function useRoute(): { route: Route; nav: number } {
-  const [state, setState] = useState(() => ({ route: parseRoute(window.location.pathname), nav: 0 }));
+export function useRoute(): { route: Route; nav: number; close: number } {
+  const [state, setState] = useState(() => ({ route: parseRoute(window.location.pathname), nav: 0, close: 0 }));
   useEffect(() => {
     // # の移動でも popstate が来るので、道が変わったかを最後に見た道と比べる
     let lastPath = window.location.pathname;
     const go = (pathname: string) => {
       lastPath = pathname;
-      setState((s) => ({ route: parseRoute(pathname), nav: s.nav + 1 }));
+      setState((s) => ({ route: parseRoute(pathname), nav: s.nav + 1, close: s.close + 1 }));
     };
     const onPop = () => {
-      // 道が同じ戻る・進むは # だけの移動 (同じ道を pushState することはない)
-      if (window.location.pathname === lastPath) return;
+      // 道が同じ戻る・進むは # だけの移動 (同じ道を pushState することはない)。画面はそのままで、メニューだけ閉じる
+      if (window.location.pathname === lastPath) {
+        setState((s) => ({ ...s, close: s.close + 1 }));
+        return;
+      }
       go(window.location.pathname);
     };
     const onClick = (e: MouseEvent) => {

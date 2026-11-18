@@ -28,9 +28,9 @@ export function titleOf(route: Route): string | null {
 }
 
 export default function App() {
-  const { route, nav } = useRoute();
+  const { route, nav, close } = useRoute();
   const title = titleOf(route);
-  const [navOpen, setNavOpen] = useMobileNav(nav);
+  const [navOpen, setNavOpen] = useMobileNav(close);
   const [progress, updateProgress] = useProgress();
   useEffect(() => {
     document.title = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | ガントチャートで計画する ${SITE_TAGLINE}`;
