@@ -206,3 +206,45 @@ curl・dig・openssl のコマンドの 1 か所を埋めます。
 - `lab` の `steps` の `text` が空でなく、`expected` があること
 
 検査は形だけを見ます。中身が正しいか (出典に書いてあるか、並べた順が正しいか) は、書いた人とは別の人が出典と照らして確かめます。
+
+## 用語集 (src/content/glossary.json)
+
+用語集の語は `src/content/glossary.json` の `{ "terms": [語, ...] }` に書きます。型と検査の正本は `src/lib/glossary.ts` (`GlossaryTerm`・`validateGlossary`) で、`npx vitest run tests/glossary.test.ts` が検査します (`npm test` にも入ります)。並びは画面が決めるので (11 の規格は `standard` の順、ほかは読みの順)、ファイルの中の順は自由です。
+
+| 欄 | 必須 | 意味 |
+|---|---|---|
+| `id` | 必須 | 英小文字・数字・`-`。重ねない。画面では `#term-<id>` になる |
+| `term` | 必須 | 見出しの名前 |
+| `aliases` | 任意 | 別名・略さない名前・英語の名前の配列。検索で引ける |
+| `standard` | 11 の規格だけ | 学ぶ順の番号 (1〜11)。1 から 11 がそろうこと。10 は OAuth 2.0 と JWT の 2 語 |
+| `description` | 必須 | 短い説明 (1〜3 文)。出典の文を長く写さず、自分の言葉で書く |
+| `sources` | 必須 | 一次情報 (RFC・IANA・W3C / WHATWG・MDN・公式文書) の出典 `{ "label", "url" }` の配列 (1 つ以上、すべて `https://`)。RFC は `https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2` のように節まで指し、`label` は `RFC 9110 9.3.2` の形 |
+| `lessons` | 必須 | 語が出てくるレッスンの id の配列。**main にあるレッスンだけ**を書く。無ければ `[]` |
+
+```json
+{
+  "id": "head",
+  "term": "HEAD",
+  "description": "GET と同じですが、サーバーが応答に本文を入れないメソッドです。",
+  "sources": [{ "label": "RFC 9110 9.3.2", "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2" }],
+  "lessons": ["main-w1-l1"]
+}
+```
+
+検査 (`validateGlossary`) が見ること:
+
+- id の形と重なり。`term` と `aliases` が、ほかの語の名前と重ならないこと。比べるときは検索と同じ形にそろえる (NFKC・大文字小文字・ひらがなとカタカナ・ハイフンと中黒を無視) ので、`ＧＥＴ` と `get` も重なりになる
+- `sources` が 1 つ以上で、すべて https。RFC は節まで指すこと
+- `lessons` のレッスンが実在し (`src/content/index.ts` の `LESSONS`)、重ならないこと
+- 11 の規格 (`standard` の 1〜11) がそろうこと。表に無い欄を使わないこと
+
+書く前に、出典を `curl -sL` で実際に開き、節の番号と用語を本文で確かめます。確かめられなかった語は載せません。
+
+### 問題の PR が入ったあとに、レッスンへのリンクを足す
+
+語の `lessons` には main にあるレッスンしか書けません (無いレッスンを書くと検査が落ちる)。問題の PR がマージされたら、次の順で足します。
+
+1. main を取り込み、入ったレッスンの id を出す: `node -e "for (const f of require('fs').readdirSync('src/content/courses', { recursive: true })) if (f.endsWith('.json')) for (const l of require('./src/content/courses/' + f).lessons) console.log(l.id, l.title)"`
+2. 語ごとに、問題文・コード・解説にその語 (か別名) が出るレッスンを探す (例: `grep -l '"PUT' src/content/courses/*/*.json`)
+3. その語の `lessons` に id を足す。同じレッスンを 2 度書かない
+4. `npx vitest run tests/glossary.test.ts` が通ることを確かめる。問題の PR に無い語を見つけたら、上の手順で出典を確かめて語を足す
