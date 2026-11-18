@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { lessonsOf } from '../src/content/index';
 
 // 要件 R-12: セキュリティのコースは、各レッスンと実習に「試すのは自分で用意したラボの中だけ」の注意を書く
-const PHRASES = ['自分で用意したラボの中だけ', '不正アクセス禁止法'];
+// 句の一部だけを見ると、打ち消しの文 (「…ラボの中だけでなく、どこで試しても構いません」) でも通ってしまうので、文として見る
+const PHRASES = ['試すのは自分で用意したラボの中だけにしてください', '他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます'];
 
 describe('セキュリティのコースの注意', () => {
   const lessons = lessonsOf('security');
