@@ -2,6 +2,7 @@ import { act, createElement } from 'react';
 import { createRoot } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { isInternalClick, scrollToTop, useRoute } from '../src/lib/route';
+import { useMobileNav } from '../src/lib/useMobileNav';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -43,8 +44,10 @@ describe('クリックを奪うかどうか (isInternalClick)', () => {
     expect(judge('/gantlo/plan/', {}, { target: '_blank' }).result).toBeNull();
     expect(judge('/gantlo/plan/', {}, { download: '' }).result).toBeNull();
   });
-  it('別のサイトと、置き場所の外は奪わない', () => {
-    expect(judge('https://github.com/maco165/gantlo').result).toBeNull();
+  it('別のサイトは、道が置き場所と同じ形でも奪わない', () => {
+    expect(judge('https://example.com/gantlo/plan/').result).toBeNull();
+  });
+  it('同じサイトでも置き場所の外は奪わない', () => {
     expect(judge('/other/').result).toBeNull();
   });
 });
@@ -59,6 +62,26 @@ describe('画面を移ったら先頭へ戻す (scrollToTop)', () => {
     scrollToTop();
     expect(spy).toHaveBeenCalledWith(0, 0);
     main.remove();
+  });
+});
+
+describe('スマホのメニューの開閉 (useMobileNav)', () => {
+  it('開いたあと、nav が変わったら閉じる', async () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    let state: [boolean, (o: boolean) => void] = [false, () => {}];
+    function Probe({ nav }: { nav: number }) {
+      state = useMobileNav(nav);
+      return null;
+    }
+    const root = createRoot(host);
+    await act(async () => root.render(createElement(Probe, { nav: 0 })));
+    await act(async () => state[1](true));
+    expect(state[0]).toBe(true);
+    await act(async () => root.render(createElement(Probe, { nav: 1 })));
+    expect(state[0]).toBe(false);
+    await act(async () => root.unmount());
+    host.remove();
   });
 });
 

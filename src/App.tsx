@@ -3,12 +3,13 @@ import { InternationalizationProvider } from '@astryxdesign/core/i18n';
 import jaJP from '@astryxdesign/core/locales/ja-JP.generated.js';
 import { Theme } from '@astryxdesign/core/theme';
 import { gothicTheme } from '@astryxdesign/theme-gothic/built';
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import AppSideNav, { AppMobileNav } from './components/AppSideNav';
 import MobileBar from './components/MobileBar';
 import { COURSES, useRoute, type PageName, type Route } from './lib/route';
 import { SITE_NAME, SITE_TAGLINE } from './lib/site';
 import { NOT_FOUND, NOT_IMPLEMENTED } from './lib/status';
+import { useMobileNav } from './lib/useMobileNav';
 import Home from './screens/Home';
 import StatusPage from './screens/StatusPage';
 
@@ -25,9 +26,7 @@ export function titleOf(route: Route): string | null {
 export default function App() {
   const { route, nav } = useRoute();
   const title = titleOf(route);
-  // スマホのメニューは、リンクを押したら閉じる (同じ画面のリンクでも、戻るでも)
-  const [navOpen, setNavOpen] = useState(false);
-  useEffect(() => setNavOpen(false), [nav]);
+  const [navOpen, setNavOpen] = useMobileNav(nav);
   useEffect(() => {
     document.title = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | ガントチャートで計画する ${SITE_TAGLINE}`;
   }, [title]);

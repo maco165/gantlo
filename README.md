@@ -53,9 +53,6 @@ npm run build   # dist に書き出す
 ```
 
 `main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
-
-開発用の依存の `playwright` は、今はどの script からも使っていません。それでも入れているのは、vitest の任意の依存の先にあり、無いと npm の依存の解決が `Cannot read properties of null (reading 'edgesOut')` で落ちるためです (npm 9.2・10.9.2 で再現)。画面のテスト (e2e) を足すときに使います。
-
 ## まだ無いもの
 
 レッスンと問題、進捗の保存、計画のガントチャート、復習、用語集、画面ごとの HTML の書き出しは、これから作ります。メニューには「準備中」と出しています。

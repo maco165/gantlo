@@ -8,6 +8,10 @@ describe('経路 (# の無い URL)', () => {
   it('トップはホーム', () => {
     expect(parseRoute('/gantlo/')).toEqual({ name: 'home' });
     expect(parseRoute('/gantlo')).toEqual({ name: 'home' });
+    expect(parseRoute('/gantlo/index.html')).toEqual({ name: 'home' });
+  });
+  it('末尾に index.html が付いた画面も開ける', () => {
+    expect(parseRoute('/gantlo/plan/index.html')).toEqual({ name: 'page', page: 'plan' });
   });
   it('メニューの画面を開ける (末尾の / はあってもなくてもよい)', () => {
     expect(parseRoute('/gantlo/plan/')).toEqual({ name: 'page', page: 'plan' });

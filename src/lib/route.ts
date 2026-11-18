@@ -20,8 +20,9 @@ export const COURSES: readonly { id: CourseId; title: string }[] = [
 
 /** URL の道 (pathname) から画面を決める。知らない道は 404 にする (ホームの中身を別の URL で重ねて出さない) */
 export function parseRoute(pathname: string): Route {
-  // 末尾の / を揃えてから比べる (/gantlo と /gantlo/ を同じに扱う)
-  const p = pathname.endsWith('/') ? pathname : `${pathname}/`;
+  // 末尾の index.html を落とし、末尾の / を揃えてから比べる (/gantlo・/gantlo/・/gantlo/index.html を同じに扱う)
+  const trimmed = pathname.replace(/\/index\.html$/, '/');
+  const p = trimmed.endsWith('/') ? trimmed : `${trimmed}/`;
   const rest = p.startsWith(BASE) ? p.slice(BASE.length) : p.replace(/^\//, '');
   const parts = rest.split('/').filter(Boolean);
   if (parts.length === 0) return { name: 'home' };
