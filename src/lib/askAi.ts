@@ -47,7 +47,10 @@ export function questionText(q: Question, answered?: AnswerState): string {
     if (q.code) lines.push('', '```' + q.code.format, q.code.text, '```');
     lines.push('', ...q.choices.map((c, i) => `${letter(i)}. ${c.text}`));
   } else if (q.kind === 'order') {
-    lines.push('', ...q.items.map((it) => `- ${it.text}`));
+    // 項目は画面に出した並び (混ぜたもの) で書く。渡された並びが正しい順と同じなら、順が漏れないよう 1 つずらす
+    const items = [...q.items];
+    if (!answered && items.length >= 2 && items.every((it, i) => it.id === q.answer[i])) items.push(items.shift()!);
+    lines.push('', ...items.map((it) => `- ${it.text}`));
   } else {
     lines.push('', ...q.steps.map((s, i) => `${i + 1}. ${s.text}${s.command ? `: ${s.command}` : ''}`));
   }
