@@ -8,6 +8,23 @@
   color-scheme: dark;
 }
 
+/*
+ * 狭い画面 (768px 未満。AppShell がスマホの形になる境目) では、押せる部品の高さを 44px にそろえる。
+ * Astryx のボタン・入力欄は高さを --size-element-sm/md/lg で決めるので、ページごとに書かずトークンの側で上げる
+ */
+@media (max-width: 767.98px) {
+  :root {
+    --size-element-sm: 44px;
+    --size-element-md: 44px;
+    --size-element-lg: 44px;
+  }
+  /* 4 択と実習の手順の行も、行ごと押せる高さを 44px にする (Astryx の部品の名前の class で、どの画面にも効かせる) */
+  .astryx-radio-list-item,
+  .astryx-checkbox-list .astryx-item {
+    min-height: var(--size-element-lg);
+  }
+}
+
 body {
   background: var(--color-background-body);
   color: var(--color-text-primary);
