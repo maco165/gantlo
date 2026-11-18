@@ -23,17 +23,26 @@ export type GlossaryTerm = {
 export const STANDARD_COUNT = 11;
 
 /**
- * 検索のための形にそろえる。NFKC で全角英数・半角カナを揃え、大文字と小文字を区別せず、
- * ひらがなをカタカナにし、語の中のハイフンと中黒を消す (ＨＴＴＰ と http、ﾘｿｰｽ と りそーす と リソース を同じに扱う)
+ * 検索のための形にそろえる。NFKC で全角英数・半角カナをそろえ、大文字と小文字を区別せず、ひらがなをカタカナにする。
+ * ハイフン・「/」・「.」は英数字に挟まれたときだけ消し (content-type と contenttype、HTTP/2 と http2、TLS 1.3 の 1.3 と 13)、
+ * 語の頭のハイフン (curl の -I など) は残す。中黒は消す (ＨＴＴＰ と http、ﾘｿｰｽ と りそーす と リソース を同じに扱う)
  */
 export function normalizeText(s: string): string {
   return s
     .normalize('NFKC')
     .toLowerCase()
-    .replace(/[ぁ-ゖ]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
-    .replace(/[-‐・]/g, '')
+    .replace(/[\u3041-\u3096]/g, (c) => String.fromCharCode(c.charCodeAt(0) + 0x60))
+    .replace(/(?<=[a-z0-9])[-‐./](?=[a-z0-9])/g, '')
+    .replace(/・/g, '')
     .replace(/\s+/g, ' ')
     .trim();
+}
+
+/** 名前の比べる形。そろえた形と、空白を抜いた形 (TLS 1.3 を TLS1.3 でも、OAuth 2.0 を OAuth2 でも引ける) */
+function nameForms(name: string): string[] {
+  const n = normalizeText(name);
+  const compact = n.replace(/ /g, '');
+  return compact === n ? [n] : [n, compact];
 }
 
 /** 用語・別名のどれかと語が完全一致なら 0、先頭一致なら 1、部分一致なら 2、当たらなければ 3 */
@@ -58,7 +67,7 @@ export function searchTerms<T extends GlossaryTerm>(terms: readonly T[], query: 
   if (words.length === 0) return [...terms];
   const hits: { t: T; rank: number; i: number }[] = [];
   terms.forEach((t, i) => {
-    const names = [t.term, ...(t.aliases ?? [])].map(normalizeText);
+    const names = [t.term, ...(t.aliases ?? [])].flatMap(nameForms);
     const all = `${names.join(' ')} ${normalizeText(t.description)}`;
     if (!words.every((w) => all.includes(w))) return;
     hits.push({ t, rank: nameRank(names, words), i });
@@ -122,6 +131,8 @@ export function validateGlossary(data: unknown, knownLessonIds: ReadonlySet<stri
           errors.push(`${where}: sources は label と https の url を持ちます`);
           continue;
         }
+        // 書き出す HTML の属性に入るので、空白・" < > を持たない (書き出しでも escape する)
+        if (/[\s"<>]/.test(s.url as string)) errors.push(`${where}: url に空白・" < > を入れません (${String(s.url)})`);
         // RFC は節まで指す (https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2 の形)
         const url = s.url as string;
         if (new URL(url).hostname === 'www.rfc-editor.org' && !/^https:\/\/www\.rfc-editor\.org\/rfc\/rfc\d+#section-\d+(?:\.\d+)*$/.test(url)) errors.push(`${where}: RFC の出典は節まで指します (${url})`);

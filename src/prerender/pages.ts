@@ -57,14 +57,15 @@ const HOME_DESCRIPTION =
 export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 /** 説明は検索の結果で切られない長さに収める (末尾は …) */
 export const clip = (s: string, n = 120) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
-const a = (href: string, text: string) => `<a href="${href}">${esc(text)}</a>`;
+// href も escape する (用語集の出典の URL などデータから来る値が属性を閉じないように)
+const a = (href: string, text: string) => `<a href="${esc(href)}">${esc(text)}</a>`;
 const back = `<p>${a(homeHref, `${SITE_NAME} のホーム`)}</p>`;
 /** BASE からの相対の道 (ディレクトリの名前に使う) */
 const rel = (href: string) => href.slice(BASE.length);
 const titleOfPath = (href: string) => documentTitle(parseRoute(href));
 
 /** 用語集の本文 (検索に載せるので、画面と同じ語・説明・出典を書く。画面を描くと React が置き換える) */
-function glossaryBody(): string[] {
+export function glossaryBody(sorted: { standards: readonly GlossaryTerm[]; others: readonly GlossaryTerm[] } = SORTED): string[] {
   const dl = (terms: readonly GlossaryTerm[]) =>
     `<dl>${terms
       .map(
@@ -72,7 +73,7 @@ function glossaryBody(): string[] {
           `<dt id="term-${t.id}">${esc(t.term)}${t.aliases?.length ? ` (${esc(t.aliases.join(' · '))})` : ''}</dt><dd>${esc(t.description)} 出典: ${t.sources.map((s) => a(s.url, s.label)).join('・')}</dd>`,
       )
       .join('')}</dl>`;
-  return ['<h2>11 の規格</h2>', dl(SORTED.standards), '<h2>問題に出る用語</h2>', dl(SORTED.others)];
+  return ['<h2>11 の規格</h2>', dl(sorted.standards), '<h2>問題に出る用語</h2>', dl(sorted.others)];
 }
 
 /** すべてのページ。順は sitemap の順 (ホーム → メニューの画面 → コース → レッスン)。lessons はテストで差し替える */

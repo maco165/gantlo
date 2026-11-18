@@ -8,7 +8,7 @@ import { SORTED, TERMS } from '../src/content/glossary';
 import { LESSONS } from '../src/content/index';
 import { normalizeText, searchTerms, STANDARD_COUNT, validateGlossary, type GlossaryTerm } from '../src/lib/glossary';
 import { glossaryStatus } from '../src/lib/status';
-import { sitePages } from '../src/prerender/pages';
+import { glossaryBody, sitePages } from '../src/prerender/pages';
 import Glossary from '../src/screens/Glossary';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -75,6 +75,8 @@ describe('validateGlossary', () => {
     expect(check([{ ...ok, alias: ['x'] }]).join()).toMatch(/alias という欄/);
     expect(check([{ ...ok, standard: 12 }]).join()).toMatch(/standard は 1〜11/);
     expect(check([null]).join()).toMatch(/オブジェクト/);
+    for (const bad of ['https://example.com/a b', 'https://example.com/"x', 'https://example.com/<x>'])
+      expect(check([{ ...ok, sources: [{ label: 'x', url: bad }] }]).join(), bad).toMatch(/空白・" < >/);
     expect(validateGlossary({ terms: [ok] }, new Set(['l1'])).join()).toMatch(/11 の規格の 1 番/);
     expect(validateGlossary({}, new Set())).toEqual(['terms の配列がありません']);
   });
@@ -110,6 +112,44 @@ describe('searchTerms (全角で探せる)', () => {
     expect(ids('   ')).toHaveLength(TERMS.length);
     expect(ids('zzzz-nothing')).toEqual([]);
   });
+  it('版の付いた名前・記号を抜いた名前でも、期待の語を先頭に返す (G-001)', () => {
+    const cases: [string, string][] = [
+      ['TLS 1.3', 'tls'],
+      ['TLS1.3', 'tls'],
+      ['ＴＬＳ１．３', 'tls'],
+      ['OAuth2', 'oauth2'],
+      ['OAuth 2.0', 'oauth2'],
+      ['http2', 'http'],
+      ['HTTP/2', 'http'],
+      ['HTTP/3', 'http'],
+      ['tcpip', 'tcp-ip'],
+      ['TCP/IP', 'tcp-ip'],
+      ['-I', 'curl'],
+      ['contenttype', 'content-type'],
+    ];
+    for (const [q, id] of cases) expect(ids(q)[0], q).toBe(id);
+  });
+  it('版の付いた名前は、説明ではなく用語・別名で当たる (説明を空にしても先頭に出る)', () => {
+    const namesOnly = TERMS.map((t) => ({ ...t, description: '' }));
+    const cases: [string, string][] = [
+      ['TLS1.3', 'tls'],
+      ['OAuth2', 'oauth2'],
+      ['HTTP/2', 'http'],
+      ['HTTP/3', 'http'],
+      ['tcpip', 'tcp-ip'],
+    ];
+    for (const [q, id] of cases) expect(searchTerms(namesOnly, q)[0]?.id, q).toBe(id);
+  });
+  it('語の頭のハイフンは残す (「-I」が「i」になって多くの語に当たらない)', () => {
+    expect(normalizeText('-I')).toBe('-i');
+    expect(ids('-I').length).toBeLessThanOrEqual(2);
+  });
+  it('ハイフン・「/」・「.」は英数字に挟まれたときだけ消す', () => {
+    expect(normalizeText('HTTP/2')).toBe('http2');
+    expect(normalizeText('TLS 1.3')).toBe('tls 13');
+    expect(normalizeText('Content-Type')).toBe('contenttype');
+    expect(normalizeText('a / b')).toBe('a / b');
+  });
   it('探した結果のステータス: 当たれば 200、無ければ 204', () => {
     expect(glossaryStatus(3, 'http').code).toBe(200);
     expect(glossaryStatus(0, 'zzzz').code).toBe(204);
@@ -139,6 +179,13 @@ describe('用語集の画面と書き出し', () => {
     expect(head.querySelector('a[href="/gantlo/lesson/main-w1-l1/"]')).not.toBeNull();
     // 出てくるレッスンが無い語は、レッスンの行を出さない
     expect(host.querySelector('article[data-term="utf-8"]')!.textContent).not.toContain('出てくるレッスン');
+  });
+
+  it('書き出す用語集の本文は、出典の URL を属性の中で escape する (G-002)', () => {
+    const t: GlossaryTerm = { id: 'x', term: 'X', description: 'd', sources: [{ label: 'L', url: 'https://example.com/?a=1&b="2"><script>' }], lessons: [] };
+    const html = glossaryBody({ standards: [], others: [t] }).join('');
+    expect(html).toContain('href="https://example.com/?a=1&amp;b=&quot;2&quot;&gt;&lt;script&gt;"');
+    expect(html).not.toContain('<script>');
   });
 
   it('書き出す用語集のページは、全部の語と出典を本文に持つ (検索に載せる)', () => {
