@@ -53,6 +53,19 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
         `${tag} ${label}: 押せる範囲が ${MIN_TARGET}px 以上 (${boxes.length} 個${small.length ? `、届かない ${small.map((b) => (b ? `${Math.round(b.width)}x${Math.round(b.height)}` : '見えない')).join(' ')}` : ''})`,
       );
     };
+    /**
+     * 画面が条件を満たすまで 5 秒だけ待つ。待ち切れたら FAIL の行に理由を出して先へ進む
+     * (検査全体を止めず、後ろの検査も走らせる)。満たしたかを返す
+     */
+    const waitUntil = async (fn, arg, label) => {
+      try {
+        await page.waitForFunction(fn, arg, { timeout: 5000 });
+        return true;
+      } catch {
+        check(false, `${tag} ${label} (5 秒待っても満たさない)`);
+        return false;
+      }
+    };
     const stat = async (k) => (await page.locator(`[data-stat="${k}"] dd`).innerText()).trim();
     const code = async () => (await page.locator('.status__code').first().innerText()).trim();
 
@@ -114,6 +127,8 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
     // 3. 用語集
     await page.goto(`${base}glossary/`);
     await page.getByRole('heading', { name: '用語集', exact: true }).waitFor();
+    // 用語集の画面とデータは開いたときに読む (App.tsx の lazy)。読み終えて語が出るまで待つ
+    await waitUntil(() => document.querySelectorAll('article.gloss').length > 0, undefined, '用語集の画面を読み込んで語が出る');
     check((await page.title()).startsWith('用語集'), `${tag} ページの題が「用語集」で始まる`);
     const all = page.locator('article.gloss');
     check((await all.count()) === TERM_COUNT, `${tag} 全部の語 (${TERM_COUNT}) が出る (${await all.count()})`);
@@ -156,19 +171,25 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
 
     // 4. 全角で探せる
     await search.fill('ＨＴＴＰ');
-    await page.waitForFunction(() => document.querySelector('article.gloss')?.getAttribute('data-term') === 'http');
-    check((await all.first().getAttribute('data-term')) === 'http', `${tag} 全角の「ＨＴＴＰ」で HTTP が先頭に見つかる`);
+    await waitUntil(() => document.querySelector('article.gloss')?.getAttribute('data-term') === 'http', undefined, '全角の「ＨＴＴＰ」で先頭が http になる');
+    {
+      const first = await page.evaluate(() => document.querySelector('article.gloss')?.getAttribute('data-term') ?? null);
+      check(first === 'http', `${tag} 全角の「ＨＴＴＰ」で HTTP が先頭に見つかる (先頭 ${first})`);
+    }
     check((await code()) === '200' && (await page.getByText(/語が見つかりました$/).isVisible()), `${tag} 見つかったら 200 と語の数`);
     await target(page.getByRole('button', { name: '用語を探す をクリア' }), '探す欄を消すボタン');
     await search.fill('ﾘｿｰｽ');
-    await page.waitForFunction(() => document.querySelector('article.gloss')?.getAttribute('data-term') === 'resource');
-    check((await all.first().getAttribute('data-term')) === 'resource', `${tag} 半角カナの「ﾘｿｰｽ」でリソースが先頭に見つかる`);
+    await waitUntil(() => document.querySelector('article.gloss')?.getAttribute('data-term') === 'resource', undefined, '半角カナの「ﾘｿｰｽ」で先頭が resource になる');
+    {
+      const first = await page.evaluate(() => document.querySelector('article.gloss')?.getAttribute('data-term') ?? null);
+      check(first === 'resource', `${tag} 半角カナの「ﾘｿｰｽ」でリソースが先頭に見つかる (先頭 ${first})`);
+    }
     await search.fill('ｚｚｚ存在しない語');
-    await page.locator('.status__code', { hasText: '204' }).waitFor();
+    await waitUntil(() => document.querySelector('.status__code')?.textContent === '204', undefined, '当たらない語で 204 になる');
     check((await all.count()) === 0, `${tag} 当たらなければ 204 で、語は出ない`);
     await noHorizontalOverflow(page, width, `${tag} 用語集 (当たらない)`);
     await search.fill('');
-    await page.waitForFunction((n) => document.querySelectorAll('article.gloss').length === n, TERM_COUNT);
+    await waitUntil((n) => document.querySelectorAll('article.gloss').length === n, TERM_COUNT, '探す語を消すと全部の語に戻る');
     check((await all.count()) === TERM_COUNT, `${tag} 探す語を消すと全部に戻る`);
 
     // 5. 出てくるレッスンのリンクで、そのレッスンが開く
