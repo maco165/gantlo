@@ -14,7 +14,7 @@
           "code": "curl {{blank}} https://example.com/",
           "blanks": [{ "answers": ["-I", "--head"] }],
           "output": "HTTP/2 200\ncontent-type: text/html\n...",
-          "explanation": "-I (--head) は HEAD メソッドで要求を送り、返ってきたステータス行とヘッダーだけを出します。HEAD は GET と同じヘッダーを返し、本文を返さないメソッドです (RFC 9110 9.3.2)。",
+          "explanation": "-I (--head) は HEAD メソッドで要求を送り、返ってきたステータス行とヘッダーだけを出します。HEAD は原則として GET と同じヘッダーを返し (SHOULD)、本文は返さないメソッドです。本文を作るときに決まるヘッダーは省かれることがあります (MAY、RFC 9110 9.3.2)。",
           "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2"]
         },
         {
