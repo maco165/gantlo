@@ -190,7 +190,7 @@ const orderBars = (page) =>
   page.locator('[data-testid="order-rows"] > li').evaluateAll((ls) =>
     ls.map((l) => {
       const bar = l.querySelector('.order__bar');
-      return { id: l.dataset.item, ok: l.dataset.ok === 'true', left: parseFloat(bar?.style.left ?? 'NaN'), color: bar ? getComputedStyle(bar).backgroundColor : '', wrongClass: l.classList.contains('order__row--wrong') };
+      return { id: l.dataset.item, ok: l.dataset.ok === 'true', mark: l.querySelector('.order__mark')?.textContent ?? '', left: parseFloat(bar?.style.left ?? 'NaN'), color: bar ? getComputedStyle(bar).backgroundColor : '', wrongClass: l.classList.contains('order__row--wrong') };
     }),
   );
 /** テーマのトークンの色を、計算済みの rgb で読む */
@@ -475,7 +475,11 @@ async function run(browser, name, width, height) {
   check(wrongRows > 0 && wrongRows < mixedOrder.length, `${tag} 確かめる並びに正しい位置の行と違う位置の行が両方ある (${mixedOrder.join(',')})`);
   check(
     bars.every((b) => (b.ok ? !b.wrongClass && b.color === successColor : b.wrongClass && b.color === errorColor)) && bars.filter((b) => !b.ok).length === wrongRows,
-    `${tag} 違う位置の行 (${wrongRows} 行) は誤りの色、正しい位置の行は成功の色 (${bars.map((b) => (b.ok ? 'o' : 'x')).join('')})`,
+    `${tag} 違う位置の行 (${wrongRows} 行) は誤りの色、正しい位置の行は成功の色 (${bars.map((b) => (b.ok ? 'o' : 'x')).join('')}; ${bars.map((b) => b.color).join(' / ')}; 誤り ${errorColor}・成功 ${successColor})`,
+  );
+  check(
+    bars.every((b) => (b.ok ? b.mark.includes('正しい位置') : b.mark.includes(`正しくは ${qOrder.answer.indexOf(b.id) + 1} 行目`))),
+    `${tag} 違う位置の行に「正しくは <正しい順での位置> 行目」が出る (${bars.map((b) => b.mark).join(' / ')})`,
   );
   check(
     bars.every((b) => Math.abs(b.left - (qOrder.answer.indexOf(b.id) / qOrder.answer.length) * 100) < 0.01),
@@ -505,7 +509,6 @@ async function run(browser, name, width, height) {
     `${tag} 完了画面の一覧は答えの画面と同じコード (コマンド 200・メディアタイプの誤り 415・並べ替えの誤り 409・4 択 200・実習 200) (${listCodes.join(',')})`,
   );
   await noHorizontalOverflow(page, width, `${tag} 完了 201 (2 周目)`);
-
 
   // 知らないレッスンは 404。左のメニューはそのまま
   await page.goto(`${BASE}lesson/no-such-lesson/`);
