@@ -135,8 +135,8 @@
             { "id": "d", "text": "https://user@example.com:8443", "why": "https は scheme で、authority には入りません。authority は // の後ろから始まります。" }
           ],
           "answer": "a",
-          "explanation": "authority は // の後ろから、次の /・?・# か URI の終わりまでです (RFC 3986 3.2)。中身は [ userinfo \"@\" ] host [ \":\" port ] で、ここでは user が userinfo、example.com が host、8443 が port です。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc3986#section-3.2"]
+          "explanation": "authority は // の後ろから、次の /・?・# か URI の終わりまでです (RFC 3986 3.2)。中身は [ userinfo \"@\" ] host [ \":\" port ] で、ここでは user が userinfo、example.com が host、8443 が port です。なお RFC 9110 4.2.4 は、http と https の URI を要求の対象やヘッダーの値としてメッセージに書くとき、userinfo (と @) を作ってはならない (MUST NOT) としています。この問いは構文の切り分けのための例です。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3986#section-3.2", "https://www.rfc-editor.org/rfc/rfc9110#section-4.2.4"]
         },
         {
           "id": "main-w1-l2-q3",
@@ -144,7 +144,7 @@
           "format": "http",
           "prompt": "https://example.com:8443/search?q=api#top を HTTP/1.1 で直接サーバーに取りに行きます。要求の行の宛先と、Host ヘッダーの値を埋めてください。",
           "code": "GET {{blank}} HTTP/1.1\nHost: {{blank}}",
-          "blanks": [{ "answers": ["/search?q=api"] }, { "answers": ["example.com:8443"] }],
+          "blanks": [{ "answers": ["/search?q=api"] }, { "answers": ["example.com:8443", "EXAMPLE.COM:8443", "Example.com:8443", "Example.Com:8443"] }],
           "explanation": "オリジンサーバーに直接送るとき、クライアントは要求の行に URI の path と query だけを書かなければなりません (MUST、RFC 9112 3.2.1 の origin-form)。fragment は要求の対象から外れるので #top は送りません (RFC 9110 7.1)。host と port は Host ヘッダーで伝えます (RFC 9110 7.2、Host = uri-host [ \":\" port ])。https の既定の 443 ではないので port も書きます。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc9112#section-3.2.1",
@@ -201,11 +201,11 @@
           "choices": [
             { "id": "a", "text": "%E3%81%82" },
             { "id": "b", "text": "%30%42", "why": "文字の番号 3042 を 2 桁ずつ区切っただけです。% 符号化するのは文字の番号ではなく、符号化したバイト列です。" },
-            { "id": "c", "text": "%82%A0", "why": "Shift_JIS で符号化したバイト列です。RFC 3986 は UTF-8 のバイト列にしてから % 符号化することを勧めています。" },
+            { "id": "c", "text": "%82%A0", "why": "Shift_JIS で符号化したバイト列です。RFC 3986 2.5 は、新しい scheme の部品で文字を表すときは UTF-8 にしてから % 符号化するよう勧めています。" },
             { "id": "d", "text": "あ (そのまま書く)", "why": "URI に書ける文字は ASCII の決まった集合だけです。その外の文字はバイト列にして % 符号化します。" }
           ],
           "answer": "a",
-          "explanation": "RFC 3986 2.5 は、文字のデータはまず UTF-8 でバイト列にし、使えない文字のバイトを % 符号化すべき (should) としています。「あ」は UTF-8 で E3 81 82 の 3 バイトなので %E3%81%82 です (UTF-8 の形は RFC 3629 3)。",
+          "explanation": "RFC 3986 2.5 は、新しい scheme の部品で文字を表すときは、まず UTF-8 でバイト列にし、unreserved でないバイトを % 符号化するよう勧めています (should)。2.5 は例として、カタカナの「ア」を %E3%82%A2 と書いています。「あ」は UTF-8 で E3 81 82 の 3 バイトなので %E3%81%82 です (UTF-8 の形は RFC 3629 3)。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc3986#section-2.5", "https://www.rfc-editor.org/rfc/rfc3629#section-3"]
         },
         {
@@ -530,7 +530,7 @@
             { "text": "ある資源を取りに行く", "command": "curl -v http://127.0.0.1:8000/hello.json" },
             { "text": "無い資源を取りに行く", "command": "curl -v -o /dev/null http://127.0.0.1:8000/nope.json" }
           ],
-          "expected": "hello.json では < HTTP/1.0 200 OK と、.json に合う Content-type (手元の Python 3.14 では application/json) が出て、本文に {\"ok\": true} が出ます。nope.json では < HTTP/1.0 404 File not found が出ます。どちらにも < Server: SimpleHTTP/... の行があり、サーバーの端末には要求ごとに 1 行の記録が出ます。",
+          "expected": "hello.json では < HTTP/1.0 200 OK と、.json に合う Content-type (手元の Python 3.14 では application/json) が出て、本文に {\"ok\": true} が出ます。nope.json では < HTTP/1.0 404 File not found が出ます。どちらにも < Server: SimpleHTTP/... の行があり、サーバーの端末には要求ごとに記録の行が出ます (404 などの誤りでは、理由を書いた行も先に出ます)。",
           "explanation": "python3 -m http.server は今いるフォルダのファイルを配る試験用のサーバーで、既定は 8000 番、--bind で待ち受けるアドレスを決めます。公式の文書は本番には勧めないと書いているので、127.0.0.1 に限って使います。404 は資源が見つからないことを表します (RFC 9110 15.5.5)。File not found のような理由の句はサーバーが選ぶ文で、クライアントは中身を無視すべき (SHOULD) とされています (RFC 9112 4)。意味を決めるのは数字です。",
           "sources": [
             "https://docs.python.org/3/library/http.server.html",
