@@ -1,0 +1,254 @@
+{
+  "lessons": [
+    {
+      "id": "tech-history-l9",
+      "title": "MIME タイプ",
+      "course": "tech-history",
+      "stage": "mime",
+      "questions": [
+        {
+          "id": "tech-history-l9-q1",
+          "kind": "choice",
+          "prompt": "以前の困りごと: MIME の最初の RFC 1341 は、それまでのメールの形式 (RFC 822) の何が足りないと書いていますか。",
+          "choices": [
+            { "id": "a", "text": "本文が US-ASCII の文字だけを前提にしていて、音声や画像、アジアの言語の文章を送る仕組みが無い" },
+            { "id": "b", "text": "メールの宛先を 1 人しか書けない", "why": "RFC 1341 が挙げているのは宛先の数ではなく、本文の種類と文字の集合の不足です。" },
+            { "id": "c", "text": "メールが暗号化されていない", "why": "暗号化は RFC 1341 の扱う不足ではありません。" },
+            { "id": "d", "text": "メールの件名を書く欄が無い", "why": "RFC 822 には件名の欄があります。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 1341 (1992 年 6 月、N. Borenstein と N. Freed) は、RFC 822 は US-ASCII の文章のメッセージしか想定しておらず、US-ASCII より豊かな文字の集合を要する言語の利用者には足りないこと、音声・動画・アジアの言語の文章のための仕組みが無いことを挙げています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc1341"]
+        },
+        {
+          "id": "tech-history-l9-q2",
+          "kind": "choice",
+          "prompt": "答え: MIME を定めた最初の RFC 1341 の著者と年の組み合わせはどれですか。",
+          "choices": [
+            { "id": "a", "text": "N. Borenstein と N. Freed、1992 年" },
+            { "id": "b", "text": "T. Berners-Lee、1994 年", "why": "1994 年の Berners-Lee の RFC は URI の RFC 1630 です。" },
+            { "id": "c", "text": "P. Mockapetris、1983 年", "why": "1983 年の Mockapetris の RFC は DNS の RFC 882・883 です。" },
+            { "id": "d", "text": "D. Crockford、2006 年", "why": "2006 年の Crockford の RFC は JSON の RFC 4627 です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 1341 の冒頭は、N. Borenstein (Bellcore)、N. Freed (Innosoft)、1992 年 6 月です。今の MIME の第 1 部は RFC 2045 (1996 年 11 月、Freed と Borenstein) で、RFC 1521 などを置き換えています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc1341", "https://www.rfc-editor.org/rfc/rfc2045"]
+        },
+        {
+          "id": "tech-history-l9-q3",
+          "kind": "http",
+          "format": "http",
+          "prompt": "今: HTTP は MIME のメディアタイプをそのまま使って、本文の種類を伝えます。PNG の画像を返すレスポンスの空欄を埋めてください。",
+          "code": "HTTP/1.1 200 OK\n{{blank}}: {{blank}}\nContent-Length: 2048\n\n(PNG の画像のバイト列)",
+          "blanks": [
+            { "answers": ["Content-Type"], "match": "header-name" },
+            { "answers": ["image/png"], "match": "media-type" }
+          ],
+          "explanation": "RFC 9110 の第 8.3.1 節は、HTTP はメディアタイプ (RFC 2046) を Content-Type と Accept のヘッダーで使う、と書いています。メディアタイプは type/subtype の形で、PNG は image/png です。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-8.3.1", "https://www.rfc-editor.org/rfc/rfc9110#section-8.3"]
+        },
+        {
+          "id": "tech-history-l9-q4",
+          "kind": "choice",
+          "prompt": "RFC 9110 によると、HTTP がメールの世界から借りたメディアタイプを使うヘッダーの組み合わせはどれですか。",
+          "choices": [
+            { "id": "a", "text": "Content-Type と Accept" },
+            { "id": "b", "text": "Host と User-Agent", "why": "どちらもメディアタイプを値に取るヘッダーではありません。" },
+            { "id": "c", "text": "Authorization と Cookie", "why": "認証と状態のヘッダーで、メディアタイプとは関係ありません。" },
+            { "id": "d", "text": "Content-Length と Date", "why": "長さと日時のヘッダーです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9110 の第 8.3.1 節に「HTTP uses media types [RFC2046] in the Content-Type (Section 8.3) and Accept (Section 12.5.1) header fields」とあります。RFC 2046 は MIME の第 2 部です。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-8.3.1"]
+        },
+        {
+          "id": "tech-history-l9-q5",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "API に「JSON で返してほしい」と伝えるために、Accept のヘッダーを付けて送ります。ヘッダーを足す curl のオプションを埋めてください。",
+          "code": "curl {{blank}} \"Accept: application/json\" https://example.com/",
+          "blanks": [{ "answers": ["-H", "--header"] }],
+          "explanation": "-H (--header) は要求にヘッダーを足します (curl のマニュアル)。Accept はクライアントが受け取りたいメディアタイプを伝えるヘッダーで、MIME のメディアタイプを値に取ります (RFC 9110 の 8.3.1 と 12.5.1)。",
+          "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1"]
+        },
+        {
+          "id": "tech-history-l9-q6",
+          "kind": "lab",
+          "prompt": "実際の Web サーバーが、本文の種類をメディアタイプで伝えていることを見てください。",
+          "steps": [
+            { "text": "端末で次を 1 回だけ打つ (ヘッダーだけを取る)", "command": "curl -sI https://example.com/" },
+            { "text": "出てきたヘッダーの中から content-type の行を探す" }
+          ],
+          "expected": "content-type: text/html の行が出ます (後ろに charset などの引数が付くこともあります)。HTML の文書であることを、メールと同じ type/subtype の形で伝えています。",
+          "explanation": "-I は HEAD で要求し、ヘッダーだけを出します (curl のマニュアル)。Content-Type は本文のメディアタイプを示すヘッダーです (RFC 9110 の 8.3)。",
+          "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-8.3"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l10",
+      "title": "UTF-8",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l10-q1",
+          "kind": "choice",
+          "prompt": "答え: RFC 3629 によると、UTF-8 はいつ、誰が考えましたか。",
+          "choices": [
+            { "id": "a", "text": "1992 年 9 月、Ken Thompson が Rob Pike の示した設計の条件に沿って" },
+            { "id": "b", "text": "1991 年、Unicode コンソーシアムが Unicode 1.0 と一緒に", "why": "Unicode 1.0.0 は 1991 年 10 月ですが、UTF-8 は RFC 3629 によると 1992 年 9 月に Thompson が考えました。" },
+            { "id": "c", "text": "2003 年、F. Yergeau が", "why": "Yergeau は 2003 年の RFC 3629 の著者で、UTF-8 を考えた人ではありません。" },
+            { "id": "d", "text": "1989 年、Tim Berners-Lee が WWW と一緒に", "why": "WWW の発明と UTF-8 は別のものです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 3629 の第 1 節に、UTF-8 は 1992 年 9 月に Ken Thompson が、Rob Pike の示した設計の条件に導かれて考えた、とあります。Thompson の設計は X/Open の XOJIG で標準化され、FSS-UTF、UTF-2 を経て UTF-8 という名になりました。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3629#section-1"]
+        },
+        {
+          "id": "tech-history-l10-q2",
+          "kind": "choice",
+          "prompt": "RFC 3629 によると、UTF-8 はもともと何に使うために考えられましたか。",
+          "choices": [
+            { "id": "a", "text": "Plan 9 のオペレーティングシステムで、今までのものを壊さずに UCS を扱うため" },
+            { "id": "b", "text": "Web のページを速く読み込むため", "why": "RFC 3629 は、Plan 9 で使える変換の形式を作ることが目的だったと書いています。" },
+            { "id": "c", "text": "JSON の文字コードを決めるため", "why": "JSON の RFC 4627 は 2006 年で、UTF-8 (1992 年) よりずっと後です。" },
+            { "id": "d", "text": "メールを暗号化するため", "why": "UTF-8 は文字の符号化の方式で、暗号ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 3629 の第 1 節は、目的を「Plan9 のオペレーティングシステムで、混乱を起こさずに使える UCS の変換の形式を決めること」と書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3629#section-1"]
+        },
+        {
+          "id": "tech-history-l10-q3",
+          "kind": "choice",
+          "prompt": "以前の困りごと: それまでの UCS の符号化は、多くのアプリや規約と合いませんでした。RFC 3629 が挙げる UTF-8 の性質はどれですか。",
+          "choices": [
+            { "id": "a", "text": "US-ASCII の範囲をそのまま保ち、US-ASCII の値に頼るソフトと合う" },
+            { "id": "b", "text": "どの文字もちょうど 2 バイトで表す", "why": "UTF-8 は 1〜4 バイトの可変長です。ASCII の文字は 1 バイトのままです。" },
+            { "id": "c", "text": "Shift_JIS と同じバイト列になる", "why": "UTF-8 は Shift_JIS と互換ではありません。互換なのは US-ASCII の範囲です。" },
+            { "id": "d", "text": "英語の文字を 4 バイトにして読みやすくする", "why": "US-ASCII の文字は 1 バイトのままです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 3629 の要旨は、もとの UCS の符号化は今のアプリや規約の多くと合わず、それが UTF-8 を生んだとし、UTF-8 は US-ASCII の範囲をそのまま保つので、ファイルシステムや構文解析器など US-ASCII の値に頼るソフトと合う、と書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3629"]
+        },
+        {
+          "id": "tech-history-l10-q4",
+          "kind": "order",
+          "prompt": "Unicode と UTF-8 の出来事を、古い順に並べてください。",
+          "items": [
+            { "id": "uni", "text": "Unicode 1.0.0 が出る" },
+            { "id": "utf8", "text": "Ken Thompson が UTF-8 を考える" },
+            { "id": "rfc3629", "text": "RFC 3629 (UTF-8 の今の正本) が出る" },
+            { "id": "rfc8259", "text": "RFC 8259 が、閉じた環境の外でやり取りする JSON に UTF-8 を求める" }
+          ],
+          "answer": ["uni", "utf8", "rfc3629", "rfc8259"],
+          "explanation": "Unicode の版の発行日の表では 1.0.0 が 1991 年 10 月、UTF-8 は RFC 3629 によると 1992 年 9 月、RFC 3629 は 2003 年 11 月、RFC 8259 は 2017 年 12 月です。",
+          "sources": [
+            "https://www.unicode.org/history/publicationdates.html",
+            "https://www.rfc-editor.org/rfc/rfc3629#section-1",
+            "https://www.rfc-editor.org/rfc/rfc8259#section-8.1"
+          ]
+        },
+        {
+          "id": "tech-history-l10-q5",
+          "kind": "lab",
+          "prompt": "今: ASCII の文字と日本語の文字が、UTF-8 で何バイトになるかを手元で見てください。",
+          "steps": [
+            { "text": "端末 (UTF-8 の設定) で、A をバイトの 16 進で出す", "command": "printf 'A' | od -An -tx1" },
+            { "text": "同じように、あ をバイトの 16 進で出す", "command": "printf 'あ' | od -An -tx1" }
+          ],
+          "expected": "A は 41 の 1 バイト、あ は e3 81 82 の 3 バイトで出ます。",
+          "explanation": "RFC 3629 の第 3 節の表のとおり、U+0000〜U+007F (US-ASCII) は 1 バイトのまま、U+0800〜U+FFFF は 3 バイトの 1110xxxx 10xxxxxx 10xxxxxx で表します。あ は U+3042 なので e3 81 82 になります。ASCII の文字のバイトが変わらないのが、ASCII と合う理由です。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3629#section-3"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l11",
+      "title": "JSON",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l11-q1",
+          "kind": "choice",
+          "prompt": "答え: JSON のメディアタイプ application/json を定めた最初の RFC 4627 の著者と年の組み合わせはどれですか。",
+          "choices": [
+            { "id": "a", "text": "D. Crockford (JSON.org)、2006 年 7 月" },
+            { "id": "b", "text": "T. Bray、2017 年 12 月", "why": "Bray は 2017 年の RFC 8259 の編者です。最初の RFC 4627 は Crockford です。" },
+            { "id": "c", "text": "R. Fielding、2000 年", "why": "2000 年の Fielding は REST の博士論文です。" },
+            { "id": "d", "text": "N. Freed、1996 年", "why": "1996 年の Freed は MIME の RFC 2045 です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 4627「The application/json Media Type for JavaScript Object Notation (JSON)」の冒頭は D. Crockford (JSON.org)、2006 年 7 月で、分類は Informational です。今の正本は RFC 8259 (2017 年 12 月、T. Bray 編、Standards Track) です。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc4627", "https://www.rfc-editor.org/rfc/rfc8259"]
+        },
+        {
+          "id": "tech-history-l11-q2",
+          "kind": "choice",
+          "prompt": "RFC 4627 によると、JSON の書き方はどこから来ていますか。",
+          "choices": [
+            { "id": "a", "text": "JavaScript (ECMAScript) のオブジェクトの書き方 (object literals)" },
+            { "id": "b", "text": "XML のタグ", "why": "JSON はタグを使いません。RFC 4627 は ECMAScript のオブジェクトの書き方から来ていると書いています。" },
+            { "id": "c", "text": "SQL の表", "why": "RFC 4627 は ECMAScript から来ていると書いています。" },
+            { "id": "d", "text": "HTTP のヘッダー", "why": "HTTP のヘッダーとは書き方が別です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 4627 の要旨と第 1 節は、JSON は ECMAScript の標準で定められた JavaScript のオブジェクトの書き方 (object literals) から来た、軽く、言語によらない文字のデータ交換の形式だと書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc4627"]
+        },
+        {
+          "id": "tech-history-l11-q3",
+          "kind": "http",
+          "format": "json",
+          "prompt": "JSON の真偽の値と空の値を書きます。RFC 8259 の決まりで正しい書き方を空欄に埋めてください。",
+          "code": "{\n  \"name\": \"gantlo\",\n  \"published\": {{blank}},\n  \"deletedAt\": {{blank}}\n}",
+          "blanks": [
+            { "answers": ["true"] },
+            { "answers": ["null"] }
+          ],
+          "explanation": "RFC 8259 の第 3 節は、値はオブジェクト・配列・数・文字列か、false・null・true の 3 つの名前のどれかで、名前は小文字でなければならない (MUST) と書いています。True や NULL は誤りです。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-3"]
+        },
+        {
+          "id": "tech-history-l11-q4",
+          "kind": "choice",
+          "prompt": "今: 閉じた環境の外のシステムどうしでやり取りする JSON の文字の符号化について、RFC 8259 は何と定めていますか。",
+          "choices": [
+            { "id": "a", "text": "UTF-8 で符号化しなければならない (MUST)" },
+            { "id": "b", "text": "UTF-8 にするのが望ましい (SHOULD)", "why": "RFC 8259 の第 8.1 節は MUST です。" },
+            { "id": "c", "text": "UTF-8・UTF-16・UTF-32 のどれでもよい", "why": "それは以前の仕様の扱いで、RFC 8259 は外とのやり取りに UTF-8 を求めています。" },
+            { "id": "d", "text": "Shift_JIS でもよい", "why": "RFC 8259 は外とのやり取りに UTF-8 を求めています。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8259 の第 8.1 節は、閉じた環境の一部でないシステムのあいだでやり取りする JSON の文章は UTF-8 で符号化しなければならない (MUST) と書いています。以前の仕様は UTF-8 を求めていなかったが、実装の大多数が UTF-8 を選び、相互に通じる唯一の符号化になった、とも書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-8.1"]
+        },
+        {
+          "id": "tech-history-l11-q5",
+          "kind": "choice",
+          "prompt": "application/json の登録には charset の引数がありますか。RFC 8259 の書き方に合うものを選んでください。",
+          "choices": [
+            { "id": "a", "text": "charset の引数は定められておらず、付けても従う受け手には何の効果も無い" },
+            { "id": "b", "text": "charset=utf-8 を必ず付けなければならない", "why": "RFC 8259 の第 11 節は、この登録には charset の引数が定められていないと書いています。" },
+            { "id": "c", "text": "charset が無いと受け手は Shift_JIS と見なす", "why": "外とのやり取りの JSON は UTF-8 です (第 8.1 節)。" },
+            { "id": "d", "text": "charset=ascii を付けると ASCII だけで送れる", "why": "charset の引数そのものが定められていません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8259 の第 11 節 (IANA の登録) に、「No \"charset\" parameter is defined for this registration. Adding one really has no effect on compliant recipients.」とあります。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-11"]
+        },
+        {
+          "id": "tech-history-l11-q6",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "JSON の本文を POST で送り、Content-Type と Accept も application/json にしたい。1 つでまとめて指定する curl のオプションを埋めてください。",
+          "code": "curl {{blank}} '{\"name\":\"gantlo\"}' https://example.com/api/items",
+          "blanks": [{ "answers": ["--json"] }],
+          "explanation": "curl のマニュアルによると、--json は --data-binary と、Content-Type: application/json と Accept: application/json の 2 つのヘッダーをまとめて指定する近道です。中身が正しい JSON かどうかは確かめません。",
+          "sources": ["https://curl.se/docs/manpage.html"]
+        }
+      ]
+    }
+  ]
+}
