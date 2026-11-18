@@ -18,9 +18,13 @@
     --size-element-md: 44px;
     --size-element-lg: 44px;
   }
-  /* 4 択と実習の手順の行も、行ごと押せる高さを 44px にする (Astryx の部品の名前の class で、どの画面にも効かせる) */
+  /*
+   * 4 択と実習の手順の行・切り替え (SegmentedControl) の 1 つずつも、押せる高さを 44px にする
+   * (Astryx の部品の名前の class で、どの画面にも効かせる。切り替えは枠の内側の余白のぶん低くなるので、項目の側で上げる)
+   */
   .astryx-radio-list-item,
-  .astryx-checkbox-list .astryx-item {
+  .astryx-checkbox-list .astryx-item,
+  .astryx-segmented-control-item {
     min-height: var(--size-element-lg);
   }
 }
@@ -282,6 +286,42 @@ code {
   flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-2) var(--spacing-3);
+}
+
+/* 復習と設定の画面。区切りの見出しと、ボタンの並び (狭い画面では 1 列で幅いっぱい) */
+.review,
+.settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+.review p,
+.settings__section p {
+  margin: 0;
+}
+.review__title,
+.settings__title {
+  margin: 0;
+  font-size: var(--text-heading-4-size);
+  font-weight: var(--text-heading-4-weight);
+}
+.settings__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+.settings__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border-emphasized);
+  border-radius: var(--radius-element);
+}
+.settings__confirm-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
 }
 
 /* Network タブ (レッスン 1 つが 1 行。Waterfall の列が 1 本のガントチャートになる) */

@@ -12,18 +12,20 @@ import FillQuestionView from '../components/FillQuestionView';
 import LabQuestionView from '../components/LabQuestionView';
 import OrderQuestionView from '../components/OrderQuestionView';
 import type { Lesson, Question } from '../content/types';
-import { finishLesson, lessonScore, resultCode, resultBody, resultLocation, type Outcome } from '../lib/lessonRun';
-import { currentStreak, goalXp, recordAnswer, todayXp, type Progress } from '../lib/progress';
+import { answerRequest, finishLesson, lessonScore, resultCode, resultBody, resultLocation, reviewResultBody, type Outcome } from '../lib/lessonRun';
+import { completeReview, currentStreak, goalXp, recordAnswer, todayXp, type Progress } from '../lib/progress';
 import { homeHref, scrollToTop } from '../lib/route';
 import { shuffleItems } from '../lib/order';
 import { shuffleChoices } from '../lib/shuffle';
-import { lessonCreated, type Status } from '../lib/status';
+import { lessonCreated, reviewDone, type Status } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
 type Props = {
   lesson: Lesson;
   progress: Progress;
   updateProgress: (fn: (p: Progress) => Progress) => void;
+  /** 今日の復習として解くとき。レッスンの完了は付けず XP と連続日数だけ進め、閉じると backHref (復習の画面) へ戻る */
+  review?: { backHref: string };
 };
 
 const OUTCOME_LABEL: Record<Outcome, string> = {
@@ -33,10 +35,10 @@ const OUTCOME_LABEL: Record<Outcome, string> = {
 };
 
 /** 上の帯: 閉じる・レッスン名と何問目か・進み具合 */
-function LessonBar({ title, current, total }: { title: string; current: number; total: number }) {
+function LessonBar({ title, current, total, closeHref }: { title: string; current: number; total: number; closeHref: string }) {
   return (
     <header className="lesson-bar">
-      <Button variant="ghost" label="レッスンを閉じる" isIconOnly icon={<XMarkIcon width={20} height={20} />} href={homeHref} />
+      <Button variant="ghost" label="レッスンを閉じる" isIconOnly icon={<XMarkIcon width={20} height={20} />} href={closeHref} />
       <div className="lesson-bar__progress">
         <Text type="supporting">
           {title} · {current} / {total} 問
@@ -48,7 +50,7 @@ function LessonBar({ title, current, total }: { title: string; current: number; 
 }
 
 /** レッスンを 1 問ずつ解き、最後に 201 Created で結果を出す */
-export default function LessonScreen({ lesson, progress, updateProgress }: Props) {
+export default function LessonScreen({ lesson, progress, updateProgress, review }: Props) {
   const [index, setIndex] = useState(0);
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   // 答えの画面に出したステータスのコード (完了画面の一覧に同じコードを出す)
@@ -85,10 +87,11 @@ export default function LessonScreen({ lesson, progress, updateProgress }: Props
       scrollToTop();
       return;
     }
-    updateProgress((p) => finishLesson(p, lesson.id, lessonScore(questions, outcomes), new Date()));
+    const s = lessonScore(questions, outcomes);
+    updateProgress((p) => (review ? completeReview(p, s.xp, new Date()) : finishLesson(p, lesson.id, s, new Date())));
     setFinished(true);
     scrollToTop();
-  }, [isLast, outcomes, questions, updateProgress, lesson.id]);
+  }, [isLast, outcomes, questions, updateProgress, lesson.id, review]);
 
   const restart = () => {
     setIndex(0);
@@ -99,10 +102,10 @@ export default function LessonScreen({ lesson, progress, updateProgress }: Props
     scrollToTop();
   };
 
-  if (finished) return <ResultView lesson={lesson} questions={questions} outcomes={outcomes} codes={codes} score={score} progress={progress} onRetry={restart} />;
+  if (finished) return <ResultView lesson={lesson} questions={questions} outcomes={outcomes} codes={codes} score={score} progress={progress} onRetry={restart} review={review} />;
 
   const head = `${index + 1} / ${total} 問`;
-  const request = `POST /lessons/${lesson.id}/answers/${index + 1}`;
+  const request = answerRequest(lesson.id, index, review !== undefined);
   const nextLabel = isLast ? 'POST 結果を記録する' : '次の問題へ';
   const key = `${attempt}-${q.id}`;
   let view;
@@ -116,7 +119,7 @@ export default function LessonScreen({ lesson, progress, updateProgress }: Props
 
   return (
     <div className="lesson">
-      <LessonBar title={lesson.title} current={index + 1} total={total} />
+      <LessonBar title={lesson.title} current={index + 1} total={total} closeHref={review?.backHref ?? homeHref} />
       <div className="lesson__main">{view}</div>
     </div>
   );
@@ -130,6 +133,7 @@ function ResultView({
   score,
   progress,
   onRetry,
+  review,
 }: {
   lesson: Lesson;
   questions: Question[];
@@ -138,6 +142,7 @@ function ResultView({
   score: ReturnType<typeof lessonScore>;
   progress: Progress;
   onRetry: () => void;
+  review?: { backHref: string };
 }) {
   const isWide = useMediaQuery(WIDE_QUERY);
   const now = new Date();
@@ -145,16 +150,20 @@ function ResultView({
   const goal = goalXp(progress);
   return (
     <div className="page result">
-      <h1 className="page__title">レッスン完了 · {lesson.title}</h1>
+      <h1 className="page__title">{review ? '復習完了' : `レッスン完了 · ${lesson.title}`}</h1>
       <AnswerResponse
-        status={lessonCreated(score.correct, score.total)}
-        request={`POST /me/lessons`}
-        headers={[
-          { name: 'Location', value: resultLocation(lesson.id), ja: '作った記録の置き場所 (このブラウザの中)' },
-          { name: 'X-XP', value: `+${score.xp}`, ja: 'このレッスンで得た XP' },
-        ]}
+        status={review ? reviewDone(score.correct, score.total) : lessonCreated(score.correct, score.total)}
+        request={review ? 'POST /me/reviews' : 'POST /me/lessons'}
+        headers={
+          review
+            ? [{ name: 'X-XP', value: `+${score.xp}`, ja: 'この復習で得た XP' }]
+            : [
+                { name: 'Location', value: resultLocation(lesson.id), ja: '作った記録の置き場所 (このブラウザの中)' },
+                { name: 'X-XP', value: `+${score.xp}`, ja: 'このレッスンで得た XP' },
+              ]
+        }
       >
-        <CodeBlock code={resultBody(lesson.id, score)} language="json" hasLanguageLabel={false} title="本文 (JSON)" width="100%" size="sm" hasCopyButton={false} />
+        <CodeBlock code={review ? reviewResultBody(score) : resultBody(lesson.id, score)} language="json" hasLanguageLabel={false} title="本文 (JSON)" width="100%" size="sm" hasCopyButton={false} />
       </AnswerResponse>
 
       <dl className="stats">
@@ -212,8 +221,14 @@ function ResultView({
       </section>
 
       <HStack gap={2} justify={isWide ? 'end' : 'start'} wrap="wrap">
-        <Button label="もう一度解く" onClick={onRetry} width={isWide ? undefined : '100%'} size={isWide ? 'md' : 'lg'} />
-        <Button variant="primary" label="ホームへ戻る" href={homeHref} width={isWide ? undefined : '100%'} size={isWide ? 'md' : 'lg'} />
+        {!review && <Button label="もう一度解く" onClick={onRetry} width={isWide ? undefined : '100%'} size={isWide ? 'md' : 'lg'} />}
+        <Button
+          variant="primary"
+          label={review ? '復習の画面へ戻る' : 'ホームへ戻る'}
+          href={review?.backHref ?? homeHref}
+          width={isWide ? undefined : '100%'}
+          size={isWide ? 'md' : 'lg'}
+        />
       </HStack>
     </div>
   );

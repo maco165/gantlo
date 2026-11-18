@@ -66,3 +66,34 @@ export function lessonCreated(correct: number, total: number): Status {
 
 /** 不正解の Retry-After の秒数。間違えた問題は翌日の復習に入る (1 日 = 86400 秒) */
 export const RETRY_AFTER_SECONDS = 86400;
+
+/** 今日の復習の一覧 (GET /me/reviews)。あれば 200、無ければ本文の無い 204 */
+export function reviewListStatus(due: number): Status {
+  if (due > 0) return { code: 200, reason: 'OK', ja: `今日の復習が ${due} 問あります` };
+  return { code: 204, reason: 'No Content', ja: '今日の復習はありません' };
+}
+
+/** 今日の復習を解き終えた (POST /me/reviews)。レッスンの記録は作らないので 200 */
+export function reviewDone(correct: number, total: number): Status {
+  return { code: 200, reason: 'OK', ja: `今日の復習を終えました。${total} 問のうち ${correct} 問が正解です` };
+}
+
+/** 1 日の目標を変えた (PATCH /me/profile) */
+export function goalSaved(xp: number): Status {
+  return { code: 200, reason: 'OK', ja: `1 日の目標を ${xp} XP にしました` };
+}
+
+/** 記録を読み込んで置き換えた (PUT /me) */
+export const IMPORT_DONE: Status = { code: 200, reason: 'OK', ja: '読み込んだ記録に置き換えました' };
+
+/** 読み込むファイルが 1 MB を超える。読まずに断る */
+export const IMPORT_TOO_LARGE: Status = { code: 413, reason: 'Content Too Large', ja: 'ファイルが大きすぎるので読み込みません' };
+
+/** 読み込むファイルが JSON として読めない・gantlo の記録の形でない。読まずに断る */
+export const IMPORT_INVALID: Status = { code: 422, reason: 'Unprocessable Content', ja: 'gantlo の記録として読めないので読み込みません' };
+
+/** このブラウザに保存できなかった (容量の上限・プライベートモードなど) */
+export const SAVE_FAILED: Status = { code: 507, reason: 'Insufficient Storage', ja: 'このブラウザに保存できませんでした。今の記録はそのままです' };
+
+/** 記録を消した (DELETE /me)。本文は無いので 204 */
+export const RESET_DONE: Status = { code: 204, reason: 'No Content', ja: '記録を消しました。目標と計画は残しています' };
