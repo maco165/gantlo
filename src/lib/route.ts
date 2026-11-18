@@ -4,7 +4,13 @@ import { useEffect, useState } from 'react';
 // 検索エンジンは # の後ろを別のページとして扱わないため。
 export type PageName = 'plan' | 'review' | 'progress' | 'glossary' | 'settings';
 export type CourseId = 'main' | 'spring' | 'tech-history' | 'mgmt-history' | 'security';
-export type Route = { name: 'home' } | { name: 'page'; page: PageName } | { name: 'course'; course: CourseId } | { name: 'notFound' };
+export type Route =
+  | { name: 'home' }
+  | { name: 'page'; page: PageName }
+  | { name: 'course'; course: CourseId }
+  /** レッスンの id があるかは画面の側で見る (無ければ 404)。経路は問題データを読まない */
+  | { name: 'lesson'; lessonId: string }
+  | { name: 'notFound' };
 
 /** サイトの置き場所 (vite の base。/gantlo/) */
 export const BASE = import.meta.env.BASE_URL;
@@ -31,12 +37,21 @@ export function parseRoute(pathname: string): Route {
     const course = COURSES.find((c) => c.id === parts[1]);
     if (course) return { name: 'course', course: course.id };
   }
+  if (parts.length === 2 && parts[0] === 'lesson') {
+    // 壊れた %xx (例: %E0) は decodeURIComponent が投げるので、知らない道として扱う
+    try {
+      return { name: 'lesson', lessonId: decodeURIComponent(parts[1]) };
+    } catch {
+      return { name: 'notFound' };
+    }
+  }
   return { name: 'notFound' };
 }
 
 export const homeHref = BASE;
 export const pageHref = (page: PageName) => `${BASE}${page}/`;
 export const courseHref = (course: CourseId) => `${BASE}course/${course}/`;
+export const lessonHref = (lessonId: string) => `${BASE}lesson/${encodeURIComponent(lessonId)}/`;
 
 /**
  * 同じサイトの中のリンクなら、そのリンクを返す (ページを読み直さずに画面だけ切り替える)。
