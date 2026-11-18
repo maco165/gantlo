@@ -3,20 +3,21 @@ import type { Question } from '../content/types';
 import { XP_PER_CORRECT, XP_PER_LAB } from './grade';
 import { completeLesson, type Progress } from './progress';
 
-/**
- * 1 問ぶんの結果。right / wrong は採点した問題、done は実習を終えたもの、
- * skipped はまだ解けない種類 (並べ替え) を飛ばしたもの
- */
-export type Outcome = 'right' | 'wrong' | 'done' | 'skipped';
+/** 1 問ぶんの結果。right / wrong は採点した問題、done は実習を終えたもの */
+export type Outcome = 'right' | 'wrong' | 'done';
 
-/** 採点する種類か。実習は採点せず、並べ替えはまだ解けない */
+/** 採点する種類か。実習だけは採点しない */
 export function isGraded(q: Question): boolean {
-  return q.kind === 'command' || q.kind === 'http' || q.kind === 'choice';
+  return q.kind !== 'lab';
 }
 
-/** 画面で解ける種類か (並べ替えは別の回で作る) */
-export function isSupported(q: Question): boolean {
-  return q.kind !== 'order';
+/**
+ * 完了画面の一覧に出すコード。答えの画面に出したステータス (並べ替えの 409・メディアタイプの 415 など) があればそれを、
+ * 無ければ結果の既定 (正解・実習 200、不正解 400) を出す
+ */
+export function resultCode(outcome: Outcome, answered?: number): string {
+  if (answered !== undefined) return String(answered);
+  return outcome === 'wrong' ? '400' : '200';
 }
 
 export type LessonScore = { correct: number; total: number; xp: number };

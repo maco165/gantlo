@@ -5,7 +5,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { useState } from 'react';
 import type { ChoiceQuestion } from '../content/types';
 import { XP_PER_CORRECT, gradeChoice } from '../lib/grade';
-import { RETRY_AFTER_SECONDS, choiceStatus } from '../lib/status';
+import { RETRY_AFTER_SECONDS, choiceStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
 import { ActionArea, PrimaryAction, QuestionHead } from './QuestionFrame';
@@ -24,7 +24,7 @@ export default function ChoiceQuestionView({
   question: ChoiceQuestion;
   head: string;
   request: string;
-  onChecked: (correct: boolean) => void;
+  onChecked: (correct: boolean, status: Status) => void;
   nextLabel: string;
   onNext: () => void;
 }) {
@@ -38,7 +38,7 @@ export default function ChoiceQuestionView({
     if (checked || value === '') return;
     const ok = gradeChoice(question, value);
     setResult(ok);
-    onChecked(ok);
+    onChecked(ok, choiceStatus(ok));
   };
 
   return (
