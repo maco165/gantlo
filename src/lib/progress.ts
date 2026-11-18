@@ -6,8 +6,8 @@ export const STORAGE_KEY = 'gantlo.v1';
 
 export type LessonRecord = { done: boolean; best: number; at: string };
 /**
- * 問題ごとの記録。復習の予定 (nextReview) があるものが復習の対象。
- * stage は復習で続けて正解した回数 (0〜2)。予定の計算は復習の画面と一緒に足す
+ * 問題ごとの記録。復習の予定 (nextReview、手元の日付) があるものが復習の対象。
+ * stage は復習で続けて正解した回数 (0〜2)。予定の計算は recordAnswer
  */
 export type AnswerRecord = { right: number; wrong: number; last: string; stage?: number; nextReview?: string };
 
@@ -165,19 +165,60 @@ function safeLocalStorage(): Storage | undefined {
   }
 }
 
-/** 問題ごとに正解と不正解の回数を数える。復習の予定はそのまま残す (予定の計算は復習の画面と一緒に足す) */
+/**
+ * 問題ごとに正解と不正解の回数を数え、復習の予定を決める。
+ * - 間違えたら (初めてでも、復習の途中でも) 翌日に復習する (段階 0)
+ * - 予定の日以降に正解したら、段階を 1 つ進めて 3 日後・7 日後。7 日後の復習も正解したら予定を外す (卒業)
+ * - 予定の日より前に正解しても (レッスンのやり直しなど)、予定は動かさない
+ * - 復習の対象でない問題を正解しても、予定は付けない
+ * 日付は端末の時刻の日付 (dayKey) で数える。時差のある所でも、利用者の手元の「今日」と「明日」になる
+ */
 export function recordAnswer(p: Progress, questionId: string, correct: boolean, now: Date): Progress {
+  const today = dayKey(now);
   const prev = p.answers[questionId] ?? { right: 0, wrong: 0, last: '' };
   const next: AnswerRecord = {
-    ...prev,
     right: prev.right + (correct ? 1 : 0),
     wrong: prev.wrong + (correct ? 0 : 1),
     last: now.toISOString(),
   };
+  if (!correct) {
+    next.stage = 0;
+    next.nextReview = addDays(today, REVIEW_INTERVALS[0]);
+  } else if (prev.nextReview !== undefined && prev.nextReview <= today) {
+    const stage = (prev.stage ?? 0) + 1;
+    if (stage < REVIEW_INTERVALS.length) {
+      next.stage = stage;
+      next.nextReview = addDays(today, REVIEW_INTERVALS[stage]);
+    }
+  } else if (prev.nextReview !== undefined) {
+    next.stage = prev.stage ?? 0;
+    next.nextReview = prev.nextReview;
+  }
   return { ...p, answers: { ...p.answers, [questionId]: next } };
 }
 
-/** 学んだ日の XP を足し、連続日数を進める */
+/** 今日までに予定が来ている復習の問題の id (予定の早い順。同じ日は id の順) */
+export function dueReviewIds(p: Progress, now: Date): string[] {
+  const today = dayKey(now);
+  return Object.entries(p.answers)
+    .filter(([, a]) => a.nextReview !== undefined && a.nextReview <= today)
+    .sort(([ia, a], [ib, b]) => (a.nextReview! < b.nextReview! ? -1 : a.nextReview! > b.nextReview! ? 1 : ia < ib ? -1 : ia > ib ? 1 : 0))
+    .map(([id]) => id);
+}
+
+/** まだ来ていない復習のうち、いちばん近い予定の日と件数。isKnown で問題データにある id だけに絞れる */
+export function upcomingReview(p: Progress, now: Date, isKnown: (id: string) => boolean = () => true): { day: string; count: number } | null {
+  const today = dayKey(now);
+  const days = Object.entries(p.answers)
+    .filter(([id]) => isKnown(id))
+    .map(([, a]) => a.nextReview)
+    .filter((d): d is string => d !== undefined && d > today)
+    .sort();
+  if (days.length === 0) return null;
+  return { day: days[0], count: days.filter((d) => d === days[0]).length };
+}
+
+/** 学んだ日の XP を足し、連続日数を進める (レッスンと復習で共通) */
 function addActivity(p: Progress, xpGained: number, now: Date): Progress {
   const today = dayKey(now);
   let count: number;
@@ -204,6 +245,11 @@ export function completeLesson(
   const lesson: LessonRecord = { done: true, best: Math.max(prev?.best ?? 0, rate), at: now.toISOString() };
   const after = addActivity(p, xpGained, now);
   return { ...after, lessons: { ...after.lessons, [lessonId]: lesson } };
+}
+
+/** 今日の復習を終えた: XP を足し、連続日数を進める (レッスンの完了は付けない) */
+export function completeReview(p: Progress, xpGained: number, now: Date): Progress {
+  return addActivity(p, xpGained, now);
 }
 
 export function todayXp(p: Progress, now: Date): number {
@@ -236,4 +282,59 @@ export function resetProgress(p: Progress): Progress {
 /** 書き出すファイルの名前 (gantlo-progress-YYYY-MM-DD.json) */
 export function exportFileName(now: Date): string {
   return `gantlo-progress-${dayKey(now)}.json`;
+}
+
+/** 読み込むファイルの大きさの上限 (1 MB)。書き出したファイルはふつう数十 KB */
+export const MAX_IMPORT_BYTES = 1024 * 1024;
+
+/** 読み込みの結果。読めないときは、大きすぎる (413) か形が違う (422) かと、利用者に見せる理由を添える */
+export type ImportResult = { ok: true; progress: Progress } | { ok: false; code: 413 | 422; reason: string };
+
+/** 書き出したファイルが必ず持つ欄と、その形 (どれも JSON のオブジェクト) */
+const IMPORT_FIELDS = ['streak', 'xp', 'lessons', 'answers'] as const;
+
+/**
+ * 読み込むファイルの中身を確かめる。localStorage の読み直し (loadProgress) より厳しく、
+ * 書き出したファイルの形 (v が 1 で、streak・xp・lessons・answers がオブジェクト) でなければ読まない。
+ * 形が合えば、中の値は normalizeProgress で 1 つずつ確かめて残す
+ */
+export function parseImport(text: string, bytes: number): ImportResult {
+  if (bytes > MAX_IMPORT_BYTES) return { ok: false, code: 413, reason: `ファイルが大きすぎます (${formatBytes(bytes)})。読み込めるのは 1 MB までです。` };
+  let raw: unknown;
+  try {
+    raw = JSON.parse(text);
+  } catch {
+    return { ok: false, code: 422, reason: 'JSON として読めません。ファイルが壊れているか、別の種類のファイルです。' };
+  }
+  if (!isObject(raw)) return { ok: false, code: 422, reason: 'gantlo の記録の形ではありません (一番外が JSON のオブジェクトでない)。' };
+  if (raw.v !== 1) return { ok: false, code: 422, reason: 'gantlo の記録の形ではありません (版 v が 1 でない)。' };
+  const missing = IMPORT_FIELDS.filter((f) => !isObject(raw[f]));
+  if (missing.length > 0) return { ok: false, code: 422, reason: `gantlo の記録の形ではありません (${missing.join('・')} の欄が無いか、形が違う)。` };
+  const progress = normalizeProgress(raw);
+  return progress ? { ok: true, progress } : { ok: false, code: 422, reason: 'gantlo の記録の形ではありません。' };
+}
+
+function formatBytes(n: number): string {
+  return n >= 1024 * 1024 ? `${(n / 1024 / 1024).toFixed(1)} MB` : `${Math.ceil(n / 1024)} KB`;
+}
+
+/**
+ * 読み込んだ記録で今の記録を置き換える。目標や計画を一度も決めていない端末の書き出しなら、
+ * 今の端末の目標と計画を引き継ぐ (決めていないものを既定の値で上書きしない)
+ */
+export function replaceWithImported(current: Progress, loaded: Progress): Progress {
+  const next: Progress = { ...loaded };
+  const profile = loaded.profile ?? current.profile;
+  const plan = loaded.plan ?? current.plan;
+  if (profile) next.profile = { ...profile };
+  if (plan) next.plan = { courses: [...plan.courses] };
+  return next;
+}
+
+/** 記録の中身のあらまし (読み込む前の確かめと、設定の画面に出す) */
+export function progressSummary(p: Progress): string {
+  const lessons = Object.values(p.lessons).filter((l) => l.done).length;
+  const answers = Object.keys(p.answers).length;
+  const reviews = Object.values(p.answers).filter((a) => a.nextReview !== undefined).length;
+  return `完了したレッスン ${lessons} · 答えた問題 ${answers} (復習の予定 ${reviews}) · 合計 ${p.xp.total} XP`;
 }
