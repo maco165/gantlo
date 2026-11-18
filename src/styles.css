@@ -191,7 +191,7 @@ code {
   color: var(--color-text-info);
 }
 
-@media (min-width: 48rem) {
+@media (min-width: 768px) {
   .wf__row {
     grid-template-columns: 5.5rem 16rem minmax(0, 1fr) 2.5rem;
     grid-template-areas: 'name step track status';
@@ -223,21 +223,25 @@ code {
   min-width: 0;
 }
 
-/* ボタンの形のリンクとボタン。指で押せるように高さと幅を 44px 以上にする */
+/*
+ * ボタンの形のリンクとボタン (計画の画面・次のレッスン)。高さは Astryx のボタンと同じ --size-element-lg で、
+ * 狭い画面 (767.98px 以下) では上の決まりで 44px になる。上下の四角いボタンは幅も同じ
+ */
 .btn {
   box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--spacing-2);
-  min-height: 2.75rem;
-  min-width: 2.75rem;
-  padding: var(--spacing-2) var(--spacing-4);
+  min-height: var(--size-element-lg);
+  min-width: var(--size-element-lg);
+  padding: var(--spacing-1) var(--spacing-4);
   border: 1px solid var(--color-border-emphasized);
   border-radius: var(--radius-element);
   background: var(--color-background-surface);
   color: var(--color-text-primary);
   font: inherit;
+  font-size: var(--text-label-size);
   text-decoration: none;
   cursor: pointer;
   max-width: 100%;
@@ -269,7 +273,7 @@ code {
 }
 .btn--icon {
   padding: 0;
-  width: 2.75rem;
+  width: var(--size-element-lg);
 }
 
 .home__next {
@@ -285,7 +289,7 @@ code {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
-  font-size: 0.875rem;
+  font-size: var(--text-supporting-size);
 }
 .net__table th {
   text-align: left;
@@ -347,7 +351,7 @@ code {
 .net__bar--next {
   background: var(--color-text-info);
 }
-@media (min-width: 48rem) {
+@media (min-width: 768px) {
   .net__type {
     display: table-cell;
     width: 9rem;
@@ -389,7 +393,7 @@ code {
 .plan__check {
   flex: 1;
   min-width: 0;
-  min-height: 2.75rem;
+  min-height: var(--size-element-lg);
   display: flex;
   flex-wrap: wrap;
   align-items: center;
@@ -433,7 +437,7 @@ code {
 .gantt__name {
   grid-area: name;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: var(--text-supporting-size);
 }
 .gantt__count {
   grid-area: count;
@@ -477,7 +481,7 @@ code {
   font-weight: 600;
   color: var(--color-text-info);
 }
-@media (min-width: 48rem) {
+@media (min-width: 768px) {
   .gantt__row {
     grid-template-columns: 12rem 10rem minmax(0, 1fr);
     grid-template-areas: 'name count track';
