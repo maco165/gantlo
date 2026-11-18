@@ -17,7 +17,7 @@
           ],
           "answer": "a",
           "explanation": "Warsaw 工科大学の図書館の紹介によると、Adamiecki は 1891 年に技師の免状を得たあと Huta Bankowa の圧延工場で働き、のちの記事の題も「圧延工場 (walcownie) での共同作業を図で組み立てる方法」でした。",
-          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download"]
+          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download", "https://archive.org/details/cu31924004570853"]
         },
         {
           "id": "mgmt-history-l1-q2",
@@ -60,7 +60,7 @@
           ],
           "answer": "a",
           "explanation": "紹介文は、この講演が F. W. Taylor の著作 (ポーランド語の題「Zarządzanie warsztatem wytwórczym」) の刊行より 1 か月足らず早く、Adamiecki を組織と管理の学の先駆けの 1 人にした、と書いています。",
-          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download"]
+          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download", "https://archive.org/details/cu31924004570853", "https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
         },
         {
           "id": "mgmt-history-l1-q5",
@@ -84,7 +84,7 @@
             { "text": "ブラウザーで紹介の PDF (https://bcpw.bg.pw.edu.pl/Content/815/download) を開く。1 回開くだけでよい" },
             { "text": "「Przeglądu Technicznego」の語を探し、その後ろの年と号の数字を読む" }
           ],
-          "expected": "「Przeglądu Technicznego (1909 nr 17—20)」とあり、1909 年の 17〜20 号に分けて記事が載ったことが分かります。その前の文に、結果を 1908 年に Warsaw の技術者協会で発表したこともあります。",
+          "expected": "「Przeglądu Technicznego (1909 nr 17—20)」とあり、1909 年の 17〜20 号に分けて記事が載ったことが分かります。同じ文の前半に、結果を 1908 年に Warsaw の技術者協会で発表したこともあります。",
           "explanation": "年号は、人が書いた紹介を孫引きせず、出典の文で確かめる癖をつけます。この紹介文は Warsaw 工科大学の図書館の「教授の横顔」の 1 枚です。",
           "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download"]
         }
@@ -247,7 +247,7 @@
           ],
           "answer": "a",
           "explanation": "論文によると、DuPont の Integrated Engineering Control Group が 1956 年の終わりに計算機で工事を管理する調査を始め、Remington Rand UNIVAC が Kelley を助けに出し、Walker が DuPont の側を代表しました。計算は DuPont の UNIVAC I で行いました。",
-          "sources": ["https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf"]
+          "sources": ["https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf", "https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
         },
         {
           "id": "mgmt-history-l3-q4",
@@ -586,7 +586,7 @@
           ],
           "answer": "a",
           "explanation": "経緯のページは、2001 年 2 月 11〜13 日に Utah の Wasatch 山地の Snowbird のスキー場に 17 人が集まったと書いています。署名者 17 人の名はトップのページにあります。",
-          "sources": ["https://agilemanifesto.org/history.html", "https://agilemanifesto.org/"]
+          "sources": ["https://agilemanifesto.org/history.html", "https://agilemanifesto.org/", "https://scrumguides.org/scrum-guide.html#scrum-guide-history", "https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
         },
         {
           "id": "mgmt-history-l6-q3",
