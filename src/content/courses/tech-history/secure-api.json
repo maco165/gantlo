@@ -59,10 +59,15 @@
           "tool": "openssl",
           "prompt": "今: サーバーが最新の TLS 1.3 で話せるかを確かめたい。TLS 1.3 だけを使わせる openssl s_client のオプションを埋めてください。",
           "code": "openssl s_client -connect example.com:443 -servername example.com {{blank}} -brief < /dev/null",
-          "blanks": [{ "answers": ["-tls1_3"] }],
+          "blanks": [{ "answers": ["-tls1_3", "-min_protocol TLSv1.3"] }],
           "output": "CONNECTION ESTABLISHED\nProtocol version: TLSv1.3\n...",
-          "explanation": "OpenSSL の s_client のマニュアルは、-tls1_3 などで使う版を選べるとし、例に openssl s_client -connect <server address>:443 -tls1_3 を挙げています。-servername は SNI に入れる名前、-brief は接続の要約だけを出します。TLS 1.3 は RFC 8446 (2018 年 8 月) です。",
-          "sources": ["https://docs.openssl.org/3.0/man1/openssl-s_client/", "https://www.rfc-editor.org/rfc/rfc8446"]
+          "explanation": "OpenSSL の s_client のマニュアルは、-tls1_3 などで使う版を選べるとし、例に openssl s_client -connect <server address>:443 -tls1_3 を挙げています。-servername は SNI に入れる名前、-brief は接続の要約だけを出します。-min_protocol TLSv1.3 (使う版の下限を TLS 1.3 にする。SSL_CONF_cmd のマニュアル) でも、今は TLS 1.3 より上の版が無いので同じく TLS 1.3 だけで接続します。TLS 1.3 は RFC 8446 (2018 年 8 月) で定められ、今は 2026 年 7 月の RFC 9846 が RFC 8446 を置き換える TLS 1.3 の正本です。",
+          "sources": [
+            "https://docs.openssl.org/3.0/man1/openssl-s_client/",
+            "https://www.rfc-editor.org/rfc/rfc8446",
+            "https://docs.openssl.org/3.0/man3/SSL_CONF_cmd/",
+            "https://www.rfc-editor.org/rfc/rfc9846"
+          ]
         },
         {
           "id": "tech-history-l12-q5",
@@ -126,7 +131,11 @@
           ],
           "answer": "a",
           "explanation": "oauth.net の Introduction は、OAuth は 2006 年 11 月ごろ、Blaine Cook が Twitter の OpenID の実装をしていたときに始まり、OpenID と Twitter の API を組み合わせて認証を任せる方法を求めて Chris Messina に連絡した、と書いています。",
-          "sources": ["https://oauth.net/about/introduction/"]
+          "sources": [
+            "https://oauth.net/about/introduction/",
+            "https://www.rfc-editor.org/rfc/rfc6749",
+            "https://www.rfc-editor.org/rfc/rfc2246"
+          ]
         },
         {
           "id": "tech-history-l13-q3",
@@ -171,10 +180,13 @@
           "code": "GET /resource HTTP/1.1\nHost: server.example.com\n{{blank}}: {{blank}} mF_9.B5f-4.1JqM",
           "blanks": [
             { "answers": ["Authorization"], "match": "header-name" },
-            { "answers": ["Bearer"] }
+            { "answers": ["Bearer", "bearer"] }
           ],
-          "explanation": "RFC 6750 の第 2.1 節は、Authorization のヘッダーで Bearer の認証の方式を使ってアクセストークンを送る、と書き、この例を載せています。パスワードそのものではなく、権限を絞ったトークンを渡すのが OAuth の答えです。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc6750#section-2.1"]
+          "explanation": "RFC 6750 の第 2.1 節は、Authorization のヘッダーで Bearer の認証の方式を使ってアクセストークンを送る、と書き、この例を載せています。認証の方式の名前は大文字と小文字を区別しない token なので (RFC 9110 の 11.1)、bearer と書いても同じです。パスワードそのものではなく、権限を絞ったトークンを渡すのが OAuth の答えです。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc6750#section-2.1",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-11.1"
+          ]
         },
         {
           "id": "tech-history-l13-q6",

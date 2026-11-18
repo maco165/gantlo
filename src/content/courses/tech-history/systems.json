@@ -36,11 +36,15 @@
             { "id": "a", "text": "C with Classes" },
             { "id": "b", "text": "Plan 9", "why": "Plan 9 はベル研究所の OS の名前で、RFC 3629 によると UTF-8 はそのために考えられました。" },
             { "id": "c", "text": "B", "why": "B は C の前の言語です。" },
-            { "id": "d", "text": "Mocha", "why": "Mocha は Brendan Eich が 1995 年に試作した JavaScript の最初の名前です。" }
+            { "id": "d", "text": "Mocha", "why": "Mocha は、Brendan Eich が 1995 年 5 月に JavaScript を試作したときの名前です。" }
           ],
           "answer": "a",
           "explanation": "Stroustrup の FAQ は、1979 年に C++ になるものの作業を始め、最初の版は「C with Classes」と呼ばれ、1983 年の終わりに C++ の名前が使われ、最初の商用の実装は 1985 年 10 月に『The C++ Programming Language』の初版と同時に出た、と書いています。",
-          "sources": ["https://www.stroustrup.com/bs_faq.html", "https://www.rfc-editor.org/rfc/rfc3629#section-1"]
+          "sources": [
+            "https://www.stroustrup.com/bs_faq.html",
+            "https://www.rfc-editor.org/rfc/rfc3629#section-1",
+            "https://brendaneich.com/2008/04/popularity/"
+          ]
         },
         {
           "id": "tech-history-l15-q3",
@@ -83,7 +87,10 @@
           ],
           "answer": "a",
           "explanation": "Go の FAQ の「Why did you create a new language?」は、Go は Google での仕事に使う言語と環境への不満から生まれ、速いコンパイル・速い実行・書きやすさのどれかを選ぶしかなく、3 つがそろう主流の言語は無かった、と書いています。同じ FAQ は、2007 年 9 月 21 日に Robert Griesemer・Rob Pike・Ken Thompson が目標を書き始めたとも書いています。",
-          "sources": ["https://go.dev/doc/faq"]
+          "sources": [
+            "https://go.dev/doc/faq",
+            "https://brendaneich.com/2011/06/new-javascript-engine-module-owner/"
+          ]
         },
         {
           "id": "tech-history-l15-q6",
@@ -160,7 +167,11 @@
           ],
           "answer": "a",
           "explanation": "Codd の論文の掲載は Communications of the ACM の 1970 年 6 月号 (DOI の書誌) で、著者の所属は IBM Research Laboratory です。",
-          "sources": ["https://doi.org/10.1145/362384.362685"]
+          "sources": [
+            "https://doi.org/10.1145/362384.362685",
+            "https://doi.org/10.1109/TSE.1975.6312866",
+            "https://doi.org/10.1145/289.291"
+          ]
         },
         {
           "id": "tech-history-l16-q2",
@@ -216,7 +227,13 @@
           ],
           "answer": "a",
           "explanation": "JCP の JSR 220 のページの Stage timeline で、Final Release は 2006 年 5 月 11 日です。同じページは、この JSR が EJB の仕組みを開発者から見て簡単にするためのものだと書いています。",
-          "sources": ["https://jcp.org/en/jsr/detail?id=220"]
+          "sources": [
+            "https://jcp.org/en/jsr/detail?id=220",
+            "https://jcp.org/en/jsr/detail?id=317",
+            "https://doi.org/10.1145/362384.362685",
+            "https://spring.io/blog/2014/04/01/spring-boot-1-0-ga-released",
+            "https://www.w3.org/TR/2001/NOTE-wsdl-20010315"
+          ]
         },
         {
           "id": "tech-history-l16-q6",
@@ -245,13 +262,16 @@
           "prompt": "答え: 使い終わったメモリを自動で回収する仕組みは、John McCarthy の LISP の論文に早くも出てきます。この論文で、空いた記憶の場所をまとめておく仕組みは何と呼ばれていますか。",
           "choices": [
             { "id": "a", "text": "free-storage list (空き記憶のリスト)" },
-            { "id": "b", "text": "G1", "why": "G1 は JDK 9 で既定になった、ずっと後の Java の GC です。" },
+            { "id": "b", "text": "G1", "why": "G1 は JDK 9 で server の構成の既定になった、ずっと後の Java の GC です。" },
             { "id": "c", "text": "stack frame", "why": "論文が空いた場所をまとめるのに使うのは free-storage list です。" },
             { "id": "d", "text": "heap dump", "why": "メモリの中身を書き出すもので、空いた場所の管理の仕組みではありません。" }
           ],
           "answer": "a",
-          "explanation": "McCarthy の「Recursive Functions of Symbolic Expressions and Their Computation by Machine, Part I」(MIT、1960 年 4 月) は、リストの構造に使っていない場所を free-storage list という 1 本のリストにまとめると説明しています。脚注では、この回収の処理を当時すでに「garbage collection」と呼んでいたが論文では使わなかった、と書いています。",
-          "sources": ["https://www-formal.stanford.edu/jmc/recursive.pdf"]
+          "explanation": "McCarthy の「Recursive Functions of Symbolic Expressions and Their Computation by Machine, Part I」(MIT、1960 年 4 月) は、リストの構造に使っていない場所を free-storage list という 1 本のリストにまとめると説明しています。なお Stanford に置かれたこの写しは後に LaTeX で組み直したもので、McCarthy は後から脚注に、この回収の処理を当時すでに「garbage collection」と呼んでいたが論文では使わなかった、と書き足しています。",
+          "sources": [
+            "https://www-formal.stanford.edu/jmc/recursive.pdf",
+            "https://openjdk.org/jeps/248"
+          ]
         },
         {
           "id": "tech-history-l17-q2",
@@ -260,7 +280,7 @@
           "items": [
             { "id": "lisp", "text": "McCarthy の LISP の論文" },
             { "id": "jls", "text": "Gosling・Joy・Steele が『The Java Language Specification』の初版を書く" },
-            { "id": "jdk9", "text": "JDK 9 で G1 が既定の GC になる" },
+            { "id": "jdk9", "text": "JDK 9 で G1 が server の構成の既定の GC になる" },
             { "id": "jdk10", "text": "JDK 10 が一般提供になる (半年ごとの版の最初)" },
             { "id": "jdk15", "text": "JDK 15 で ZGC が実験から本番向けになる" }
           ],
@@ -277,7 +297,7 @@
         {
           "id": "tech-history-l17-q3",
           "kind": "choice",
-          "prompt": "JEP 248 は、G1 を既定の GC にする理由をどう書いていますか。",
+          "prompt": "JEP 248 は、G1 を (32 ビットと 64 ビットの server の構成で) 既定の GC にする理由をどう書いていますか。",
           "choices": [
             { "id": "a", "text": "GC で止まる時間を抑えることは、多くの場合、処理量を最大にすることより大事だから" },
             { "id": "b", "text": "G1 はメモリを一切使わないから", "why": "JEP 248 が挙げる理由は止まる時間の短さです。" },
@@ -345,11 +365,15 @@
             { "id": "a", "text": "Multics の計画から研究所が身を引いたこと" },
             { "id": "b", "text": "ARPANET につなぐ機械が要ったこと", "why": "Ritchie が挙げるのは、Multics が期待に届かず研究所が計画から身を引いたことです。" },
             { "id": "c", "text": "Linux の代わりが要ったこと", "why": "Linux は 1991 年で、UNIX (1969 年) よりずっと後です。" },
-            { "id": "d", "text": "Java を動かす OS が要ったこと", "why": "Java は 1990 年代の言語です。" }
+            { "id": "d", "text": "Java を動かす OS が要ったこと", "why": "Java の言語仕様の初版は 1996 年で、UNIX (1969 年) よりずっと後です。" }
           ],
           "answer": "a",
           "explanation": "Ritchie の文章は、UNIX は 1974 年ではなく 1969 年に生まれたと書き、そのころ Multics が期待したものを届けられないことが明らかになり、ベル研究所が Multics の計画から身を引いた事情を述べています。",
-          "sources": ["https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html"]
+          "sources": [
+            "https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html",
+            "https://docs.oracle.com/javase/specs/jls/se8/html/jls-0-preface8.html",
+            "https://www.cs.cmu.edu/~awb/linux.history.html"
+          ]
         },
         {
           "id": "tech-history-l18-q2",
@@ -371,7 +395,7 @@
         {
           "id": "tech-history-l18-q3",
           "kind": "choice",
-          "prompt": "答え: Ritchie は、UNIX にとって「最も大事な分かれ目」は何だったと書いていますか。",
+          "prompt": "答え: Ritchie は、UNIX にとって「おそらく最も大事な分かれ目」は何だったと書いていますか。",
           "choices": [
             { "id": "a", "text": "1973 年にカーネルを C で書き直したこと" },
             { "id": "b", "text": "1991 年に Linux が出たこと", "why": "Ritchie の文章の分かれ目は 1973 年の C での書き直しです。" },
@@ -379,7 +403,7 @@
             { "id": "d", "text": "BSD が生まれたこと", "why": "Ritchie が分かれ目と呼ぶのは 1973 年の C での書き直しです。" }
           ],
           "answer": "a",
-          "explanation": "Ritchie の文章は、最も大事な分かれ目は 1973 年にカーネルを C で書き直したことで、このときシステムは今の形になり、最も大きな変化はマルチプログラミングの導入だった、と書いています。この成功で C がほぼ万能の道具だと確信した、とも書いています。",
+          "explanation": "Ritchie の文章は、おそらく最も大事な分かれ目 (Perhaps the most important watershed) は 1973 年にカーネルを C で書き直したことで、このときシステムは今の形になり、最も大きな変化はマルチプログラミングの導入だった、と書いています。この成功で C がほぼ万能の道具だと確信した、とも書いています。",
           "sources": ["https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html"]
         },
         {
@@ -443,7 +467,8 @@
           "explanation": "FreeBSD の chroot(2) のマニュアルの HISTORY に、chroot() は Version 7 AT&T UNIX で現れた、とあります。jail(8) の HISTORY には、jail は FreeBSD 4.0 で現れた、とあります。",
           "sources": [
             "https://man.freebsd.org/cgi/man.cgi?query=chroot&sektion=2",
-            "https://man.freebsd.org/cgi/man.cgi?query=jail&sektion=8"
+            "https://man.freebsd.org/cgi/man.cgi?query=jail&sektion=8",
+            "https://kubernetes.io/blog/2024/06/06/10-years-of-kubernetes/"
           ]
         },
         {
@@ -548,7 +573,10 @@
           ],
           "answer": "a",
           "explanation": "「A Short History of Git」は、1991〜2002 年はパッチとアーカイブのファイルで変更を回していたが、2002 年に商用の分散型の BitKeeper を使い始め、2005 年にその会社との関係が壊れて無償の扱いが取り消され、Torvalds らが BitKeeper で学んだことをもとに自分たちの道具を作った、と書いています。目標には速さ、単純な設計、何千もの並行したブランチ、完全な分散が挙がっています。",
-          "sources": ["https://git-scm.com/book/en/v2/Getting-Started-A-Short-History-of-Git"]
+          "sources": [
+            "https://git-scm.com/book/en/v2/Getting-Started-A-Short-History-of-Git",
+            "https://github.blog/news-insights/the-library/we-launched/"
+          ]
         },
         {
           "id": "tech-history-l20-q3",
@@ -562,7 +590,11 @@
           ],
           "answer": "a",
           "explanation": "GitHub の git/git の e83c5163 のコミットは、作者が Linus Torvalds、日付が 2005-04-07、メッセージが「Initial revision of \"git\", the information manager from hell」で、親のコミットはありません。",
-          "sources": ["https://github.com/git/git/commit/e83c5163316f89bfbde7d9ab23ca2e25604af290"]
+          "sources": [
+            "https://github.com/git/git/commit/e83c5163316f89bfbde7d9ab23ca2e25604af290",
+            "https://www.cs.cmu.edu/~awb/linux.history.html",
+            "https://git-scm.com/book/en/v2/Getting-Started-A-Short-History-of-Git"
+          ]
         },
         {
           "id": "tech-history-l20-q4",
