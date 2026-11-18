@@ -35,11 +35,33 @@ flowchart LR
   line --> ni
 ```
 
+問題データと進捗は、画面とは別に次の形でつながります (解く画面は次の PR で足します)。
+
+```mermaid
+flowchart LR
+  json["content/courses/#lt;course#gt;/*.json<br/>問題データ"] --> check["scripts/check-content.mjs<br/>npm run check:content"]
+  stages["content/stages.ts<br/>段の id"] --> check
+  courses["lib/route.ts<br/>コースの id"] --> check
+  json --> index["content/index.ts<br/>LESSONS・findQuestion"]
+  types["content/types.ts<br/>5 種類の型"] --> index
+  index --> grade["lib/grade.ts<br/>採点"]
+  grade --> progress["lib/progress.ts<br/>完了・XP・連続日数"]
+  progress --> ls[("localStorage<br/>gantlo.v1")]
+  progress --> hook["lib/useProgress.ts"]
+```
+
 | ファイル | 役目 |
 |---|---|
 | `src/lib/route.ts` | URL の道から画面を決める。# は使わない (検索エンジンが # の後ろを別のページとして扱わないため) |
 | `src/content/stages.ts` | 旅の 8 段の正本 (名前・役目・主な公式文書・何週目か・帯の長さの比) |
 | `src/lib/status.ts` | 進み具合を HTTP のステータスにする。どのステータスにも日本語の説明を付ける |
+| `src/content/types.ts` | 問題データの型。問題は 5 種類 (コマンドの穴埋め・HTTP と JSON の穴埋め・並べ替え・4 択・実習) |
+| `src/content/courses/<course>/*.json` | 問題データ。置けばそのコースに自動でつながる。様式は [docs/content-format.md](docs/content-format.md) |
+| `src/content/index.ts` | 問題データを読み、コースの順に並べる。レッスンと問題を id で引く |
+| `scripts/check-content.mjs` | 問題データの検査 (`npm run check:content`)。必須の欄・正解と選択肢や項目の食い違い・id の重なり・旅の段・https の出典を見る。CI でも走る |
+| `src/lib/grade.ts` | 採点。前後の空白は無視し、大文字と小文字は区別する。HTTP のヘッダー名とメディアタイプだけは区別しない |
+| `src/lib/progress.ts` | 進捗。localStorage の `gantlo.v1` に JSON で置き、サーバーには送らない。壊れた中身は初期値で読み直す |
+| `src/lib/useProgress.ts` | 進捗を読み、変えるたびに保存する React のフック |
 | `src/styles.css` | Astryx の部品で作れない所 (ステータス行・帯・ヘッダーの行) だけ。色はテーマのトークンだけを使う |
 | `scripts/spa-fallback.mjs` | `dist/index.html` を `404.html` に写す。画面ごとの HTML を書き出すまでの間、どの道から開いても画面が出るようにする |
 
@@ -49,13 +71,14 @@ flowchart LR
 npm ci
 npm run dev     # 手元で開く
 npm test        # vitest
+npm run check:content  # 問題データの検査
 npm run build   # dist に書き出す
 ```
 
 `main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
 ## まだ無いもの
 
-レッスンと問題、進捗の保存、計画のガントチャート、復習、用語集、画面ごとの HTML の書き出しは、これから作ります。メニューには「準備中」と出しています。
+問題を解く画面、本物の問題、計画のガントチャート、復習、用語集、画面ごとの HTML の書き出しは、これから作ります。問題データの様式・検査と進捗の保存は先にあり、まだ画面からは使っていません。メニューには「準備中」と出しています。
 
 ## ライセンス
 
