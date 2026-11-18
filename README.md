@@ -18,6 +18,8 @@
 | レッスン完了 | `201 Created`。`Location: /me/lessons/<id>` と、結果の JSON (`lesson`・`correct`・`total`・`xp`) |
 | レッスンの一覧 | 開発者ツールの Network タブ。レッスン 1 つが 1 行 (Name・Status・形・Waterfall) で、学ぶ順に並べた Waterfall の列が 1 本のガントチャートになる。済んだ行は `200 完了`、計画の順で最初の未完了の行が「次」 |
 | 計画 (`/gantlo/plan/`) | 学ぶコースを選び、上下のボタンで順を並べると、レッスンの数に比例した帯を引く。期限と期間は持たず、横の軸はレッスンの数。`PUT この順で学ぶ` で保存すると `200 OK`。帯に済んだぶんを塗り、「今ここ」を縦の印で示す。計画が無いときは全コースを既定の順 (本編 → 追加のコース) で見せる |
+| 復習 (`/gantlo/review/`) | `GET /me/reviews?due=today` への応答。今日の復習があれば `200 OK` と問題の一覧、無ければ `204 No Content` と次の予定。解き終えると `200 OK` (レッスンの記録は作らないので `201` にしない) |
+| 設定 (`/gantlo/settings/`) | 目標を変えると `PATCH /me/profile` の `200`、書き出しは `GET`、読み込みは `PUT /me` の `200`。1 MB を超えるファイルは `413 Content Too Large`、壊れたファイルは `422 Unprocessable Content` で読まず、理由を出す。記録を消すと `DELETE /me` の `204` |
 | まだ無い画面 | `501 Not Implemented` |
 | 知らない URL | `404 Not Found` |
 | メニュー | 左。PC では常に出し、スマホでは左から開く引き出し |
@@ -32,6 +34,12 @@ flowchart LR
   route --> app["src/App.tsx<br/>AppShell + 左の SideNav"]
   app --> home["screens/Home.tsx<br/>GET /me の応答"]
   app --> plan["screens/Plan.tsx<br/>計画を組む (PUT /plan)"]
+  app --> review["screens/Review.tsx<br/>今日の復習 (GET /me/reviews)"]
+  app --> settings["screens/Settings.tsx<br/>目標・書き出し・読み込み・消す"]
+  review -->|復習として解く| lesson
+  sched["lib/progress.ts<br/>復習の予定 (1・3・7 日)<br/>読み込みの検査"] --> review
+  sched --> settings
+  dl["lib/download.ts<br/>Blob と a[download]"] --> settings
   app --> lesson["screens/LessonScreen.tsx<br/>/lesson/#lt;id#gt;/ を 1 問ずつ解く"]
   app --> ni["screens/StatusPage.tsx<br/>501 / 404"]
   stages["content/stages.ts<br/>旅の 8 段"] --> wf["components/Waterfall.tsx"]
@@ -90,7 +98,7 @@ flowchart LR
 | `src/content/index.ts` | 問題データを読み、コースの順に並べる。レッスンと問題を id で引く |
 | `scripts/check-content.mjs` | 問題データの検査 (`npm run check:content`)。必須の欄・正解と選択肢や項目の食い違い・id の重なり・旅の段・https の出典を見る。CI でも走る |
 | `src/lib/grade.ts` | 採点。前後の空白は無視し、大文字と小文字は区別する。HTTP のヘッダー名とメディアタイプだけは区別しない |
-| `src/lib/progress.ts` | 進捗。localStorage の `gantlo.v1` に JSON で置き、サーバーには送らない。壊れた中身は初期値で読み直す |
+| `src/lib/progress.ts` | 進捗。localStorage の `gantlo.v1` に JSON で置き、サーバーには送らない。壊れた中身は初期値で読み直す。復習の予定 (`recordAnswer`): 間違えると翌日、予定日以降の正解で 3 日後・7 日後、7 日後も正解で卒業、予定日より前の正解は据え置き。日付は端末の時刻の日付 (`dayKey`) で数え、時差で 1 日ずれない。読み込み (`parseImport`) は 1 MB まで、`v` が 1 で `streak`・`xp`・`lessons`・`answers` がオブジェクトのものだけを読み、読めない理由を返す。目標と計画は、読み込んだ側に無いときだけ今の端末から引き継ぐ |
 | `src/lib/useProgress.ts` | 進捗を読み、変えるたびに保存する React のフック |
 | `src/screens/LessonScreen.tsx` | レッスンを 1 問ずつ解き、最後に `201 Created` で結果を出す。答えるたびに問題ごとの正誤を、終えたら完了・最高の正答率・XP を進捗に残す。並べ替えは準備中 (`501`) を出して飛ばす |
 | `src/components/FillQuestionView.tsx`・`ChoiceQuestionView.tsx`・`LabQuestionView.tsx` | 種類ごとの画面 (コマンドと HTTP・JSON の穴埋め / 4 択 / 実習)。実習は採点せず、全部の手順に印を付けると終えられる |
@@ -99,6 +107,9 @@ flowchart LR
 | `src/lib/shuffle.ts` | 4 択の選択肢を、開くたび・やり直すたびに混ぜる (`fixedOrder` の問題はそのまま) |
 | `src/lib/lessonRun.ts` | 正答数 (採点した問題だけで数える)・XP (正解 1 問 3、実習 10)・結果の JSON |
 | `scripts/e2e.mjs` | ブラウザでの通しの検査 (`npm run e2e`)。390 幅と 1280 幅で見本のレッスンを解き、応答・完了・進捗・404・横のはみ出し・答える前の AI のリンク (全種類)・本文へ飛ぶリンク・390 幅の押せる範囲 (44px) を見る |
+| `src/screens/Review.tsx` | 復習の画面。始めたときの今日の問題を、レッスンの画面 (`LessonScreen` の `review`) で 1 問ずつ解く。復習ではレッスンの完了を付けず、XP と連続日数だけを進め、閉じると復習の画面へ戻る |
+| `src/screens/Settings.tsx`・`src/lib/download.ts` | 設定の画面。1 日の目標 (10・20・30・50 XP)、記録の書き出し (画面の中で Blob を作って a[download] を押す)、読み込み (file input。確かめてから置き換える)、記録を消す (画面の中の確認の dialog を挟む。`confirm()` は使わない。目標と計画は残す) |
+| `scripts/e2e-review-settings.mjs` | `scripts/e2e.mjs` から呼ぶ、復習と設定の画面の通しの検査。時計を止め、UTC と手元の日付が違う時差 (390 幅は東京、1280 幅はロサンゼルス) で、今日の復習を解くと 0 問になること・目標 10 XP がホームに出ること・書き出した JSON を読み込むと記録が戻ること・壊れたファイル (422) と 1 MB を超えるファイル (413) を読まないこと・記録を消す前に確かめること・390 幅でボタンが 44px 以上であることを見る |
 | `scripts/e2e-home-plan.mjs` | `scripts/e2e.mjs` から呼ぶ、ホームと計画の画面の通しの検査。空の状態から次のレッスンを終えて戻ると完了・段の学習済み・XP の増加が出ること (390・1280 幅)、390 幅でキーボードだけで並べ替えて保存できボタンが 44px 以上であること、1280 幅で計画の帯・済みの塗り・今ここ・次のレッスンへのリンクが出てレッスンが開くことを見る |
 | `src/styles.css` | Astryx の部品で作れない所 (ステータス行・帯・ヘッダーの行) と、狭い画面 (768px 未満) の共通の決まりだけ。狭い画面ではボタン・入力欄の高さのトークン (`--size-element-*`) と 4 択・手順の行を 44px にそろえ、ページごとには大きさを書かない。色はテーマのトークンだけを使う |
 | `scripts/spa-fallback.mjs` | `dist/index.html` を `404.html` に写す。画面ごとの HTML を書き出すまでの間、どの道から開いても画面が出るようにする |
@@ -119,7 +130,7 @@ npm run e2e     # 書き出してから、Playwright の Chromium で通しの�
 `main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
 ## まだ無いもの
 
-並べ替えの問題の画面、本物の問題、コースのレッスンの一覧、復習 (予定の計算と画面。`Retry-After` の数はまだ 0)、進捗・用語集・設定の画面、画面ごとの HTML の書き出しは、これから作ります。メニューには「準備中」と出しています。
+並べ替えの問題の画面、本物の問題、コースのレッスンの一覧、進捗・用語集の画面、画面ごとの HTML の書き出しは、これから作ります。メニューには「準備中」と出しています。
 
 ## ライセンス
 
