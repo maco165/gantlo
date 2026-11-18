@@ -15,6 +15,23 @@ const HTTP_FORMATS = ['http', 'json'];
 const MATCHES = ['text', 'header-name', 'media-type'];
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 
+/** 使ってよい欄。ほかの欄は打ち間違いとして NG にする (任意の欄の打ち間違いで採点や表示が黙って変わらないように) */
+const FIELDS = {
+  file: ['lessons'],
+  lesson: ['id', 'title', 'course', 'stage', 'questions'],
+  question: ['id', 'kind', 'prompt', 'explanation', 'sources'],
+  command: ['tool', 'code', 'blanks', 'output'],
+  http: ['format', 'code', 'blanks'],
+  order: ['items', 'answer'],
+  choice: ['code', 'choices', 'answer', 'fixedOrder'],
+  lab: ['steps', 'expected'],
+  blank: ['answers', 'match'],
+  item: ['id', 'text'],
+  option: ['id', 'text', 'why'],
+  step: ['text', 'command'],
+  code: ['format', 'text'],
+};
+
 /**
  * TS のファイルの `export const <name> ... = [ ... ];` の中から `id: '...'` を拾う。
  * 段 (stages.ts) とコース (route.ts) の正本は TS にあり、この検査はそれを読む (写しを持たない)。
@@ -51,6 +68,11 @@ export function checkFiles(files, { stageIds, courseIds }) {
     const name = relative(process.cwd(), file);
     const errors = [];
     const ng = (id, msg) => errors.push(`NG ${name} ${id}: ${msg}`);
+    /** obj の欄のうち、allowed に無いものを NG にする。where は欄の名前の前に付ける場所 (blanks[0]. など) */
+    const onlyFields = (obj, allowed, id, where = '') => {
+      if (typeof obj !== 'object' || obj === null || Array.isArray(obj)) return;
+      for (const key of Object.keys(obj)) if (!allowed.includes(key)) ng(id, `知らない欄 (${where}${key}) です`);
+    };
     const claimId = (id, where) => {
       if (!isNonEmptyString(id)) return ng(where, 'id がありません');
       if (!ID_PATTERN.test(id)) ng(id, 'id は英小文字・数字・- だけにします');
@@ -72,11 +94,13 @@ export function checkFiles(files, { stageIds, courseIds }) {
     const folder = basename(dirname(file));
     const inCourses = dirname(dirname(file)) === COURSES_DIR;
     if (inCourses && !courseIds.includes(folder)) ng('-', `置き場所 (courses/${folder}/) がコースの id ではありません`);
+    onlyFields(data, FIELDS.file, '-');
     if (!Array.isArray(data?.lessons) || data.lessons.length === 0) ng('-', 'lessons がありません');
 
     for (const [li, lesson] of (Array.isArray(data?.lessons) ? data.lessons : []).entries()) {
       const lid = isNonEmptyString(lesson?.id) ? lesson.id : `lessons[${li}]`;
       claimId(lesson?.id, lid);
+      onlyFields(lesson, FIELDS.lesson, lid);
       if (!isNonEmptyString(lesson?.title)) ng(lid, 'title がありません');
       if (!courseIds.includes(lesson?.course)) ng(lid, `course は ${courseIds.join(' / ')} のどれかにします (${lesson?.course})`);
       else if (inCourses && lesson.course !== folder) ng(lid, `course (${lesson.course}) が置き場所 (courses/${folder}/) と違います`);
@@ -92,6 +116,7 @@ export function checkFiles(files, { stageIds, courseIds }) {
         const qid = isNonEmptyString(q?.id) ? q.id : `${lid}.questions[${qi}]`;
         claimId(q?.id, qid);
         if (isNonEmptyString(q?.id) && isNonEmptyString(lesson.id) && !q.id.startsWith(`${lesson.id}-`)) ng(qid, `問題の id はレッスンの id (${lesson.id}-) で始めます`);
+        if (KINDS.includes(q?.kind)) onlyFields(q, [...FIELDS.question, ...FIELDS[q.kind]], qid);
         for (const key of ['prompt', 'explanation']) if (!isNonEmptyString(q?.[key])) ng(qid, `${key} がありません`);
         if (!Array.isArray(q?.sources) || q.sources.length === 0) ng(qid, 'sources (出典の URL の配列) がありません');
         else q.sources.forEach((s, si) => isHttpsUrl(s) || ng(qid, `sources[${si}] が https の URL ではありません (${s})`));
@@ -110,6 +135,7 @@ export function checkFiles(files, { stageIds, courseIds }) {
             }
             if (q.blanks.length !== n) ng(qid, `blanks の数 (${q.blanks.length}) が code の ${BLANK} の数 (${n}) と合いません`);
             for (const [bi, b] of q.blanks.entries()) {
+              onlyFields(b, FIELDS.blank, qid, `blanks[${bi}].`);
               if (!Array.isArray(b?.answers) || b.answers.length === 0 || !b.answers.every(isNonEmptyString)) ng(qid, `blanks[${bi}].answers (正解の配列) がありません`);
               if (b?.match !== undefined && !MATCHES.includes(b.match)) ng(qid, `blanks[${bi}].match は ${MATCHES.join(' / ')} のどれかにします`);
             }
@@ -119,7 +145,10 @@ export function checkFiles(files, { stageIds, courseIds }) {
           case 'order': {
             const items = Array.isArray(q.items) ? q.items : [];
             if (items.length < 2) ng(qid, 'items は 2 つ以上要ります');
-            for (const [ii, it] of items.entries()) if (!isNonEmptyString(it?.id) || !isNonEmptyString(it?.text)) ng(qid, `items[${ii}] に id か text がありません`);
+            for (const [ii, it] of items.entries()) {
+              onlyFields(it, FIELDS.item, qid, `items[${ii}].`);
+              if (!isNonEmptyString(it?.id) || !isNonEmptyString(it?.text)) ng(qid, `items[${ii}] に id か text がありません`);
+            }
             const ids = items.map((it) => it?.id);
             if (new Set(ids).size !== ids.length) ng(qid, '項目の id が重複しています');
             if (!Array.isArray(q.answer) || q.answer.length === 0) {
@@ -136,18 +165,21 @@ export function checkFiles(files, { stageIds, courseIds }) {
             const ids = choices.map((c) => c?.id);
             if (new Set(ids).size !== ids.length) ng(qid, '選択肢の id が重複しています');
             for (const [ci, c] of choices.entries()) {
+              onlyFields(c, FIELDS.option, qid, `choices[${ci}].`);
               if (!isNonEmptyString(c?.id) || !isNonEmptyString(c?.text)) ng(qid, `choices[${ci}] に id か text がありません`);
               if (c?.why !== undefined && !isNonEmptyString(c.why)) ng(qid, `choices[${ci}].why は空でない文字列にします`);
             }
             if (!isNonEmptyString(q.answer)) ng(qid, 'answer (正解の選択肢の id) がありません');
             else if (!ids.includes(q.answer)) ng(qid, `正解 (${q.answer}) が選択肢にありません`);
             if (q.fixedOrder !== undefined && typeof q.fixedOrder !== 'boolean') ng(qid, 'fixedOrder は true か false にします');
+            onlyFields(q.code, FIELDS.code, qid, 'code.');
             if (q.code !== undefined && (!isNonEmptyString(q.code?.text) || !isNonEmptyString(q.code?.format))) ng(qid, 'code は format と text を持ちます');
             break;
           }
           case 'lab': {
             if (!Array.isArray(q.steps) || q.steps.length === 0) ng(qid, 'steps がありません');
             for (const [si, step] of (Array.isArray(q.steps) ? q.steps : []).entries()) {
+              onlyFields(step, FIELDS.step, qid, `steps[${si}].`);
               if (!isNonEmptyString(step?.text)) ng(qid, `steps[${si}] に text がありません`);
               if (step?.command !== undefined && !isNonEmptyString(step.command)) ng(qid, `steps[${si}] の command が空です`);
             }

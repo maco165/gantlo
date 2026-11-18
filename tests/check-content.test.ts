@@ -144,6 +144,26 @@ describe('check-content', { timeout: 30_000 }, () => {
     expect(r.out).toMatch(/^NG .*broken\.json -: JSON として読めません/m);
   });
 
+  it('知らない欄 (打ち間違い) は NG', () => {
+    const cases: [string, (d: any) => void, RegExp][] = [
+      ['typo-match', (d) => (q(d, 1).blanks[0].Match = 'header-name'), /main-w1-l1-q2: 知らない欄 \(blanks\[0\]\.Match\) です/],
+      ['typo-fixedorder', (d) => (q(d, 3).fixedorder = true), /main-w1-l1-q4: 知らない欄 \(fixedorder\) です/],
+      ['typo-whyy', (d) => (q(d, 3).choices[1].whyy = '違う'), /main-w1-l1-q4: 知らない欄 \(choices\[1\]\.whyy\) です/],
+      ['typo-source', (d) => (q(d, 0).source = 'https://curl.se/'), /main-w1-l1-q1: 知らない欄 \(source\) です/],
+      ['typo-other-kind', (d) => (q(d, 0).items = []), /main-w1-l1-q1: 知らない欄 \(items\) です/],
+      ['typo-lesson', (d) => (d.lessons[0].stages = 'http'), /main-w1-l1: 知らない欄 \(stages\) です/],
+      ['typo-file', (d) => (d.lesson = []), /NG \S+ -: 知らない欄 \(lesson\) です/],
+      ['typo-item', (d) => (q(d, 2).items[0].txt = 'x'), /main-w1-l1-q3: 知らない欄 \(items\[0\]\.txt\) です/],
+      ['typo-step', (d) => (q(d, 4).steps[0].cmd = 'ls'), /main-w1-l1-q5: 知らない欄 \(steps\[0\]\.cmd\) です/],
+      ['typo-code', (d) => (q(d, 3).code = { format: 'http', text: 'x', lang: 'y' }), /main-w1-l1-q4: 知らない欄 \(code\.lang\) です/],
+    ];
+    for (const [name, fn, re] of cases) {
+      const r = run(mutate(name, fn));
+      expect(r.code, name).toBe(1);
+      expect(r.out, name).toMatch(re);
+    }
+  });
+
   it('検査が読む段とコースの id は、stages.ts と route.ts の正本と同じ', async () => {
     const mod = await import(pathToFileURL(SCRIPT).href);
     expect(mod.readIds('src/content/stages.ts', 'STAGES')).toEqual(STAGES.map((s) => s.id));
