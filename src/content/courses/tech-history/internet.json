@@ -166,7 +166,7 @@
           "code": "curl -sI {{blank}} https://example.com/",
           "blanks": [{ "answers": ["--http1.0", "-0"] }],
           "output": "HTTP/1.1 200 OK\n...",
-          "explanation": "-0 (--http1.0) は、curl に既定の版ではなく HTTP/1.0 で要求させます (curl のマニュアル)。HTTP/1.0 は RFC 1945 (1996 年 5 月) にまとめられた版です。ただし応答の版はサーバーが選びます。RFC 9110 の 6.2 は、サーバーは要求のメジャー版以下で自分が準拠する最も高い版で返すべき (SHOULD) と書くので、HTTP/1.1 のサーバーは HTTP/1.0 の要求にも HTTP/1.1 200 OK で返します。送った要求の行 (> HEAD / HTTP/1.0) は -v を付けると見られます。",
+          "explanation": "-0 (--http1.0) は、curl に既定の版ではなく HTTP/1.0 で要求させます (curl のマニュアル)。HTTP/1.0 は RFC 1945 (1996 年 5 月) にまとめられた版です。ただし応答の版はサーバーが選びます。RFC 9110 の 6.2 は、サーバーは要求のメジャー版以下で自分が準拠する最も高い版で返すべき (SHOULD) と書きます。そのため HTTP/1.1 のサーバーの多くは、HTTP/1.0 の要求にも HTTP/1.1 200 OK で返します (example.com もそうです)。送った要求の行 (> HEAD / HTTP/1.0) は -v を付けると見られます。",
           "sources": [
             "https://curl.se/docs/manpage.html",
             "https://www.rfc-editor.org/rfc/rfc1945",
