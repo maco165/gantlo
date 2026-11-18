@@ -9,6 +9,9 @@
 //   6. 「もう一度解く」で 1 問目に戻り、4 択の並びが混ぜ直される。メディアタイプを誤ると 415
 //   7. 知らないレッスンの id は 404。左のメニュー (スマホでは左から開く引き出し) はそのまま
 //   8. どの画面も横にはみ出さない。サイトの外へは何も送らない。ページのエラーが無い
+//   9. 答える前の AI のリンクは、どの種類の問題でも答えの手がかりを含まない
+//  10. 途中で本文へ飛ぶリンク (skip link) を押しても、何問目かが変わらない
+//  11. 390 幅では、主な操作 (閉じる・答えを送る・次へ・AI に聞く・空欄・4 択の行) の押せる範囲が 44px 以上
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -87,6 +90,37 @@ async function fill(page, values) {
   for (const [i, v] of values.entries()) await inputs.nth(i).fill(v);
 }
 
+/** 答えの手がかりになる文 (正解・解説・実行結果の例・見えること・誤りの理由) */
+function secretsOf(q) {
+  const out = [q.explanation];
+  if (q.kind === 'command' || q.kind === 'http') for (const b of q.blanks) out.push(...b.answers);
+  if (q.kind === 'command' && q.output) out.push(q.output);
+  if (q.kind === 'choice') {
+    // 正解の選択肢の文は選択肢として必ず出るので、「正解は「…」」の形で入っていないかを見る
+    const right = q.choices.find((c) => c.id === q.answer).text;
+    out.push(`${right}」`);
+    for (const c of q.choices) if (c.why) out.push(c.why);
+  }
+  if (q.kind === 'lab') out.push(q.expected);
+  return out;
+}
+
+/** 答える前の AI のリンクの文に、問題文が入り、答えの手がかりと「正解」の字が入っていないか */
+async function checkNoLeak(page, q, label) {
+  const { text } = await aiQuery(page);
+  const leaked = secretsOf(q).filter((x) => text.includes(x));
+  if (text.includes('正解')) leaked.push('「正解」の字');
+  check(text.includes(q.prompt) && leaked.length === 0, `${label} (${q.kind}): 答える前の AI のリンクは問題文だけで、正解・解説・見えることを含まない ${leaked.join(' / ')}`);
+}
+
+/** 押せる範囲の大きさ (390 幅の主な操作は 44px 以上) */
+const MIN_TARGET = 44;
+async function checkTarget(locator, label, { width = false } = {}) {
+  const box = await locator.boundingBox();
+  const ok = box !== null && box.height >= MIN_TARGET && (!width || box.width >= MIN_TARGET);
+  check(ok, `${label}: 押せる範囲が ${MIN_TARGET}px 以上 (${box ? `${Math.round(box.width)}x${Math.round(box.height)}` : '見えない'})`);
+}
+
 const send = (page) => page.getByRole('button', { name: 'POST 答えを送る' }).click();
 const next = (page) => page.getByRole('button', { name: /^(次の問題へ|POST 結果を記録する)$/ }).click();
 
@@ -121,9 +155,22 @@ async function run(browser, name, width, height) {
   check(await page.getByText(`1 / ${lesson.questions.length} 問`).first().isVisible(), `${tag} 何問目かが出る`);
   const before = await aiQuery(page);
   check(before.claude.startsWith('https://claude.ai/new?q=') && before.chatgpt.startsWith('https://chatgpt.com/?q='), `${tag} AI に聞くリンクは claude.ai/new?q= と chatgpt.com/?q=`);
-  check(before.text.includes(qCmd.prompt) && !before.text.includes(qCmd.explanation) && !before.text.includes(qCmd.blanks[0].answers[0]), `${tag} 答える前の AI のリンクは問題文だけで、正解と解説を含まない`);
+  await checkNoLeak(page, qCmd, `${tag} 1 問目`);
   check((await page.getByRole('link', { name: 'Claude' }).first().getAttribute('target')) === '_blank', `${tag} AI に聞くリンクは別のタブで開く`);
   await noHorizontalOverflow(page, width, `${tag} 問題 (コマンドの穴埋め)`);
+  const phone = width < 768;
+  if (phone) {
+    await checkTarget(page.getByRole('link', { name: 'レッスンを閉じる' }), `${tag} 閉じるボタン`, { width: true });
+    await checkTarget(page.getByRole('button', { name: 'POST 答えを送る' }), `${tag} 答えを送るボタン`);
+    await checkTarget(page.getByRole('link', { name: 'Claude' }), `${tag} AI に聞くリンク (Claude)`, { width: true });
+    await checkTarget(page.getByRole('link', { name: 'ChatGPT' }), `${tag} AI に聞くリンク (ChatGPT)`, { width: true });
+    const field = page.locator('[data-testid="fill-code"] .astryx-text-input').first();
+    await checkTarget(field, `${tag} 空欄の入力`);
+    // 入力欄の枠の端を押しても、文字を打てる状態になる
+    const fb = await field.boundingBox();
+    await page.mouse.click(fb.x + fb.width - 3, fb.y + 3);
+    check(await page.evaluate(() => document.activeElement?.closest('[data-testid="fill-code"]') !== null && document.activeElement?.tagName === 'INPUT'), `${tag} 空欄の枠の端を押しても入力できる`);
+  }
   await fill(page, ['-v']);
   await send(page);
   let r = await response(page, 400);
@@ -136,10 +183,22 @@ async function run(browser, name, width, height) {
   const after = await aiQuery(page);
   check(after.text.includes('不正解') && after.text.includes(qCmd.blanks[0].answers[0]), `${tag} 答えたあとの AI のリンクには自分の答えと正解が入る`);
   await noHorizontalOverflow(page, width, `${tag} 応答 400`);
+  if (phone) await checkTarget(page.getByRole('button', { name: '次の問題へ' }), `${tag} 次へのボタン`);
   await next(page);
 
   // 2 問目: HTTP の穴埋め。正解 (200)。ヘッダー名とメディアタイプは大文字と小文字を区別しない
   await page.getByRole('heading', { name: qHttp.prompt }).waitFor();
+  await checkNoLeak(page, qHttp, `${tag} 2 問目`);
+  // 途中で本文へ飛ぶリンク (AppShell の skip link) を押しても、レッスンは 1 問目に戻らない
+  const skip = page.locator('[data-testid="skip-to-content"]');
+  check((await skip.count()) === 1, `${tag} 本文へ飛ぶリンクがある`);
+  await skip.focus();
+  await page.keyboard.press('Enter');
+  await page.waitForTimeout(300);
+  check(
+    (await page.getByText(`2 / ${lesson.questions.length} 問`).first().isVisible()) && (await page.getByRole('heading', { name: qHttp.prompt }).isVisible()) && new URL(page.url()).pathname === new URL(LESSON_URL).pathname,
+    `${tag} 途中で本文へ飛ぶリンクを押しても何問目かが変わらない`,
+  );
   await fill(page, ['content-type', 'Application/JSON']);
   await send(page);
   r = await response(page, 200);
@@ -162,6 +221,15 @@ async function run(browser, name, width, height) {
   const order1 = await choiceOrder(page);
   const dataOrder = qChoice.choices.map((c, i) => `${String.fromCharCode(65 + i)}. ${c.text}`);
   check(order1.length === 4 && order1.join('|') !== dataOrder.join('|'), `${tag} 4 択の選択肢は開いたときに混ぜてある (${order1.map((t) => t.slice(3, 6)).join(',')})`);
+  await checkNoLeak(page, qChoice, `${tag} 4 問目`);
+  if (phone) {
+    const rows = page.locator('.astryx-radio-list-item');
+    for (let i = 0; i < (await rows.count()); i++) await checkTarget(rows.nth(i), `${tag} 4 択の行 ${i + 1}`);
+    // 行の右端を押しても、その選択肢が選ばれる
+    const rb = await rows.nth(2).boundingBox();
+    await page.mouse.click(rb.x + rb.width - 4, rb.y + 3);
+    check(await page.getByRole('radio').nth(2).isChecked(), `${tag} 4 択の行の端を押しても選べる`);
+  }
   await choiceRadio(page, qChoice.answer).check();
   await send(page);
   r = await response(page, 200);
@@ -170,6 +238,11 @@ async function run(browser, name, width, height) {
 
   // 5 問目: 実習。全部の手順に印を付けるまで終えられない
   await page.getByRole('heading', { name: qLab.prompt }).waitFor();
+  await checkNoLeak(page, qLab, `${tag} 5 問目`);
+  if (phone) {
+    const steps = page.locator('.astryx-checkbox-list .astryx-item');
+    for (let i = 0; i < (await steps.count()); i++) await checkTarget(steps.nth(i), `${tag} 実習の手順の行 ${i + 1}`);
+  }
   const finishLab = page.getByRole('button', { name: 'POST 実習を終える' });
   check(await finishLab.isDisabled(), `${tag} 実習は手順に印を付けるまで終えられない`);
   for (const box of await page.getByRole('checkbox').all()) await box.check();
