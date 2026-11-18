@@ -4,6 +4,7 @@ import Waterfall from '../components/Waterfall';
 import { STAGES } from '../content/stages';
 import { progressStatus } from '../lib/status';
 import { COURSES } from '../lib/route';
+import { SITE_NAME, SITE_TAGLINE } from '../lib/site';
 
 /** ホーム = GET /me への応答。進み具合はステータス、記録はレスポンスヘッダーの形で読む */
 export default function Home() {
@@ -17,6 +18,9 @@ export default function Home() {
   ];
   return (
     <div className="page">
+      <h1 className="page__title">
+        {SITE_NAME} — {SITE_TAGLINE}
+      </h1>
       <StatusLine status={status} request="GET /me" />
       <Waterfall learned={learned} />
       <section className="headers" aria-labelledby="headers-title">

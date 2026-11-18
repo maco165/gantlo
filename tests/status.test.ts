@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NOT_IMPLEMENTED, progressStatus } from '../src/lib/status';
+import { NOT_FOUND, NOT_IMPLEMENTED, progressStatus } from '../src/lib/status';
 
 describe('進み具合のステータス', () => {
   it('何も済んでいなければ 202 Accepted', () => {
@@ -14,7 +14,8 @@ describe('進み具合のステータス', () => {
     expect(progressStatus(8, 8).code).toBe(200);
   });
   it('どのステータスにも日本語の説明がある', () => {
-    for (const s of [progressStatus(0, 8), progressStatus(1, 8), progressStatus(8, 8), NOT_IMPLEMENTED]) {
+    expect(NOT_FOUND.code).toBe(404);
+    for (const s of [progressStatus(0, 8), progressStatus(1, 8), progressStatus(8, 8), NOT_IMPLEMENTED, NOT_FOUND]) {
       expect(s.ja.length).toBeGreaterThan(0);
       expect(s.reason.length).toBeGreaterThan(0);
     }

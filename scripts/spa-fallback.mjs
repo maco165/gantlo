@@ -3,7 +3,9 @@
 // どの道から開いても画面が出るようにする。
 import { copyFile } from 'node:fs/promises';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const DIST = path.resolve(path.dirname(new URL(import.meta.url).pathname), '..', 'dist');
+// fileURLToPath を使う (URL の pathname のままだと、空白や日本語を含む場所で %20 などが残って開けない)
+const DIST = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist');
 await copyFile(path.join(DIST, 'index.html'), path.join(DIST, '404.html'));
 console.log('dist/404.html を書きました');

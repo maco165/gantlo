@@ -43,7 +43,7 @@ export default function AppSideNav({ route }: { route: Route }) {
   );
 }
 
-/** スマホのメニュー。本人の決定 (2026-11-19「メニューはひだりで」) に合わせて、必ず左から開く */
+/** スマホのメニュー。必ず左から開く (side="start") */
 export function AppMobileNav({ route }: { route: Route }) {
   return (
     <MobileNav side="start" header={heading}>

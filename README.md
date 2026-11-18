@@ -15,6 +15,7 @@
 | ホーム | `GET /me` への応答。進み具合はステータス (`202` まだ / `206` 途中 / `200` 全部済み) で、記録はレスポンスヘッダーの形で読む |
 | リクエストの旅 | 開発者ツールのウォーターフォール。URL を打ってから画面が出るまでの 8 段を、階段の帯で並べる |
 | まだ無い画面 | `501 Not Implemented` |
+| 知らない URL | `404 Not Found` |
 | メニュー | 左。PC では常に出し、スマホでは左から開く引き出し |
 
 見た目は Meta のデザインシステム [Astryx](https://github.com/meta/astryx) の **Gothic** テーマ (`@astryxdesign/theme-gothic`) です。暗い画面だけのテーマで、飾りの見出し文字は英字にだけ使います。
@@ -26,7 +27,7 @@ flowchart LR
   url["URL (# なし)<br/>/gantlo/plan/"] --> route["src/lib/route.ts<br/>parseRoute"]
   route --> app["src/App.tsx<br/>AppShell + 左の SideNav"]
   app --> home["screens/Home.tsx<br/>GET /me の応答"]
-  app --> ni["screens/NotImplemented.tsx<br/>501"]
+  app --> ni["screens/StatusPage.tsx<br/>501 / 404"]
   stages["content/stages.ts<br/>旅の 8 段"] --> wf["components/Waterfall.tsx"]
   status["lib/status.ts<br/>進み具合 → ステータス"] --> line["components/StatusLine.tsx"]
   wf --> home
@@ -52,6 +53,8 @@ npm run build   # dist に書き出す
 ```
 
 `main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
+
+開発用の依存の `playwright` は、今はどの script からも使っていません。それでも入れているのは、vitest の任意の依存の先にあり、無いと npm の依存の解決が `Cannot read properties of null (reading 'edgesOut')` で落ちるためです (npm 9.2・10.9.2 で再現)。画面のテスト (e2e) を足すときに使います。
 
 ## まだ無いもの
 

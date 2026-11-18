@@ -13,3 +13,6 @@ export function progressStatus(done: number, total: number): Status {
 
 /** まだ作っていない画面 */
 export const NOT_IMPLEMENTED: Status = { code: 501, reason: 'Not Implemented', ja: 'この画面はまだ作っていません' };
+
+/** 知らない道 */
+export const NOT_FOUND: Status = { code: 404, reason: 'Not Found', ja: 'この URL のページはありません' };
