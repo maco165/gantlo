@@ -247,6 +247,12 @@ async function run(browser, name, width, height) {
     await checkTarget(page.getByRole('button', { name: 'POST 答えを送る' }), `${tag} 答えを送るボタン`);
     await checkTarget(page.getByRole('link', { name: 'Claude' }), `${tag} AI に聞くリンク (Claude)`, { width: true });
     await checkTarget(page.getByRole('link', { name: 'ChatGPT' }), `${tag} AI に聞くリンク (ChatGPT)`, { width: true });
+    // 390 幅でも styles.css のレッスンの画面の決まりが効いている (括弧の崩れで @media の中に入ると、穴埋めの枠が消える)
+    const frame = await page.locator('[data-testid="fill-code"]').evaluate((el) => {
+      const cs = getComputedStyle(el);
+      return `${cs.borderTopWidth} ${cs.borderTopStyle}`;
+    });
+    check(frame === '1px solid', `${tag} 390 幅でもレッスンの画面の決まりが効いている (穴埋めの枠 ${frame})`);
     const field = page.locator('[data-testid="fill-code"] .astryx-text-input').first();
     await checkTarget(field, `${tag} 空欄の入力`);
     // 入力欄の枠の端を押しても、文字を打てる状態になる
