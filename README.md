@@ -1,6 +1,6 @@
 # gantlo
 
-**API と HTTP の基礎を、問題を解きながら学ぶ学習サイト。** 学ぶコースと期間を選ぶとガントチャートで計画し、進捗はブラウザにだけ残します。
+**API と HTTP の基礎を、問題を解きながら学ぶ学習サイト。** 学ぶコースと順を選ぶとガントチャートで計画し、進捗はブラウザにだけ残します。
 
 サイト: https://maco165.github.io/gantlo/
 
@@ -13,10 +13,12 @@
 | 場面 | 見せ方 |
 |---|---|
 | ホーム | `GET /me` への応答。進み具合はステータス (`202` まだ / `206` 途中 / `200` 全部済み) で、記録はレスポンスヘッダーの形で読む |
-| リクエストの旅 | 開発者ツールのウォーターフォール。URL を打ってから画面が出るまでの 8 段を、階段の帯で並べる |
+| リクエストの旅 | 開発者ツールのウォーターフォール。URL を打ってから画面が出るまでの 8 段を、階段の帯で並べる。段に紐づくレッスンを 1 つでも終えた段は学習済みで、済んだ割合だけ帯を塗る (全部済めば `200`、途中は `206`) |
 | レッスン | 答えを送るボタンは `POST 答えを送る`。結果はレスポンスとして出す: 正解 `200 OK` (`X-XP`・`X-Source`・解説)、不正解 `400 Bad Request` (`X-Expected`・`Retry-After: 86400`・`X-Source`・解説)、メディアタイプの空欄の誤り `415 Unsupported Media Type`、並べ替えの順の誤り `409 Conflict` (「N 行が違う位置です」) |
 | 並べ替え | 上下のボタンで行を動かす (ドラッグに頼らない)。確かめると、並べた順の行ごとに、その項目の正しい位置へ帯を描く。正しい順なら帯が階段になり、違う位置の行は誤りの色になる |
 | レッスン完了 | `201 Created`。`Location: /me/lessons/<id>` と、結果の JSON (`lesson`・`correct`・`total`・`xp`) |
+| レッスンの一覧 | 開発者ツールの Network タブ。レッスン 1 つが 1 行 (Name・Status・形・Waterfall) で、学ぶ順に並べた Waterfall の列が 1 本のガントチャートになる。済んだ行は `200 完了`、計画の順で最初の未完了の行が「次」 |
+| 計画 (`/gantlo/plan/`) | 学ぶコースを選び、上下のボタンで順を並べると、レッスンの数に比例した帯を引く。期限と期間は持たず、横の軸はレッスンの数。`PUT この順で学ぶ` で保存すると `200 OK`。帯に済んだぶんを塗り、「今ここ」を縦の印で示す。計画が無いときは全コースを既定の順 (本編 → 追加のコース) で見せる |
 | まだ無い画面 | `501 Not Implemented` |
 | 知らない URL | `404 Not Found` |
 | メニュー | 左。PC では常に出し、スマホでは左から開く引き出し |
@@ -30,12 +32,19 @@ flowchart LR
   url["URL (# なし)<br/>/gantlo/plan/"] --> route["src/lib/route.ts<br/>parseRoute"]
   route --> app["src/App.tsx<br/>AppShell + 左の SideNav"]
   app --> home["screens/Home.tsx<br/>GET /me の応答"]
+  app --> plan["screens/Plan.tsx<br/>計画を組む (PUT /plan)"]
   app --> lesson["screens/LessonScreen.tsx<br/>/lesson/#lt;id#gt;/ を 1 問ずつ解く"]
   app --> ni["screens/StatusPage.tsx<br/>501 / 404"]
   stages["content/stages.ts<br/>旅の 8 段"] --> wf["components/Waterfall.tsx"]
+  journey["lib/journey.ts<br/>段の学習済み"] --> wf
+  planlib["lib/plan.ts<br/>帯・並べ替え・今ここ"] --> net["components/LessonNetwork.tsx<br/>Network の表"]
+  planlib --> gantt["components/PlanGantt.tsx<br/>計画の帯"]
   status["lib/status.ts<br/>進み具合 → ステータス"] --> line["components/StatusLine.tsx"]
   wf --> home
+  net --> home
+  gantt --> plan
   line --> home
+  line --> plan
   line --> ni
   line --> resp["components/AnswerResponse.tsx<br/>ステータス行・ヘッダー・本文"]
   resp --> lesson
@@ -62,6 +71,10 @@ flowchart LR
   lesson -->|問題ごとの正誤| progress
   progress --> ls[("localStorage<br/>gantlo.v1")]
   progress --> hook["lib/useProgress.ts"]
+  progress --> journey["lib/journey.ts<br/>段の学習済み"]
+  progress --> planlib["lib/plan.ts<br/>計画 (コースの順だけ)"]
+  index --> journey
+  index --> planlib
 ```
 
 | ファイル | 役目 |
@@ -69,6 +82,12 @@ flowchart LR
 | `src/lib/route.ts` | URL の道から画面を決める。# は使わない (検索エンジンが # の後ろを別のページとして扱わないため)。今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) は奪わず、画面を移ったことにしない (解いている途中のレッスンが 1 問目に戻らないように)。`useRoute` は画面をやり直す合図 `nav` と、スマホのメニューを閉じる合図 `close` を分けて返す (# だけが変わる戻る・進むでは `close` だけが増える) |
 | `src/content/stages.ts` | 旅の 8 段の正本 (名前・役目・主な公式文書・何週目か・帯の長さの比) |
 | `src/lib/status.ts` | 進み具合と答えの結果を HTTP のステータスにする (答え: 正解 200・不正解 400・メディアタイプの誤り 415・並べ替えの順の誤り 409・完了 201)。どのステータスにも日本語の説明を付ける |
+| `src/lib/plan.ts` | 計画と学習管理の計算。選んだコースの帯 (レッスンの数に比例し、前の帯の終わりから始まる)・上下の並べ替え・保存・済んだぶんの塗り・今ここ (計画の順で最初の未完了のレッスン)。日付・期間・期限・遅れは持たない |
+| `src/lib/journey.ts` | 旅の 8 段の学習済み。段に紐づくレッスン (本編と、段を持つ追加のコース) を 1 つでも終えたら学習済み |
+| `src/screens/Home.tsx` | ホーム。ステータス・次のレッスンへのボタン・ウォーターフォール・レスポンスヘッダー (今日の XP / 目標・連続日数・復習の数・追加のコース)・Network の表 |
+| `src/screens/Plan.tsx` | 計画を組む画面。並べ替えたあとは押したボタンに手元を戻し、キーボードだけで続けて動かせる。チェックを切り替えても手元はそのチェックに残る。ボタンの高さは Astryx のボタンと同じトークンで、狭い画面では 44px |
+| `src/components/LessonNetwork.tsx` | Network の表 (レッスン 1 つが 1 行)。390 幅では形の列を隠す |
+| `src/components/PlanGantt.tsx` | 計画のガントチャート。帯・済みの塗り・今ここの縦の印・次のレッスンへのリンク |
 | `src/content/types.ts` | 問題データの型。問題は 5 種類 (コマンドの穴埋め・HTTP と JSON の穴埋め・並べ替え・4 択・実習) |
 | `src/content/courses/<course>/*.json` | 問題データ。置けばそのコースに自動でつながる。様式は [docs/content-format.md](docs/content-format.md) |
 | `src/content/index.ts` | 問題データを読み、コースの順に並べる。レッスンと問題を id で引く |
@@ -84,6 +103,7 @@ flowchart LR
 | `src/lib/shuffle.ts` | 4 択の選択肢を、開くたび・やり直すたびに混ぜる (`fixedOrder` の問題はそのまま) |
 | `src/lib/lessonRun.ts` | 正答数 (実習を除く採点した問題で数える。並べ替えも入る)・XP (正解 1 問 3、実習 10)・結果の JSON |
 | `scripts/e2e.mjs` | ブラウザでの通しの検査 (`npm run e2e`)。390 幅と 1280 幅で見本のレッスンを解き、応答・完了・進捗・404・横のはみ出し・答える前の AI のリンク (全種類)・本文へ飛ぶリンク・390 幅の押せる範囲 (44px)・並べ替えをキーボード (Tab と Enter) だけで正解にできること・409 で違う位置の行が誤りの色になることを見る |
+| `scripts/e2e-home-plan.mjs` | `scripts/e2e.mjs` から呼ぶ、ホームと計画の画面の通しの検査。空の状態から次のレッスンを終えて戻ると完了・段の学習済み・XP の増加が出ること (390・1280 幅)、390 幅でキーボードだけで並べ替えて保存できボタンが 44px 以上であること、1280 幅で計画の帯・済みの塗り・今ここ・次のレッスンへのリンクが出てレッスンが開くことを見る |
 | `src/styles.css` | Astryx の部品で作れない所 (ステータス行・帯・ヘッダーの行) と、狭い画面 (768px 未満) の共通の決まりだけ。狭い画面ではボタン・入力欄の高さのトークン (`--size-element-*`) と 4 択・手順の行を 44px にそろえ、ページごとには大きさを書かない。色はテーマのトークンだけを使う |
 | `scripts/spa-fallback.mjs` | `dist/index.html` を `404.html` に写す。画面ごとの HTML を書き出すまでの間、どの道から開いても画面が出るようにする |
 
@@ -103,7 +123,7 @@ npm run e2e     # 書き出してから、Playwright の Chromium で通しの�
 `main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
 ## まだ無いもの
 
-本物の問題、ホームとコースのレッスンの一覧、計画のガントチャート、復習 (予定の計算と画面)、用語集、画面ごとの HTML の書き出しは、これから作ります。レッスンは今は `/gantlo/lesson/<id>/` を直に開きます。メニューには「準備中」と出しています。
+本物の問題、コースのレッスンの一覧、復習 (予定の計算と画面。`Retry-After` の数はまだ 0)、進捗・用語集・設定の画面、画面ごとの HTML の書き出しは、これから作ります。メニューには「準備中」と出しています。
 
 ## ライセンス
 
