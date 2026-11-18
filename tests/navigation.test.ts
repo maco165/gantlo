@@ -40,6 +40,18 @@ describe('クリックを奪うかどうか (isInternalClick)', () => {
   ])('%s 付きのクリックは奪わない', (_, init) => {
     expect(judge('/gantlo/plan/', init).result).toBeNull();
   });
+  it('今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) は奪わない', () => {
+    window.history.replaceState(null, '', '/gantlo/lesson/main-w1-l1/');
+    expect(judge('#astryx-app-shell-main').result).toBeNull();
+    expect(judge('/gantlo/lesson/main-w1-l1/#top').result).toBeNull();
+    // 別の道なら # が付いていても奪う
+    const other = judge('/gantlo/plan/#top');
+    expect(other.result).toBe(other.a);
+    // # の無い同じ道のリンクは、これまでどおり奪う (nav を増やす)
+    const same = judge('/gantlo/lesson/main-w1-l1/');
+    expect(same.result).toBe(same.a);
+    window.history.replaceState(null, '', '/gantlo/');
+  });
   it('新しいタブで開くリンクと保存のリンクは奪わない', () => {
     expect(judge('/gantlo/plan/', {}, { target: '_blank' }).result).toBeNull();
     expect(judge('/gantlo/plan/', {}, { download: '' }).result).toBeNull();
@@ -115,6 +127,28 @@ describe('画面を移る操作の回数 (useRoute の nav)', () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     expect(seen.at(-1)).toEqual({ name: 'home', nav: 3 });
+    await act(async () => root.unmount());
+  });
+
+  it('# だけが違うリンクと、# だけが変わる戻る・進むでは増えない (例外)', async () => {
+    window.history.replaceState(null, '', '/gantlo/plan/');
+    function HashProbe() {
+      const { route, nav } = useRoute();
+      seen.push({ name: route.name, nav });
+      return createElement('a', { href: '#main', id: 'skip' }, 'skip');
+    }
+    const root = createRoot(host);
+    await act(async () => root.render(createElement(HashProbe)));
+    const skip = host.querySelector('#skip') as HTMLAnchorElement;
+    let prevented: boolean | undefined;
+    const spy = (e: Event) => (prevented = e.defaultPrevented);
+    window.addEventListener('click', spy);
+    await act(async () => skip.click());
+    window.removeEventListener('click', spy);
+    expect(prevented).toBe(false);
+    expect(window.location.hash).toBe('#main');
+    await act(async () => window.dispatchEvent(new PopStateEvent('popstate')));
+    expect(seen.at(-1)).toEqual({ name: 'page', nav: 0 });
     await act(async () => root.unmount());
   });
 });

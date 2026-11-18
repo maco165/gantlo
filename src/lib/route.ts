@@ -55,7 +55,8 @@ export const lessonHref = (lessonId: string) => `${BASE}lesson/${encodeURICompon
 
 /**
  * 同じサイトの中のリンクなら、そのリンクを返す (ページを読み直さずに画面だけ切り替える)。
- * 修飾キー付き・左以外のボタン・新しいタブ・保存・別のサイト・置き場所の外のリンクは奪わず null を返す
+ * 修飾キー付き・左以外のボタン・新しいタブ・保存・別のサイト・置き場所の外のリンクは奪わず null を返す。
+ * 今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) も奪わない。ブラウザの # の移動に任せ、画面を移ったことにしない
  */
 export function isInternalClick(e: MouseEvent): HTMLAnchorElement | null {
   if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return null;
@@ -63,6 +64,7 @@ export function isInternalClick(e: MouseEvent): HTMLAnchorElement | null {
   if (!a || a.target === '_blank' || a.hasAttribute('download')) return null;
   const url = new URL(a.href, window.location.href);
   if (url.origin !== window.location.origin || !url.pathname.startsWith(BASE)) return null;
+  if (url.hash !== '' && url.pathname === window.location.pathname) return null;
   return a;
 }
 
@@ -75,13 +77,23 @@ export function scrollToTop() {
 
 /**
  * 今の画面と、画面を移る操作の回数 (nav) を返す。nav は同じ画面のリンクを押したときも、戻るでも増える。
+ * ただし # だけが違うリンクと、# だけが変わる戻る・進むでは増やさない (道が同じなので画面は移っていない)。
  * スマホのメニューは nav が変わったら閉じる
  */
 export function useRoute(): { route: Route; nav: number } {
   const [state, setState] = useState(() => ({ route: parseRoute(window.location.pathname), nav: 0 }));
   useEffect(() => {
-    const go = (pathname: string) => setState((s) => ({ route: parseRoute(pathname), nav: s.nav + 1 }));
-    const onPop = () => go(window.location.pathname);
+    // # の移動でも popstate が来るので、道が変わったかを最後に見た道と比べる
+    let lastPath = window.location.pathname;
+    const go = (pathname: string) => {
+      lastPath = pathname;
+      setState((s) => ({ route: parseRoute(pathname), nav: s.nav + 1 }));
+    };
+    const onPop = () => {
+      // 道が同じ戻る・進むは # だけの移動 (同じ道を pushState することはない)
+      if (window.location.pathname === lastPath) return;
+      go(window.location.pathname);
+    };
     const onClick = (e: MouseEvent) => {
       const a = isInternalClick(e);
       if (!a) return;
