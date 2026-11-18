@@ -10,6 +10,7 @@ import { COURSES, useRoute, type PageName, type Route } from './lib/route';
 import { SITE_NAME, SITE_TAGLINE } from './lib/site';
 import { NOT_FOUND, NOT_IMPLEMENTED } from './lib/status';
 import { useMobileNav } from './lib/useMobileNav';
+import { useProgress } from './lib/useProgress';
 import Home from './screens/Home';
 import StatusPage from './screens/StatusPage';
 
@@ -27,6 +28,7 @@ export default function App() {
   const { route, nav } = useRoute();
   const title = titleOf(route);
   const [navOpen, setNavOpen] = useMobileNav(nav);
+  const [progress] = useProgress();
   useEffect(() => {
     document.title = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | ガントチャートで計画する ${SITE_TAGLINE}`;
   }, [title]);
@@ -35,7 +37,7 @@ export default function App() {
   if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'course') screen = <StatusPage title={title ?? ''} request={`GET /course/${route.course}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'notFound') screen = <StatusPage title={title ?? ''} request={`GET ${window.location.pathname}`} status={NOT_FOUND} />;
-  else screen = <Home />;
+  else screen = <Home progress={progress} />;
 
   return (
     <InternationalizationProvider locale="ja-JP" messages={{ 'ja-JP': jaJP }}>

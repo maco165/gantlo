@@ -37,6 +37,7 @@ export function parseRoute(pathname: string): Route {
 export const homeHref = BASE;
 export const pageHref = (page: PageName) => `${BASE}${page}/`;
 export const courseHref = (course: CourseId) => `${BASE}course/${course}/`;
+export const lessonHref = (lessonId: string) => `${BASE}lesson/${encodeURIComponent(lessonId)}/`;
 
 /**
  * 同じサイトの中のリンクなら、そのリンクを返す (ページを読み直さずに画面だけ切り替える)。
