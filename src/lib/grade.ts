@@ -5,19 +5,48 @@ export function normalizeAnswer(input: string): string {
   return input.trim().replace(/\s+/g, ' ');
 }
 
+/** `;` で区切る。ただし引用符 ("...") の中の `;` と、\ で escape した文字では区切らない */
+function splitParams(input: string): string[] {
+  const parts: string[] = [];
+  let cur = '';
+  let quoted = false;
+  for (let i = 0; i < input.length; i++) {
+    const c = input[i];
+    if (quoted && c === '\\' && i + 1 < input.length) {
+      cur += c + input[++i];
+      continue;
+    }
+    if (c === '"') quoted = !quoted;
+    if (c === ';' && !quoted) {
+      parts.push(cur);
+      cur = '';
+      continue;
+    }
+    cur += c;
+  }
+  parts.push(cur);
+  return parts.map((s) => s.trim());
+}
+
+/** 引数の値が引用符付き ("...") なら、引用符を外し \ の escape を解く。引用符付きと無しの値は同じ (RFC 9110 5.6.6) */
+function unquote(value: string): string {
+  if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) return value.slice(1, -1).replace(/\\(.)/g, '$1');
+  return value;
+}
+
 /**
  * メディアタイプを比べられる形にする。type/subtype と引数の名前、charset の値は大文字と小文字を区別しない (RFC 9110 8.3.1・8.3.2)。
- * ほかの引数の値 (boundary など) はそのまま残す。`;` の前後の空白は揃える
+ * 引数の値は引用符を外して比べ、ほかの引数の値 (boundary など) の大文字と小文字はそのまま残す。`;` と `=` の前後の空白は揃える
  */
 export function normalizeMediaType(input: string): string {
-  const [type, ...params] = normalizeAnswer(input).split(';').map((s) => s.trim());
+  const [type, ...params] = splitParams(normalizeAnswer(input));
   const cleaned = params
     .filter((p) => p !== '')
     .map((p) => {
       const eq = p.indexOf('=');
       if (eq < 0) return p.toLowerCase();
       const name = p.slice(0, eq).trim().toLowerCase();
-      const value = p.slice(eq + 1).trim();
+      const value = unquote(p.slice(eq + 1).trim());
       return `${name}=${name === 'charset' ? value.toLowerCase() : value}`;
     });
   return [type.toLowerCase(), ...cleaned].join('; ');

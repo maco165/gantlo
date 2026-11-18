@@ -51,6 +51,20 @@ describe('gradeBlank (header-name と media-type)', () => {
     expect(normalizeMediaType('multipart/form-data; Boundary=AbC')).toBe('multipart/form-data; boundary=AbC');
   });
 
+  it('RFC 9110 8.3.1 が同じとする 4 つの形は、どれを模範にしても互いに正解', () => {
+    const forms = ['text/html;charset=utf-8', 'Text/HTML;Charset="utf-8"', 'text/html; charset="utf-8"', 'text/html;charset=UTF-8'];
+    for (const model of forms) {
+      for (const input of forms) expect(gradeBlank({ answers: [model], match: 'media-type' }, input), `${model} / ${input}`).toBe(true);
+    }
+  });
+
+  it('引用符付きの値は引用符を外し、\\ の escape を解いて比べる。引用符の中の ; では区切らない', () => {
+    expect(normalizeMediaType('multipart/form-data; boundary="a\\"b"')).toBe('multipart/form-data; boundary=a"b');
+    expect(normalizeMediaType('text/plain; x="a;b"; charset=UTF-8')).toBe('text/plain; x=a;b; charset=utf-8');
+    // 引用符を外しても、boundary の大文字と小文字は区別する
+    expect(gradeBlank({ answers: ['multipart/form-data; boundary=AbC'], match: 'media-type' }, 'multipart/form-data; boundary="abc"')).toBe(false);
+  });
+
   it('match の無い空欄では、ヘッダー名でも区別する', () => {
     expect(gradeBlank({ answers: ['Content-Type'] }, 'content-type')).toBe(false);
   });
