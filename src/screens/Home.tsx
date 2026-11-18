@@ -3,7 +3,7 @@ import { Text } from '@astryxdesign/core/Text';
 import LessonNetwork from '../components/LessonNetwork';
 import StatusLine from '../components/StatusLine';
 import Waterfall from '../components/Waterfall';
-import { LESSONS } from '../content/index';
+import { LESSONS, dueReviewCount } from '../content/index';
 import { STAGES } from '../content/stages';
 import type { Lesson } from '../content/types';
 import { stageStates } from '../lib/journey';
@@ -28,7 +28,7 @@ export default function Home({ progress, now = new Date(), lessons = LESSONS }: 
   const headers: [string, string][] = [
     ['X-Today-XP', `${todayXp(progress, now)} / ${goalXp(progress)}`],
     ['X-Streak', `${currentStreak(progress, now)} 日連続`],
-    ['Retry-After', '今日の復習 0 問'],
+    ['Retry-After', `今日の復習 ${dueReviewCount(progress, now)} 問`],
     ['Link', `追加のコース ${extra.length} つ (${extra.map((c) => `${c.title} ${lessons.filter((l) => l.course === c.id).length}`).join('・')} レッスン)`],
   ];
   return (
@@ -67,7 +67,7 @@ export default function Home({ progress, now = new Date(), lessons = LESSONS }: 
             </div>
           ))}
         </dl>
-        <Text type="supporting">記録はこのブラウザ (localStorage) にだけ残します。復習の数は、復習の画面と一緒に数え始めます。</Text>
+        <Text type="supporting">記録はこのブラウザ (localStorage) にだけ残します。目標は設定の画面で変えられます。</Text>
       </section>
       <LessonNetwork courses={order} progress={progress} lessons={lessons} />
       <Text type="supporting">

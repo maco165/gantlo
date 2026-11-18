@@ -15,6 +15,8 @@ import { useProgress } from './lib/useProgress';
 import Home from './screens/Home';
 import LessonScreen from './screens/LessonScreen';
 import Plan from './screens/Plan';
+import Review from './screens/Review';
+import Settings from './screens/Settings';
 import StatusPage from './screens/StatusPage';
 
 export default function App() {
@@ -29,6 +31,8 @@ export default function App() {
 
   let screen;
   if (route.name === 'page' && route.page === 'plan') screen = <Plan key={nav} progress={progress} updateProgress={updateProgress} />;
+  else if (route.name === 'page' && route.page === 'review') screen = <Review key={nav} progress={progress} updateProgress={updateProgress} />;
+  else if (route.name === 'page' && route.page === 'settings') screen = <Settings key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'course') screen = <StatusPage title={title ?? ''} request={`GET /course/${route.course}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'lesson') {

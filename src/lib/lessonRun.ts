@@ -46,5 +46,15 @@ export function resultBody(lessonId: string, score: LessonScore): string {
   return JSON.stringify({ lesson: lessonId, correct: score.correct, total: score.total, xp: score.xp }, null, 2);
 }
 
+/** 今日の復習を終えたときのレスポンスの本文 (JSON)。レッスンの記録ではないので lesson を持たない */
+export function reviewResultBody(score: LessonScore): string {
+  return JSON.stringify({ reviewed: score.total, correct: score.correct, xp: score.xp }, null, 2);
+}
+
+/** 1 問ごとの答えを送る要求の道。復習では完了のステータス行 (POST /me/reviews) と同じ置き場所の下にする */
+export function answerRequest(lessonId: string, index: number, isReview: boolean): string {
+  return isReview ? `POST /me/reviews/answers/${index + 1}` : `POST /lessons/${lessonId}/answers/${index + 1}`;
+}
+
 /** 完了のレスポンスの Location (記録の置き場所に見立てた道。画面の URL ではない) */
 export const resultLocation = (lessonId: string) => `/me/lessons/${lessonId}`;

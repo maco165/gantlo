@@ -1,5 +1,6 @@
 // 問題データの読み込み。src/content/courses/<course>/*.json を置けば、そのコースに自動でつながる
 // (コースや週ごとの PR が同じファイルを触らないため)。中身の検査は scripts/check-content.mjs。
+import { dueReviewIds, type Progress } from '../lib/progress';
 import { COURSES, type CourseId } from '../lib/route';
 import type { Lesson, LessonFile, Question } from './types';
 
@@ -33,3 +34,15 @@ export function findQuestion(questionId: string): QuestionRef | undefined {
   }
   return undefined;
 }
+
+export const isKnownQuestion = (questionId: string): boolean => findQuestion(questionId) !== undefined;
+
+/** 今日の復習の問題 (予定の早い順)。問題データから消えた id は出さない */
+export function dueQuestions(p: Progress, now: Date): QuestionRef[] {
+  return dueReviewIds(p, now)
+    .map((id) => findQuestion(id))
+    .filter((r): r is QuestionRef => r !== undefined);
+}
+
+/** 今日の復習の数 (ホームの Retry-After と復習の画面で同じ数を出す) */
+export const dueReviewCount = (p: Progress, now: Date): number => dueQuestions(p, now).length;
