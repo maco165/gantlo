@@ -2,8 +2,10 @@
 // 390 幅と 1280 幅で、主な画面 (ホーム・計画・レッスンの問題と応答 400 / 200 / 409・完了 201・404) を開き、次を確かめる:
 //   - テーマが Gothic で読み込まれている (地の token --color-background-body が #101314 で、body の地がその色)
 //   - 文字を持つ見える要素 (本文・補助の文字・ボタン・リンク・ステータスのコード・入力欄) のどれも、文字の色と実際の地の色
-//     (透明なら親をたどって重ねる) のコントラスト比が 4.5:1 以上。大きな文字の 3:1 の例外は使わない
-//   - 押せないボタン (disabled・aria-disabled) は WCAG 1.4.3 の対象外なので数えない
+//     (根から要素まで地を塗り重ね、opacity の祖先は字と地の両方を奥の地に重ねる) のコントラスト比が 4.5:1 以上。大きな文字の 3:1 の例外は使わない
+//   - 押せないボタン (disabled・aria-disabled) は WCAG 1.4.3 の対象外なので数えない。空の入力欄は placeholder の字と色を測る
+//   - 390 幅でスマホのメニューを開いた状態も測る (開いたモーダルの外は操作できないので、モーダルの中だけを測る)
+//   - 測り方の確かめ: opacity の群 (祖先の opacity も含む) を地と字の両方に重ねて測れること (合成のページで約 3.98:1 になる)
 import { readFileSync } from 'node:fs';
 
 /** WCAG 1.4.3 の最小のコントラスト比。大きな文字の例外 (3:1) は使わない */
@@ -41,24 +43,30 @@ function measureInPage() {
   };
   const hex = (c) => '#' + c.slice(0, 3).map((v) => Math.round(v).toString(16).padStart(2, '0')).join('');
 
-  /** 要素の地。透明なら親へ進み、半透明の地は集めて最後に下から重ねる。画像の地 (グラデーションなど) は測れないので印を付ける */
-  const background = (el) => {
-    const layers = [];
-    let opacity = 1;
+  // a と b を t : (1 - t) で混ぜた色 (opacity の群を、その奥の地の上に重ねる)
+  const mix = (a, b, t) => [0, 1, 2].map((i) => a[i] * t + b[i] * (1 - t)).concat(1);
+
+  /**
+   * 画面に見えている字の色と地の色を、根 (html) から要素まで順に塗って求める。
+   * 各段で自分の地 (半透明なら奥の地に重ねる) を塗り、opacity が 1 未満の段は、その段より内側に塗った字と地の両方を
+   * その段より奥の地の上に opacity で重ねる (opacity の群)。不透明な地があっても、opacity を持つ祖先まで全部たどる。
+   * 画像の地 (グラデーションなど) は測れないので印を付ける
+   */
+  const composite = (el, fg) => {
+    const path = [];
+    for (let e = el; e; e = e.parentElement) path.unshift(e);
     let image = false;
-    for (let e = el; e; e = e.parentElement) {
-      const cs = getComputedStyle(e);
-      opacity *= Number(cs.opacity);
+    const paint = (i, under) => {
+      const cs = getComputedStyle(path[i]);
       if (cs.backgroundImage !== 'none') image = true;
-      const c = parse(cs.backgroundColor);
-      if (c && c[3] > 0) {
-        layers.push(c);
-        if (c[3] >= 1) break;
-      }
-    }
-    let bg = [255, 255, 255, 1]; // どこにも地が無ければブラウザの既定 (白)
-    for (const l of layers.reverse()) bg = l[3] >= 1 ? l : over(l, bg);
-    return { bg, opacity, image };
+      const own = parse(cs.backgroundColor);
+      const bgHere = own && own[3] > 0 ? over(own, under) : under;
+      const inner = i === path.length - 1 ? { bg: bgHere, fg: over(fg, bgHere) } : paint(i + 1, bgHere);
+      const op = Number(cs.opacity);
+      return op < 1 ? { bg: mix(inner.bg, under, op), fg: mix(inner.fg, under, op) } : inner;
+    };
+    const r = paint(0, [255, 255, 255, 1]); // どこにも地が無ければブラウザの既定 (白)
+    return { ...r, image };
   };
 
   const visible = (el) => {
@@ -70,25 +78,28 @@ function measureInPage() {
   const inactive = (el) => el.closest(':disabled, [aria-disabled="true"], [inert]') !== null;
 
   const out = [];
+  // 開いたモーダル (スマホのメニューの引き出しなど) があれば、その外は見えても操作できない (inert) ので、中だけを測る
+  const modal = [...document.querySelectorAll('dialog[open]')].find((d) => d.matches(':modal')) ?? null;
   const els = [...document.querySelectorAll('body *')].filter((el) => {
     if (['SCRIPT', 'STYLE', 'NOSCRIPT', 'svg', 'path', 'TITLE'].includes(el.tagName)) return false;
     if (el.closest('svg, dialog:not([open])')) return false;
     const own = [...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim() !== '');
-    const field = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.type !== 'checkbox' && el.type !== 'radio' && el.value !== '';
-    return (own || field) && visible(el) && !inactive(el);
+    const field = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') && el.type !== 'checkbox' && el.type !== 'radio' && (el.value !== '' || el.placeholder !== '');
+    return (own || field) && visible(el) && !inactive(el) && (modal === null || modal.contains(el));
   });
   for (const el of els) {
-    const cs = getComputedStyle(el);
-    const fg = parse(cs.color);
-    const { bg, opacity, image } = background(el);
-    const text = (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' ? el.value : el.textContent).trim().replace(/\s+/g, ' ').slice(0, 30);
+    const isField = el.tagName === 'INPUT' || el.tagName === 'TEXTAREA';
+    // 空の入力欄は placeholder の字を、その色 (::placeholder) で測る
+    const usePlaceholder = isField && el.value === '';
+    const color = getComputedStyle(el, usePlaceholder ? '::placeholder' : null).color;
+    const fg = parse(color);
+    const text = (isField ? (usePlaceholder ? el.placeholder : el.value) : el.textContent).trim().replace(/\s+/g, ' ').slice(0, 30);
     if (!fg) {
-      out.push({ text, ratio: 0, fg: cs.color, bg: hex(bg), note: '文字の色が読めない' });
+      out.push({ text, ratio: 0, fg: color, bg: '', note: '文字の色が読めない' });
       continue;
     }
-    // 文字の色の透明度と、要素や親の opacity を地の上に重ねてから比べる
-    const shown = over([fg[0], fg[1], fg[2], fg[3] * opacity], bg);
-    out.push({ text, ratio: ratio(shown, bg), fg: hex(shown), bg: hex(bg), note: image ? '地に画像あり' : '' });
+    const shown = composite(el, fg);
+    out.push({ text, ratio: ratio(shown.fg, shown.bg), fg: hex(shown.fg), bg: hex(shown.bg), note: shown.image ? '地に画像あり' : usePlaceholder ? 'placeholder' : '' });
   }
   return out;
 }
@@ -99,13 +110,16 @@ function measureInPage() {
  */
 export async function checkContrast(page, check, label, must = []) {
   const rows = await page.evaluate(measureInPage);
-  const missing = must.filter((t) => !rows.some((r) => r.text === t));
-  check(missing.length === 0, `${label}: 測った文字に ${must.join('・')} が入っている ${missing.join(' / ')}`);
+  if (must.length > 0) {
+    const missing = must.filter((t) => !rows.some((r) => r.text === t));
+    check(missing.length === 0, `${label}: 測った文字に ${must.join('・')} が入っている ${missing.join(' / ')}`);
+  }
   const low = rows.filter((r) => r.ratio < MIN_CONTRAST || r.note === '地に画像あり');
   const min = rows.reduce((m, r) => (r.ratio < m.ratio ? r : m), { ratio: Infinity, text: '', fg: '', bg: '' });
+  const ph = rows.filter((r) => r.note === 'placeholder').map((r) => `placeholder「${r.text}」${r.ratio.toFixed(2)}:1 ${r.fg}/${r.bg}`);
   check(
     rows.length > 0 && low.length === 0,
-    `${label}: 文字と地のコントラストが ${MIN_CONTRAST}:1 以上 (${rows.length} 要素、最小 ${min.ratio.toFixed(2)}:1「${min.text}」${min.fg} / ${min.bg})${low.length ? ' 届かない: ' + low.map((r) => `「${r.text}」${r.ratio.toFixed(2)} ${r.fg}/${r.bg} ${r.note}`).join(' / ') : ''}`,
+    `${label}: 文字と地のコントラストが ${MIN_CONTRAST}:1 以上 (${rows.length} 要素、最小 ${min.ratio.toFixed(2)}:1「${min.text}」${min.fg} / ${min.bg}${ph.length ? '、' + ph.join('、') : ''})${low.length ? ' 届かない: ' + low.map((r) => `「${r.text}」${r.ratio.toFixed(2)} ${r.fg}/${r.bg} ${r.note}`).join(' / ') : ''}`,
   );
   return min;
 }
@@ -124,12 +138,34 @@ async function checkGothic(page, check, label) {
 }
 
 /**
+ * 測り方そのものの確かめ。白い地のページに、opacity 0.5 の黒い地・白い字の箱 (A) と、opacity 0.5 の外側の中の黒い地・白い字 (C) を置く。
+ * どちらも見た目は #808080 の地に白い字 (約 3.98:1) なので、4.5:1 に届かないと測れること。opacity の無い箱 (OK) は 21:1
+ */
+async function checkOpacityGroups(browser, check) {
+  const page = await browser.newPage();
+  await page.setContent(`<!doctype html><html><body style="margin:0;background:#ffffff;color:#000000">
+    <div style="opacity:0.5;background:#000000;color:#ffffff;padding:8px">A 白い字</div>
+    <div style="opacity:0.5"><div style="background:#000000;color:#ffffff;padding:8px">C 白い字</div></div>
+    <div style="background:#000000;color:#ffffff;padding:8px">OK 白い字</div>
+  </body></html>`);
+  const rows = await page.evaluate(measureInPage);
+  const get = (t) => rows.find((r) => r.text === t)?.ratio ?? NaN;
+  const [a, c, ok] = [get('A 白い字'), get('C 白い字'), get('OK 白い字')];
+  const near = (x) => Math.abs(x - 3.98) < 0.05;
+  check(near(a) && a < MIN_CONTRAST, `[contrast 測り方] opacity 0.5 の箱の中の白い字は、#808080 の地として約 3.98:1 と測る (A ${a.toFixed(2)}:1)`);
+  check(near(c) && c < MIN_CONTRAST, `[contrast 測り方] opacity 0.5 の祖先の中の黒い地の白い字も、約 3.98:1 と測る (C ${c.toFixed(2)}:1)`);
+  check(Math.abs(ok - 21) < 0.01, `[contrast 測り方] opacity の無い黒い地の白い字は 21:1 (${ok.toFixed(2)}:1)`);
+  await page.close();
+}
+
+/**
  * @param {import('playwright').Browser} browser
  * @param {{ base: string, check: (cond: boolean, label: string) => void }} opts
  * @returns {Promise<{ label: string, ratio: number, text: string }[]>} 画面ごとの最小の比
  */
 export async function runContrast(browser, { base, check }) {
   const mins = [];
+  await checkOpacityGroups(browser, check);
   for (const [name, width, height] of [
     ['phone', 390, 844],
     ['pc', 1280, 860],
@@ -152,6 +188,15 @@ export async function runContrast(browser, { base, check }) {
     await page.locator('.net__row').first().waitFor();
     await checkGothic(page, check, `${tag} ホーム`);
     await measure('ホーム', ['gantlo']);
+    if (width < 768) {
+      // スマホのメニュー (左から開く引き出し) を開いた状態
+      await page.getByRole('button', { name: 'メニューを開く' }).click();
+      await page.waitForFunction(() => [...document.querySelectorAll('dialog[open]')].some((d) => d.matches(':modal')));
+      await page.waitForTimeout(400);
+      await measure('スマホのメニュー', ['計画 (Gantt)']);
+      await page.keyboard.press('Escape');
+      await page.waitForFunction(() => ![...document.querySelectorAll('dialog[open]')].some((d) => d.matches(':modal')));
+    }
 
     await page.goto(`${base}plan/`);
     await page.locator('.gantt__row').first().waitFor();
@@ -161,6 +206,8 @@ export async function runContrast(browser, { base, check }) {
     const [qCmd, qHttp, qOrder, qChoice] = lesson.questions;
     await page.goto(`${base}lesson/${lesson.id}/`);
     await page.getByRole('heading', { name: qCmd.prompt }).waitFor();
+    // 値を入れる前は、空欄の placeholder (____) の字を測る
+    await measure('レッスンの問題 (穴埋め・入力前)', ['____']);
     await page.locator('[data-testid="fill-code"] input').first().fill('-x');
     await measure('レッスンの問題 (穴埋め)', ['POST 答えを送る', '-x']);
     await send();
