@@ -45,6 +45,14 @@ function placed(course: string, name: string, fn: (d: any) => void = () => {}): 
   return { file, dir };
 }
 
+/** レッスンと問題の id を、本編の別の週のものに付け替える */
+const toWeek = (n: number, stage: string) => (d: any) => {
+  const l = d.lessons[0];
+  l.id = `main-w${n}-l1`;
+  l.stage = stage;
+  l.questions.forEach((x: any, i: number) => (x.id = `main-w${n}-l1-q${i + 1}`));
+};
+
 // node を何度も起こすので、重い機械や CI でも落ちないよう 1 件 30 秒まで待つ
 describe('check-content', { timeout: 30_000 }, () => {
   it('本物のデータは OK で終了コード 0', () => {
@@ -203,6 +211,25 @@ describe('check-content', { timeout: 30_000 }, () => {
     expect(run(unknown.file, unknown.dir).out).toMatch(/^NG .*k8s\/basics\.json -: 置き場所 \(courses\/k8s\/\) がコースの id ではありません/m);
   });
 
+  it('本編の week<N>.json には第 N 週の段のレッスンを、main-w<N>- の id で置く', () => {
+    const stageWeek = placed('main', 'week2.json', (d) => {
+      toWeek(2, 'dns')(d);
+      d.lessons[0].stage = 'http';
+    });
+    const r = run(stageWeek.file, stageWeek.dir);
+    expect(r.code).toBe(1);
+    expect(r.out).toMatch(/^NG .*week2\.json main-w2-l1: stage \(http\) は第 1 週の段です。week2\.json には第 2 週の段のレッスンを置きます/m);
+    const idWeek = placed('main', 'week2.json', (d) => (d.lessons[0].stage = 'dns'));
+    expect(run(idWeek.file, idWeek.dir).out).toMatch(/^NG .*week2\.json main-w1-l1: week2\.json のレッスンの id は main-w2- で始めます/m);
+    const good = placed('main', 'week2.json', toWeek(2, 'dns'));
+    expect(run(good.file, good.dir).code).toBe(0);
+    const badName = placed('main', 'intro.json');
+    expect(run(badName.file, badName.dir).out).toMatch(/^NG .*intro\.json -: 本編のファイル名は week<N>\.json にします/m);
+    // 本編でないコースには週の決まりを当てない
+    const other = placed('security', 'basics.json', (d) => (d.lessons[0].course = 'security'));
+    expect(run(other.file, other.dir).code).toBe(0);
+  });
+
   it('ほかの決まりも 1 つずつ NG にする', () => {
     const cases: [string, (d: any) => void, RegExp][] = [
       ['dup-choice-id', (d) => (q(d, 3).choices[1].id = 'a'), /main-w1-l1-q4: 選択肢の id が重複しています/],
@@ -228,7 +255,7 @@ describe('check-content', { timeout: 30_000 }, () => {
 
   it('検査が読む段とコースの id は、stages.ts と route.ts の正本と同じ', async () => {
     const mod = await import(pathToFileURL(SCRIPT).href);
-    expect(mod.readIds('src/content/stages.ts', 'STAGES')).toEqual(STAGES.map((s) => s.id));
+    expect(mod.readStages()).toEqual(STAGES.map((s) => ({ id: s.id, week: s.week })));
     expect(mod.readIds('src/lib/route.ts', 'COURSES')).toEqual(COURSES.map((c) => c.id));
   });
 });

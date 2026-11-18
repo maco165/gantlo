@@ -15,7 +15,7 @@ node scripts/check-content.mjs <ファイル>   # 1 つだけ
 
 | コース | フォルダ | ファイル名 |
 |---|---|---|
-| 本編 | `courses/main/` | `week1.json` から `week4.json` (週ごと) |
+| 本編 | `courses/main/` | `week<N>.json` (`week1.json` から `week4.json`)。第 N 週の段のレッスンだけを置く |
 | Spring Boot の流れ | `courses/spring/` | 自由 (英小文字と `-`) |
 | 技術の歴史 | `courses/tech-history/` | 同上 |
 | 管理の歴史 | `courses/mgmt-history/` | 同上 |
@@ -29,10 +29,10 @@ node scripts/check-content.mjs <ファイル>   # 1 つだけ
 
 | 欄 | 必須 | 意味 |
 |---|---|---|
-| `id` | 必須 | 英小文字・数字・`-`。サイト全体で重ねない。本編は `main-w<週>-l<番号>`、ほかは `<コース>-l<番号>` を勧める |
+| `id` | 必須 | 英小文字・数字・`-`。サイト全体で重ねない。本編の `week<N>.json` では `main-w<N>-` で始める (`main-w<N>-l<番号>`)。ほかは `<コース>-l<番号>` を勧める |
 | `title` | 必須 | 題 |
 | `course` | 必須 | コースの id。置いたフォルダと同じにする |
-| `stage` | 本編は必須 | リクエストの旅の段 (`src/content/stages.ts` の id: `uri` `dns` `tcp` `tls` `http` `oauth` `mime` `rest`)。ほかのコースは任意 |
+| `stage` | 本編は必須 | リクエストの旅の段 (`src/content/stages.ts` の id: `uri` `dns` `tcp` `tls` `http` `oauth` `mime` `rest`)。ほかのコースは任意。本編の `week<N>.json` では、`stages.ts` の `week` が N の段にする |
 | `questions` | 必須 | 問題の配列 (1 問以上) |
 
 ## 問題 (5 種類で共通の欄)
@@ -195,6 +195,7 @@ curl・dig・openssl のコマンドの 1 か所を埋めます。
 - レッスンと問題の id が英小文字・数字・`-` だけで、サイト全体で重ならないこと。問題の id がレッスンの id と `-` で始まること
 - レッスンの `course` が `route.ts` のコースのどれかで、置いたフォルダと同じこと
 - `stage` が `stages.ts` にあること。本編では `stage` が必須
+- 本編のファイル名が `week<N>.json` で、その中のレッスンの段が第 N 週の段 (`stages.ts` の `week`) で、id が `main-w<N>-` で始まること
 - どの問題も `prompt`・`explanation`・`sources` を持ち、`sources` の URL がすべて `https://` であること
 - `kind` が 5 種類のどれかで、種類ごとの必須の欄があること
 - `command` の `{{blank}}` がちょうど 1 つ、`http` は 1〜2 つで、`blanks` の数と合うこと。`blanks` の `answers` が空でない文字列の配列で、`match` が 3 つのどれかであること

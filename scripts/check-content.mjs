@@ -47,6 +47,14 @@ export function readIds(file, name) {
   return [...src.slice(open, end).matchAll(/\bid:\s*'([^']+)'/g)].map((m) => m[1]);
 }
 
+/** stages.ts の STAGES から、段の id と本編の何週目かを拾う */
+export function readStages() {
+  const src = readFileSync(join(ROOT, 'src/content/stages.ts'), 'utf8');
+  const open = src.indexOf('= [', src.indexOf('export const STAGES'));
+  const end = src.indexOf('];', open);
+  return [...src.slice(open, end).matchAll(/\{\s*id:\s*'([^']+)'[^}]*?\bweek:\s*(\d+)/g)].map((m) => ({ id: m[1], week: Number(m[2]) }));
+}
+
 const isNonEmptyString = (v) => typeof v === 'string' && v.trim() !== '';
 
 function isHttpsUrl(v) {
@@ -60,7 +68,9 @@ function isHttpsUrl(v) {
 
 const countBlanks = (code) => (isNonEmptyString(code) ? code.split(BLANK).length - 1 : 0);
 
-export function checkFiles(files, { stageIds, courseIds }) {
+export function checkFiles(files, { stages, courseIds }) {
+  const stageIds = stages.map((s) => s.id);
+  const weekOf = new Map(stages.map((s) => [s.id, s.week]));
   const seenIds = new Map(); // id -> file
   const lines = [];
   let failed = false;
@@ -95,6 +105,13 @@ export function checkFiles(files, { stageIds, courseIds }) {
     const folder = basename(dirname(resolve(file)));
     const inCourses = dirname(dirname(resolve(file))) === COURSES_DIR;
     if (inCourses && !courseIds.includes(folder)) ng('-', `置き場所 (courses/${folder}/) がコースの id ではありません`);
+    // 本編は週ごとのファイル (week<N>.json) に、その週の段のレッスンだけを置く
+    let week = null;
+    if (inCourses && folder === 'main') {
+      const m = /^week(\d+)\.json$/.exec(basename(file));
+      if (m) week = Number(m[1]);
+      else ng('-', '本編のファイル名は week<N>.json にします');
+    }
     onlyFields(data, FIELDS.file, '-');
     if (!Array.isArray(data?.lessons) || data.lessons.length === 0) ng('-', 'lessons がありません');
 
@@ -108,6 +125,8 @@ export function checkFiles(files, { stageIds, courseIds }) {
       if (lesson?.stage === undefined) {
         if (lesson?.course === 'main') ng(lid, 'stage (旅の段) がありません。本編では必須です');
       } else if (!stageIds.includes(lesson.stage)) ng(lid, `stage (${lesson.stage}) が src/content/stages.ts にありません`);
+      else if (week !== null && weekOf.get(lesson.stage) !== week) ng(lid, `stage (${lesson.stage}) は第 ${weekOf.get(lesson.stage)} 週の段です。week${week}.json には第 ${week} 週の段のレッスンを置きます`);
+      if (week !== null && isNonEmptyString(lesson?.id) && !lesson.id.startsWith(`main-w${week}-`)) ng(lid, `week${week}.json のレッスンの id は main-w${week}- で始めます`);
       if (!Array.isArray(lesson?.questions) || lesson.questions.length === 0) {
         ng(lid, 'questions がありません');
         continue;
@@ -223,7 +242,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     process.exit(1);
   }
   const { ok, lines } = checkFiles(files, {
-    stageIds: readIds('src/content/stages.ts', 'STAGES'),
+    stages: readStages(),
     courseIds: readIds('src/lib/route.ts', 'COURSES'),
   });
   for (const line of lines) console.log(line);
