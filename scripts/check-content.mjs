@@ -1,13 +1,14 @@
 #!/usr/bin/env node
 // 問題データ (src/content/courses/<course>/*.json) の検査。src/content/types.ts と同じ欄を見る。様式は docs/content-format.md。
 // 使い方: node scripts/check-content.mjs [ファイル ...]   (省略すると src/content/courses/*/*.json の全部)
+// 置き場所の決まりは courses/ の下のファイルにだけ当てる。環境変数 GANTLO_COURSES_DIR で courses/ の場所を差し替えられる (検査のテスト用)。
 // 通れば "OK <ファイル>" を出して終了コード 0。1 つでも違えば "NG <ファイル> <id>: <理由>" を出して終了コード 1。
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { basename, dirname, join, relative } from 'node:path';
+import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
-const COURSES_DIR = join(ROOT, 'src/content/courses');
+const COURSES_DIR = resolve(process.env.GANTLO_COURSES_DIR || join(ROOT, 'src/content/courses'));
 const BLANK = '{{blank}}';
 const KINDS = ['command', 'http', 'order', 'choice', 'lab'];
 const TOOLS = ['curl', 'dig', 'openssl'];
@@ -91,8 +92,8 @@ export function checkFiles(files, { stageIds, courseIds }) {
 
     // コースはファイルの置き場所 (courses/<course>/) と同じにする
     // (検査のテストが一時フォルダに置いた写しは、置き場所を問わない)
-    const folder = basename(dirname(file));
-    const inCourses = dirname(dirname(file)) === COURSES_DIR;
+    const folder = basename(dirname(resolve(file)));
+    const inCourses = dirname(dirname(resolve(file))) === COURSES_DIR;
     if (inCourses && !courseIds.includes(folder)) ng('-', `置き場所 (courses/${folder}/) がコースの id ではありません`);
     onlyFields(data, FIELDS.file, '-');
     if (!Array.isArray(data?.lessons) || data.lessons.length === 0) ng('-', 'lessons がありません');

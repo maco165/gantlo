@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
@@ -11,9 +11,11 @@ import { COURSES } from '../src/lib/route';
 const SCRIPT = join(__dirname, '../scripts/check-content.mjs');
 const SAMPLE = join(__dirname, '../src/content/courses/main/week1.json');
 
-function run(file?: string): { code: number; out: string } {
+function run(files?: string | string[], coursesDir?: string): { code: number; out: string } {
+  const args = files === undefined ? [] : Array.isArray(files) ? files : [files];
+  const env = coursesDir ? { ...process.env, GANTLO_COURSES_DIR: coursesDir } : process.env;
   try {
-    const out = execFileSync('node', [SCRIPT, ...(file ? [file] : [])], { encoding: 'utf8' });
+    const out = execFileSync('node', [SCRIPT, ...args], { encoding: 'utf8', env });
     return { code: 0, out };
   } catch (e) {
     const err = e as { status: number; stdout: string };
@@ -31,6 +33,17 @@ function mutate(name: string, fn: (d: any) => void): string {
 }
 
 const q = (d: any, i: number) => d.lessons[0].questions[i];
+
+/** 見本の写しを、一時フォルダの courses/<course>/<name> に置く。置き場所の決まりを確かめるため、その courses/ を検査に渡す */
+function placed(course: string, name: string, fn: (d: any) => void = () => {}): { file: string; dir: string } {
+  const data = JSON.parse(readFileSync(SAMPLE, 'utf8'));
+  fn(data);
+  const dir = join(mkdtempSync(join(tmpdir(), 'gantlo-courses-')), 'courses');
+  mkdirSync(join(dir, course), { recursive: true });
+  const file = join(dir, course, name);
+  writeFileSync(file, JSON.stringify(data));
+  return { file, dir };
+}
 
 // node を何度も起こすので、重い機械や CI でも落ちないよう 1 件 30 秒まで待つ
 describe('check-content', { timeout: 30_000 }, () => {
@@ -156,6 +169,55 @@ describe('check-content', { timeout: 30_000 }, () => {
       ['typo-item', (d) => (q(d, 2).items[0].txt = 'x'), /main-w1-l1-q3: 知らない欄 \(items\[0\]\.txt\) です/],
       ['typo-step', (d) => (q(d, 4).steps[0].cmd = 'ls'), /main-w1-l1-q5: 知らない欄 \(steps\[0\]\.cmd\) です/],
       ['typo-code', (d) => (q(d, 3).code = { format: 'http', text: 'x', lang: 'y' }), /main-w1-l1-q4: 知らない欄 \(code\.lang\) です/],
+    ];
+    for (const [name, fn, re] of cases) {
+      const r = run(mutate(name, fn));
+      expect(r.code, name).toBe(1);
+      expect(r.out, name).toMatch(re);
+    }
+  });
+
+  it('ファイルをまたいで問題 id やレッスン id が重なると NG', () => {
+    const a = mutate('a', () => {});
+    const b = mutate('b', (d) => (d.lessons[0].id = 'main-w1-l9'));
+    const r = run([a, b]);
+    expect(r.code).toBe(1);
+    expect(r.out).toMatch(/^OK .*a\.json/m);
+    expect(r.out).toMatch(/^NG .*b\.json main-w1-l1-q1: id が重複しています \(.*a\.json と\)/m);
+    const c = mutate('c', (d) => d.lessons[0].questions.forEach((x: any, i: number) => (x.id = `main-w1-l1-x${i}`)));
+    expect(run([a, c]).out).toMatch(/^NG .*c\.json main-w1-l1: id が重複しています/m);
+    // 同じファイルの中のレッスン id の重なり
+    const twice = mutate('twice', (d) => d.lessons.push({ ...d.lessons[0], questions: [] }));
+    expect(run(twice).out).toMatch(/^NG .*twice\.json main-w1-l1: id が重複しています/m);
+  });
+
+  it('置き場所 (courses/<course>/) とコースが合わないと NG', () => {
+    const ok = placed('main', 'week1.json');
+    expect(run(ok.file, ok.dir).code).toBe(0);
+    expect(run(undefined, ok.dir).out).toMatch(/^OK .*courses\/main\/week1\.json/m);
+    const wrong = placed('spring', 'basics.json');
+    const r = run(wrong.file, wrong.dir);
+    expect(r.code).toBe(1);
+    expect(r.out).toMatch(/^NG .*spring\/basics\.json main-w1-l1: course \(main\) が置き場所 \(courses\/spring\/\) と違います/m);
+    const unknown = placed('k8s', 'basics.json');
+    expect(run(unknown.file, unknown.dir).out).toMatch(/^NG .*k8s\/basics\.json -: 置き場所 \(courses\/k8s\/\) がコースの id ではありません/m);
+  });
+
+  it('ほかの決まりも 1 つずつ NG にする', () => {
+    const cases: [string, (d: any) => void, RegExp][] = [
+      ['dup-choice-id', (d) => (q(d, 3).choices[1].id = 'a'), /main-w1-l1-q4: 選択肢の id が重複しています/],
+      ['dup-item-id', (d) => (q(d, 2).items[1].id = 'dns'), /main-w1-l1-q3: 項目の id が重複しています/],
+      ['one-item', (d) => {
+        q(d, 2).items = q(d, 2).items.slice(0, 1);
+        q(d, 2).answer = ['dns'];
+      }, /main-w1-l1-q3: items は 2 つ以上要ります/],
+      ['no-steps', (d) => (q(d, 4).steps = []), /main-w1-l1-q5: steps がありません/],
+      ['step-no-text', (d) => (q(d, 4).steps[0].text = ''), /main-w1-l1-q5: steps\[0\] に text がありません/],
+      ['no-format', (d) => delete q(d, 1).format, /main-w1-l1-q2: format は http \/ json のどれか/],
+      ['no-title', (d) => delete d.lessons[0].title, /main-w1-l1: title がありません/],
+      ['empty-lessons', (d) => (d.lessons = []), /NG \S+ -: lessons がありません/],
+      ['answers-number', (d) => (q(d, 0).blanks[0].answers = [1]), /main-w1-l1-q1: blanks\[0\]\.answers/],
+      ['fixedorder-string', (d) => (q(d, 3).fixedOrder = 'yes'), /main-w1-l1-q4: fixedOrder は true か false にします/],
     ];
     for (const [name, fn, re] of cases) {
       const r = run(mutate(name, fn));
