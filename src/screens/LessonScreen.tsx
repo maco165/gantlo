@@ -12,7 +12,7 @@ import FillQuestionView from '../components/FillQuestionView';
 import LabQuestionView from '../components/LabQuestionView';
 import OrderQuestionView from '../components/OrderQuestionView';
 import type { Lesson, Question } from '../content/types';
-import { finishLesson, lessonScore, resultCode, resultBody, resultLocation, type Outcome } from '../lib/lessonRun';
+import { answerRequest, finishLesson, lessonScore, resultCode, resultBody, resultLocation, reviewResultBody, type Outcome } from '../lib/lessonRun';
 import { completeReview, currentStreak, goalXp, recordAnswer, todayXp, type Progress } from '../lib/progress';
 import { homeHref, scrollToTop } from '../lib/route';
 import { shuffleItems } from '../lib/order';
@@ -105,7 +105,7 @@ export default function LessonScreen({ lesson, progress, updateProgress, review 
   if (finished) return <ResultView lesson={lesson} questions={questions} outcomes={outcomes} codes={codes} score={score} progress={progress} onRetry={restart} review={review} />;
 
   const head = `${index + 1} / ${total} 問`;
-  const request = `POST /lessons/${lesson.id}/answers/${index + 1}`;
+  const request = answerRequest(lesson.id, index, review !== undefined);
   const nextLabel = isLast ? 'POST 結果を記録する' : '次の問題へ';
   const key = `${attempt}-${q.id}`;
   let view;
@@ -163,7 +163,7 @@ function ResultView({
               ]
         }
       >
-        <CodeBlock code={resultBody(lesson.id, score)} language="json" hasLanguageLabel={false} title="本文 (JSON)" width="100%" size="sm" hasCopyButton={false} />
+        <CodeBlock code={review ? reviewResultBody(score) : resultBody(lesson.id, score)} language="json" hasLanguageLabel={false} title="本文 (JSON)" width="100%" size="sm" hasCopyButton={false} />
       </AnswerResponse>
 
       <dl className="stats">

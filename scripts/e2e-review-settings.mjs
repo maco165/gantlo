@@ -97,6 +97,7 @@ export async function runReviewAndSettings(browser, { base, check, noHorizontalO
     for (const [i, b] of qCmd.blanks.entries()) await inputs.nth(i).fill(b.answers[0]);
     await page.getByRole('button', { name: 'POST 答えを送る' }).click();
     await page.locator('section.response[data-status="200"]').waitFor();
+    check(await page.getByText('POST /me/reviews/answers/1', { exact: true }).isVisible(), `${tag} 復習の答えは POST /me/reviews/answers/1 に送る (レッスンの道ではない)`);
     await page.getByRole('button', { name: '次の問題へ' }).click();
     await page.getByRole('heading', { name: qChoice.prompt }).waitFor();
     const right = qChoice.choices.find((c) => c.id === qChoice.answer).text;
@@ -106,6 +107,17 @@ export async function runReviewAndSettings(browser, { base, check, noHorizontalO
     await page.getByRole('button', { name: 'POST 結果を記録する' }).click();
     await page.getByRole('heading', { name: '復習完了' }).waitFor();
     check(await page.getByText('今日の復習を終えました。2 問のうち 2 問が正解です').isVisible(), `${tag} 解き終えると 200 で、正答数が出る`);
+    {
+      // CodeBlock の題と言語の札も pre の文字に入るので、最初の { から最後の } までを読む
+      const raw = (await page.locator('section.response pre').first().textContent()) ?? '';
+      let body = null;
+      try {
+        body = JSON.parse(raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1));
+      } catch {
+        // 下の check で落とす
+      }
+      check(JSON.stringify(body) === JSON.stringify({ reviewed: 2, correct: 2, xp: 6 }), `${tag} 復習の本文は reviewed・correct・xp で、lesson を持たない (${JSON.stringify(body)})`);
+    }
     check((await page.getByRole('button', { name: 'もう一度解く' }).count()) === 0, `${tag} 復習の結果には「もう一度解く」を出さない`);
     const after = await stored();
     const in3 = addDays(local, 3);

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { findLesson } from '../src/content/index';
 import { XP_PER_CORRECT, XP_PER_LAB } from '../src/lib/grade';
-import { finishLesson, isGraded, lessonScore, resultCode, resultBody, resultLocation } from '../src/lib/lessonRun';
+import { answerRequest, finishLesson, isGraded, lessonScore, resultCode, resultBody, resultLocation, reviewResultBody } from '../src/lib/lessonRun';
 import { emptyProgress, recordAnswer } from '../src/lib/progress';
 
 const lesson = findLesson('main-w1-l1')!;
@@ -54,5 +54,15 @@ describe('レッスンの採点の流れ', () => {
   it('完了のレスポンスの本文は lesson・correct・total・xp の JSON で、Location は /me/lessons/<id>', () => {
     expect(JSON.parse(resultBody('main-w1-l1', { correct: 2, total: 3, xp: 16 }))).toEqual({ lesson: 'main-w1-l1', correct: 2, total: 3, xp: 16 });
     expect(resultLocation('main-w1-l1')).toBe('/me/lessons/main-w1-l1');
+  });
+});
+
+describe('復習の要求と本文 (完了のステータス行 POST /me/reviews と食い違わない)', () => {
+  it('復習の答えは /me/reviews/answers/N に送り、レッスンの答えは /lessons/<id>/answers/N に送る', () => {
+    expect(answerRequest('review', 0, true)).toBe('POST /me/reviews/answers/1');
+    expect(answerRequest('main-w1-l1', 2, false)).toBe('POST /lessons/main-w1-l1/answers/3');
+  });
+  it('復習の本文は reviewed・correct・xp で、lesson を持たない', () => {
+    expect(JSON.parse(reviewResultBody({ correct: 1, total: 2, xp: 3 }))).toEqual({ reviewed: 2, correct: 1, xp: 3 });
   });
 });
