@@ -9,7 +9,9 @@ import { STAGES } from '../src/content/stages';
 import { COURSES } from '../src/lib/route';
 
 const SCRIPT = join(__dirname, '../scripts/check-content.mjs');
-const SAMPLE = join(__dirname, '../src/content/courses/main/week1.json');
+// 変えて NG を確かめる元は、本物の問題とは別に置いた 1 レッスンの写し (5 種類を 1 問ずつ、この順で持つ)。
+// 本物の問題を書き換えても、ここの検査が崩れないようにするため
+const SAMPLE = join(__dirname, 'fixtures/check-content-sample.json');
 
 function run(files?: string | string[], coursesDir?: string): { code: number; out: string } {
   const args = files === undefined ? [] : Array.isArray(files) ? files : [files];

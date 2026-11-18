@@ -1,0 +1,76 @@
+{
+  "lessons": [
+    {
+      "id": "main-w1-l1",
+      "title": "HTTP のやり取りを見る",
+      "course": "main",
+      "stage": "http",
+      "questions": [
+        {
+          "id": "main-w1-l1-q1",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "本文は要らず、レスポンスのステータス行とヘッダーだけを見たい。HEAD メソッドで送る curl のオプションを埋めてください。",
+          "code": "curl {{blank}} https://example.com/",
+          "blanks": [{ "answers": ["-I", "--head"] }],
+          "output": "HTTP/2 200\ncontent-type: text/html\n...",
+          "explanation": "-I (--head) は HEAD メソッドで要求を送り、返ってきたステータス行とヘッダーだけを出します。HEAD は原則として GET と同じヘッダーを返し (SHOULD)、本文は返さないメソッドです。本文を作るときに決まるヘッダーは省かれることがあります (MAY、RFC 9110 9.3.2)。",
+          "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2"]
+        },
+        {
+          "id": "main-w1-l1-q2",
+          "kind": "http",
+          "format": "http",
+          "prompt": "本文が JSON であることを伝えるレスポンスです。空欄のヘッダー名とメディアタイプを埋めてください。",
+          "code": "HTTP/1.1 200 OK\n{{blank}}: {{blank}}\nContent-Length: 12\n\n{\"ok\": true}",
+          "blanks": [
+            { "answers": ["Content-Type"], "match": "header-name" },
+            { "answers": ["application/json"], "match": "media-type" }
+          ],
+          "explanation": "本文の形式は Content-Type ヘッダーで伝えます (RFC 9110 8.3)。JSON のメディアタイプは application/json で、RFC 8259 が IANA に登録しています。ヘッダー名とメディアタイプの type と subtype は大文字と小文字を区別しません。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-8.3", "https://www.rfc-editor.org/rfc/rfc8259#section-11"]
+        },
+        {
+          "id": "main-w1-l1-q3",
+          "kind": "order",
+          "prompt": "HTTP/1.1 で https:// の URL を開くとき、要求が送られるまでに起きる順に並べてください。",
+          "items": [
+            { "id": "dns", "text": "DNS でホスト名から IP アドレスを引く" },
+            { "id": "tcp", "text": "TCP で接続する" },
+            { "id": "tls", "text": "TLS のハンドシェイクで暗号化の鍵を決める" },
+            { "id": "http", "text": "HTTP の要求 (GET / HTTP/1.1) を送る" }
+          ],
+          "answer": ["dns", "tcp", "tls", "http"],
+          "explanation": "相手の IP アドレスが分からないと接続できないので、最初に名前を引きます。https では、TCP の接続の上で TLS のハンドシェイクを済ませてから、暗号化された通り道で HTTP の要求を送ります (RFC 9110 4.2.2・RFC 8446)。HTTP/3 は TCP の代わりに QUIC を使うので、この順になりません。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-4.2.2", "https://www.rfc-editor.org/rfc/rfc8446"]
+        },
+        {
+          "id": "main-w1-l1-q4",
+          "kind": "choice",
+          "prompt": "POST の要求で新しい資源を作り終えたことを、いちばん正確に伝えるステータスコードはどれですか。",
+          "choices": [
+            { "id": "a", "text": "201 Created" },
+            { "id": "b", "text": "200 OK", "why": "成功は伝わりますが、新しい資源ができたことまでは伝わりません。" },
+            { "id": "c", "text": "202 Accepted", "why": "受け付けただけで、処理はまだ終わっていないことを表します。" },
+            { "id": "d", "text": "204 No Content", "why": "成功して、返す本文が無いことを表します。資源を作ったことは伝わりません。" }
+          ],
+          "answer": "a",
+          "explanation": "201 Created は、要求が満たされ、1 つ以上の新しい資源が作られたことを表します (RFC 9110 15.3.2)。作った資源の場所は Location ヘッダーで返せます。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.3.2"]
+        },
+        {
+          "id": "main-w1-l1-q5",
+          "kind": "lab",
+          "prompt": "curl の -v で、送った要求と返ってきた応答を手元で見てください。",
+          "steps": [
+            { "text": "端末で次を打つ", "command": "curl -v https://example.com/ -o /dev/null" },
+            { "text": "> で始まる行 (送った要求) と < で始まる行 (返ってきた応答) を見比べる" }
+          ],
+          "expected": "> の行に要求の行 (GET / と HTTP の版) と Host: example.com が、< の行にステータスコードと content-type などのヘッダーが出ます。* の行は接続と TLS の様子です。",
+          "explanation": "-v は、curl が送ったヘッダーと受け取ったヘッダーを行の頭の記号で分けて出します。要求の行とヘッダー、応答のステータスとヘッダーという HTTP のやり取りの形 (RFC 9110 6) が、そのまま見えます。",
+          "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-6"]
+        }
+      ]
+    }
+  ]
+}
