@@ -52,7 +52,6 @@ async function finishLesson(page, lesson) {
 }
 
 const ganttOrder = (page) => page.locator('.gantt__row').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-course')));
-const barLefts = (page) => page.locator('.gantt__bar').evaluateAll((bars) => bars.map((b) => b.style.left));
 
 /** Tab を押して、名前の合うボタンに手元が来るまで進める (マウスを使わない) */
 async function tabTo(page, label, max = 80) {
@@ -131,7 +130,6 @@ export async function runHomeAndPlan(browser, { base, check }) {
       await page.keyboard.press('Space');
       const before = await ganttOrder(page);
       check(before.at(-1) === 'main', `${t} 選び直したコースは最後に並ぶ (${before.join(',')})`);
-      const lefts0 = await barLefts(page);
       // 上へのボタンまで Tab で進み、Enter で 1 つ、Space でもう 1 つ上げる
       await page.locator('body').focus();
       check(await tabTo(page, '本編 4 週 を上へ'), `${t} Tab で上へのボタンに届く`);
@@ -139,8 +137,20 @@ export async function runHomeAndPlan(browser, { base, check }) {
       await page.keyboard.press('Space');
       const after = await ganttOrder(page);
       const expected = [...before.slice(0, -3), 'main', ...before.slice(-3, -1)];
-      check(after.join(',') === expected.join(','), `${t} キーボードだけで並べ替えると帯の順が変わる (${after.join(',')})`);
-      check((await barLefts(page)).join(',') !== lefts0.join(',') || lefts0.every((l) => l === lefts0[0]), `${t} 帯の位置が並びに合わせて変わる`);
+      check(after.join(',') === expected.join(','), `${t} キーボードだけで上へ並べ替えると帯の順が変わる (${after.join(',')})`);
+      // 下へ: 隣の下へのボタンに Tab で移り、Enter と Space で 2 つ下げる (動かした行に手元が残らないと 2 回目が効かない)
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Enter');
+      const mid = await ganttOrder(page);
+      await page.keyboard.press('Space');
+      const back = await ganttOrder(page);
+      check(mid.join(',') === [...before.slice(0, -3), before.at(-3), 'main', before.at(-2)].join(',') && back.join(',') === before.join(','), `${t} キーボードだけで下へ並べ替えると帯の順が変わる (${mid.join(',')} → ${back.join(',')})`);
+      // 最後まで下げると下へのボタンは押せなくなる。手元は同じ行の上へのボタンに移り、そのまま Enter で上げられる
+      const label = await page.evaluate(() => document.activeElement?.getAttribute('aria-label'));
+      check(label === '本編 4 週 を上へ', `${t} 端で押せなくなったら同じ行の反対のボタンに手元が移る (${label})`);
+      await page.keyboard.press('Enter');
+      const last = await ganttOrder(page);
+      check(last.join(',') === [...before.slice(0, -2), 'main', before.at(-2)].join(','), `${t} 端から続けて Enter で上げられる (${last.join(',')})`);
       // ボタンはどれも 44px 以上
       const sizes = await page.locator('.page button').evaluateAll((bs) => bs.map((b) => [b.getAttribute('aria-label') ?? b.textContent?.trim(), b.getBoundingClientRect().width, b.getBoundingClientRect().height]));
       const small = sizes.filter(([, w, h]) => w < MIN_TARGET || h < MIN_TARGET);
@@ -154,9 +164,9 @@ export async function runHomeAndPlan(browser, { base, check }) {
       check((await page.locator('.plan__save .status__line').innerText()).replace(/\s+/g, ' ').trim() === '200 OK', `${t} 保存すると 200 OK`);
       await page.reload();
       await page.locator('.gantt__row').first().waitFor();
-      check((await ganttOrder(page)).join(',') === after.join(','), `${t} 読み直しても保存した順で出る`);
+      check((await ganttOrder(page)).join(',') === last.join(','), `${t} 読み直しても保存した順で出る`);
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gantlo.v1') ?? 'null')?.plan);
-      check(JSON.stringify(saved) === JSON.stringify({ courses: after }), `${t} 計画は gantlo.v1 にコースの順だけで残る`);
+      check(JSON.stringify(saved) === JSON.stringify({ courses: last }), `${t} 計画は gantlo.v1 にコースの順だけで残る`);
     } else {
       // R-18: 1280 幅で、計画の帯・済みの塗り・今ここの印・次のレッスンへのリンク
       const t = `[plan ${name}]`;
