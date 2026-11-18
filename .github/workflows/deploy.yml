@@ -25,8 +25,9 @@ jobs:
 
       - run: npm ci
       - run: npm run check:content
-      - run: npm test
+      # tests/meta.test.ts の後半は dist (書き出したページ) を見るので、build のあとに走らせる
       - run: npm run build
+      - run: npm test
 
       # 通しの検査 (npm run e2e と同じ中身)。dist は上で組み立てたものを使う
       - run: npx playwright install --with-deps chromium
