@@ -5,7 +5,7 @@ import { TextInput } from '@astryxdesign/core/TextInput';
 import { Fragment, useState } from 'react';
 import type { CommandQuestion, HttpQuestion } from '../content/types';
 import { XP_PER_CORRECT, gradeFill, normalizeAnswer } from '../lib/grade';
-import { RETRY_AFTER_SECONDS, fillStatus } from '../lib/status';
+import { RETRY_AFTER_SECONDS, fillStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
 import { ActionArea, PrimaryAction, QuestionHead } from './QuestionFrame';
@@ -25,7 +25,8 @@ export default function FillQuestionView({
   /** 見出しに添える「何問目」 */
   head: string;
   request: string;
-  onChecked: (correct: boolean) => void;
+  /** 正誤と、応答に出したステータス (完了画面の一覧にも同じコードを出す) */
+  onChecked: (correct: boolean, status: Status) => void;
   nextLabel: string;
   onNext: () => void;
 }) {
@@ -40,7 +41,7 @@ export default function FillQuestionView({
     if (checked || !filled) return;
     const r = gradeFill(question, values);
     setResults(r.blanks);
-    onChecked(r.correct);
+    onChecked(r.correct, fillStatus(question.blanks, r.blanks));
   };
 
   // 空欄は書いてある順に 1 つずつ番号を振る (http は 2 つまで)

@@ -89,6 +89,19 @@ describe('AI に聞くリンク', () => {
     expect(text).not.toContain('正解');
   });
 
+  it('並べ替えは答える前に項目を出すが、正しい順では並べない (データが正しい順で書かれていても)', () => {
+    const order = sample.questions.find((q) => q.kind === 'order')!;
+    if (order.kind !== 'order') throw new Error('見本に並べ替えが無い');
+    const lines = questionText(order)
+      .split('\n')
+      .filter((l) => l.startsWith('- '))
+      .map((l) => l.slice(2));
+    const right = order.answer.map((id) => order.items.find((it) => it.id === id)!.text);
+    expect([...lines].sort()).toEqual([...right].sort());
+    expect(lines).not.toEqual(right);
+    expect(questionText(order)).not.toContain('正解');
+  });
+
   it('答えたあとは自分の答えと正解を添える', () => {
     const text = questionText(made[1], { picked: 'X-Wrong / text/plain', correct: false });
     expect(text).toContain('X-Wrong / text/plain');
