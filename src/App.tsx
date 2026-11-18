@@ -1,9 +1,10 @@
 import { AppShell } from '@astryxdesign/core/AppShell';
 import { InternationalizationProvider } from '@astryxdesign/core/i18n';
 import jaJP from '@astryxdesign/core/locales/ja-JP.generated.js';
+import { Text } from '@astryxdesign/core/Text';
 import { Theme } from '@astryxdesign/core/theme';
 import { gothicTheme } from '@astryxdesign/theme-gothic/built';
-import { useEffect } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import AppSideNav, { AppMobileNav } from './components/AppSideNav';
 import MobileBar from './components/MobileBar';
 import { findLesson } from './content/index';
@@ -12,7 +13,6 @@ import { useRoute } from './lib/route';
 import { NOT_FOUND, NOT_IMPLEMENTED } from './lib/status';
 import { useMobileNav } from './lib/useMobileNav';
 import { useProgress } from './lib/useProgress';
-import Glossary from './screens/Glossary';
 import Home from './screens/Home';
 import LessonScreen from './screens/LessonScreen';
 import Plan from './screens/Plan';
@@ -20,6 +20,9 @@ import ProgressScreen from './screens/ProgressScreen';
 import Review from './screens/Review';
 import Settings from './screens/Settings';
 import StatusPage from './screens/StatusPage';
+
+// 用語集の画面とそのデータ (content/glossary.json) は、開いたときに読む (最初の JS を軽くするため)
+const Glossary = lazy(() => import('./screens/Glossary'));
 
 export default function App() {
   const { route, nav, close } = useRoute();
@@ -35,7 +38,18 @@ export default function App() {
   if (route.name === 'page' && route.page === 'plan') screen = <Plan key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'review') screen = <Review key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'progress') screen = <ProgressScreen progress={progress} />;
-  else if (route.name === 'page' && route.page === 'glossary') screen = <Glossary key={nav} />;
+  else if (route.name === 'page' && route.page === 'glossary') screen = (
+      <Suspense
+        fallback={
+          <div className="page">
+            <h1 className="page__title">{PAGE_TITLES.glossary}</h1>
+            <Text type="supporting">読み込んでいます。</Text>
+          </div>
+        }
+      >
+        <Glossary key={nav} />
+      </Suspense>
+    );
   else if (route.name === 'page' && route.page === 'settings') screen = <Settings key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'course') screen = <StatusPage title={title ?? ''} request={`GET /course/${route.course}`} status={NOT_IMPLEMENTED} />;
