@@ -41,6 +41,14 @@ async function finishLesson(page, lesson) {
       const text = q.choices.find((c) => c.id === q.answer).text;
       await page.getByRole('radio', { name: new RegExp(`^[A-D]\\. ${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }).check();
       await send();
+    } else if (q.kind === 'order') {
+      // 上下のボタンで、正しい順の頭から 1 つずつ上へ送って並べる
+      const ids = () => page.locator('[data-testid="order-rows"] > li').evaluateAll((ls) => ls.map((l) => l.dataset.item));
+      for (const [t, id] of q.answer.entries()) {
+        const text = q.items.find((it) => it.id === id).text;
+        for (let c = (await ids()).indexOf(id); c > t; c--) await page.getByRole('button', { name: `上へ: ${text}` }).click();
+      }
+      await send();
     } else if (q.kind === 'lab') {
       for (const box of await page.getByRole('checkbox').all()) await box.check();
       await page.getByRole('button', { name: 'POST 実習を終える' }).click();
@@ -114,7 +122,9 @@ export async function runHomeAndPlan(browser, { base, check, noHorizontalOverflo
     check(learned.length === 1 && learned[0] === first.stage, `${tag} 紐づく段 (${first.stage}) だけが学習済み (${learned.join(',')})`);
     check((await page.locator(`.wf__row[data-stage="${first.stage}"]`).innerText()).includes('学習済み'), `${tag} 段に「学習済み」の字が出る`);
     const xp = Number((await page.locator('[data-header="X-Today-XP"] dd').innerText()).split('/')[0].trim());
-    check(xp > 0, `${tag} 今日の目標の XP が増えた (${xp})`);
+    // 全問を正しく答えたときの XP を、問題のデータから数え直す (実習を除く問題が 1 問 3、実習が 10)
+    const wantXp = first.questions.reduce((sum, q) => sum + (q.kind === 'lab' ? 10 : 3), 0);
+    check(xp === wantXp, `${tag} 今日の目標の XP が、全問正解のぶん増えた (${xp} = ${wantXp})`);
     await overflow('レッスンを終えたあとのホーム');
 
     if (width < 768) {
