@@ -65,6 +65,20 @@ describe('開いたときの並び', () => {
     expect(seen.size).toBeGreaterThan(1);
   });
 
+  it('正しい順を除く並びが偏らずに出る (3 項目を 6000 回作り、最多と最少の比が 1.3 倍以内)', () => {
+    const q = make(3);
+    const counts = new Map<string, number>();
+    for (let i = 0; i < 6000; i++) {
+      const key = initialOrder(q).join(',');
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    // 3 項目の並びは 6 通りで、正しい順を除く 5 通りが全部出る
+    expect(counts.size).toBe(5);
+    expect(counts.has(q.answer.join(','))).toBe(false);
+    const values = [...counts.values()];
+    expect(Math.max(...values) / Math.min(...values)).toBeLessThanOrEqual(1.3);
+  });
+
   it('項目が 1 つなら、そのまま 1 つの並び', () => {
     expect(initialOrder(make(1), () => 0)).toEqual(['s1']);
   });

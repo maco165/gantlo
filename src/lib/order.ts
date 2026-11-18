@@ -12,16 +12,21 @@ export function gradeOrder(q: Pick<OrderQuestion, 'answer'>, arranged: readonly 
   return { correct: arranged.length === q.answer.length && misplaced === 0, misplaced, rows };
 }
 
+/** 混ぜ直す回数の上限。乱数が偏って (テストで固定したときなど) 正しい順ばかり出ても止まるようにする */
+const MAX_RESHUFFLE = 100;
+
 /**
- * 最初に出す並び。項目を混ぜ、正しい順と同じになったら 1 つずらす。
- * 重ならない id を 1 つずらした並びは元と必ず違うので、項目が 2 つ以上なら正解の並びでは始まらない
+ * 最初に出す並び。項目を混ぜ、正しい順と同じ間は混ぜ直す (正しい順を除く並びがどれも同じ割合で出る)。
+ * 上限まで混ぜても正しい順のままなら 1 つずらす。重ならない id を 1 つずらした並びは元と必ず違うので、
+ * 項目が 2 つ以上なら正解の並びでは始まらない
  */
 export function initialOrder(q: Pick<OrderQuestion, 'items' | 'answer'>, random: () => number = Math.random): string[] {
-  const ids = shuffled(
-    q.items.map((it) => it.id),
-    random,
-  );
-  if (ids.length >= 2 && ids.every((id, i) => id === q.answer[i])) ids.push(ids.shift()!);
+  const base = q.items.map((it) => it.id);
+  const isAnswer = (ids: readonly string[]) => ids.every((id, i) => id === q.answer[i]);
+  let ids = shuffled(base, random);
+  if (ids.length < 2) return ids;
+  for (let i = 0; i < MAX_RESHUFFLE && isAnswer(ids); i++) ids = shuffled(base, random);
+  if (isAnswer(ids)) ids.push(ids.shift()!);
   return ids;
 }
 
