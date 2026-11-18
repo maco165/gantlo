@@ -40,6 +40,18 @@ describe('クリックを奪うかどうか (isInternalClick)', () => {
   ])('%s 付きのクリックは奪わない', (_, init) => {
     expect(judge('/gantlo/plan/', init).result).toBeNull();
   });
+  it('今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) は奪わない', () => {
+    window.history.replaceState(null, '', '/gantlo/lesson/main-w1-l1/');
+    expect(judge('#astryx-app-shell-main').result).toBeNull();
+    expect(judge('/gantlo/lesson/main-w1-l1/#top').result).toBeNull();
+    // 別の道なら # が付いていても奪う
+    const other = judge('/gantlo/plan/#top');
+    expect(other.result).toBe(other.a);
+    // # の無い同じ道のリンクは、これまでどおり奪う (nav を増やす)
+    const same = judge('/gantlo/lesson/main-w1-l1/');
+    expect(same.result).toBe(same.a);
+    window.history.replaceState(null, '', '/gantlo/');
+  });
   it('新しいタブで開くリンクと保存のリンクは奪わない', () => {
     expect(judge('/gantlo/plan/', {}, { target: '_blank' }).result).toBeNull();
     expect(judge('/gantlo/plan/', {}, { download: '' }).result).toBeNull();
@@ -66,19 +78,19 @@ describe('画面を移ったら先頭へ戻す (scrollToTop)', () => {
 });
 
 describe('スマホのメニューの開閉 (useMobileNav)', () => {
-  it('開いたあと、nav が変わったら閉じる', async () => {
+  it('開いたあと、close (useRoute の移動の操作の回数) が変わったら閉じる', async () => {
     const host = document.createElement('div');
     document.body.appendChild(host);
     let state: [boolean, (o: boolean) => void] = [false, () => {}];
-    function Probe({ nav }: { nav: number }) {
-      state = useMobileNav(nav);
+    function Probe({ close }: { close: number }) {
+      state = useMobileNav(close);
       return null;
     }
     const root = createRoot(host);
-    await act(async () => root.render(createElement(Probe, { nav: 0 })));
+    await act(async () => root.render(createElement(Probe, { close: 0 })));
     await act(async () => state[1](true));
     expect(state[0]).toBe(true);
-    await act(async () => root.render(createElement(Probe, { nav: 1 })));
+    await act(async () => root.render(createElement(Probe, { close: 1 })));
     expect(state[0]).toBe(false);
     await act(async () => root.unmount());
     host.remove();
@@ -88,9 +100,11 @@ describe('スマホのメニューの開閉 (useMobileNav)', () => {
 describe('画面を移る操作の回数 (useRoute の nav)', () => {
   let host: HTMLDivElement;
   let seen: { name: string; nav: number }[];
+  let lastClose = -1;
   function Probe() {
-    const { route, nav } = useRoute();
+    const { route, nav, close } = useRoute();
     seen.push({ name: route.name, nav });
+    lastClose = close;
     return createElement('a', { href: '/gantlo/plan/', id: 'to-plan' }, 'plan');
   }
   beforeEach(() => {
@@ -101,7 +115,7 @@ describe('画面を移る操作の回数 (useRoute の nav)', () => {
   });
   afterEach(() => host.remove());
 
-  it('同じ画面のリンクを押しても増え、戻るでも増える (スマホのメニューを閉じる合図)', async () => {
+  it('同じ画面のリンクを押しても増え、戻るでも増える (画面をやり直す合図)', async () => {
     const root = createRoot(host);
     await act(async () => root.render(createElement(Probe)));
     const link = () => host.querySelector('#to-plan') as HTMLAnchorElement;
@@ -115,6 +129,37 @@ describe('画面を移る操作の回数 (useRoute の nav)', () => {
       window.dispatchEvent(new PopStateEvent('popstate'));
     });
     expect(seen.at(-1)).toEqual({ name: 'home', nav: 3 });
+    // 画面を移る操作では、メニューを閉じる合図 (close) も同じだけ増える
+    expect(lastClose).toBe(3);
+    await act(async () => root.unmount());
+  });
+
+  it('# だけが違うリンクと、# だけが変わる戻る・進むでは増えない (例外)', async () => {
+    window.history.replaceState(null, '', '/gantlo/plan/');
+    let close = -1;
+    function HashProbe() {
+      const { route, nav, close: c } = useRoute();
+      seen.push({ name: route.name, nav });
+      close = c;
+      return createElement('a', { href: '#main', id: 'skip' }, 'skip');
+    }
+    const root = createRoot(host);
+    await act(async () => root.render(createElement(HashProbe)));
+    const skip = host.querySelector('#skip') as HTMLAnchorElement;
+    let prevented: boolean | undefined;
+    const spy = (e: Event) => (prevented = e.defaultPrevented);
+    window.addEventListener('click', spy);
+    await act(async () => skip.click());
+    window.removeEventListener('click', spy);
+    expect(prevented).toBe(false);
+    expect(window.location.hash).toBe('#main');
+    // jsdom は # の移動の popstate を後から送るので、それを受けてから数える
+    await act(async () => new Promise((r) => setTimeout(r, 0)));
+    const closeBefore = close;
+    await act(async () => window.dispatchEvent(new PopStateEvent('popstate')));
+    expect(seen.at(-1)).toEqual({ name: 'page', nav: 0 });
+    // 画面はやり直さないが、スマホのメニューを閉じる合図 (close) は増える
+    expect(close).toBe(closeBefore + 1);
     await act(async () => root.unmount());
   });
 });
