@@ -3,7 +3,9 @@
 import { act, createElement, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import LessonNetwork from '../src/components/LessonNetwork';
 import { LESSONS } from '../src/content/index';
+import type { Lesson } from '../src/content/types';
 import { STORAGE_KEY, completeLesson, emptyProgress, loadProgress, type Progress } from '../src/lib/progress';
 import { useProgress } from '../src/lib/useProgress';
 import Home from '../src/screens/Home';
@@ -59,6 +61,21 @@ describe('ホーム (R-6)', () => {
     expect(text('[data-header="X-Today-XP"] dd')).toBe('15 / 30');
     expect(text('[data-header="X-Streak"] dd')).toBe('1 日連続');
     expect(text('.status__code')).toBe('206');
+  });
+});
+
+describe('Network の表', () => {
+  const sample: Lesson[] = ['main-a', 'main-b', 'main-c'].map((id) => ({ id, title: id, course: 'main', stage: 'http', questions: [] }));
+  const spring: Lesson = { id: 'spring-a', title: 'spring-a', course: 'spring', questions: [] };
+  const states = () => [...host.querySelectorAll('.net__row')].map((r) => `${r.getAttribute('data-lesson')}:${r.getAttribute('data-state')}`);
+
+  it('学ぶ順に 1 行ずつ並べ、済んだ行は完了、最初の未完了の行だけが次になる', async () => {
+    const p = completeLesson(emptyProgress(), 'main-b', { correct: 1, total: 1 }, 10, now);
+    await act(async () => root.render(createElement(LessonNetwork, { courses: ['spring', 'main'], progress: p, lessons: [...sample, spring] })));
+    expect(states()).toEqual(['spring-a:next', 'main-a:todo', 'main-b:done', 'main-c:todo']);
+    // Waterfall の列は 1 本のガントチャート (行ごとに 1/4 ずつずれる)
+    const lefts = [...host.querySelectorAll('.net__bar')].map((b) => (b as HTMLElement).style.left);
+    expect(lefts).toEqual(['0%', '25%', '50%', '75%']);
   });
 });
 

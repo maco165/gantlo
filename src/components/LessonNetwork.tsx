@@ -1,5 +1,7 @@
 import { Text } from '@astryxdesign/core/Text';
+import { LESSONS } from '../content/index';
 import { STAGES } from '../content/stages';
+import type { Lesson } from '../content/types';
 import { currentLesson, isDone, planLessons } from '../lib/plan';
 import type { Progress } from '../lib/progress';
 import { COURSES, lessonHref, type CourseId } from '../lib/route';
@@ -8,9 +10,17 @@ import { COURSES, lessonHref, type CourseId } from '../lib/route';
  * 開発者ツールの Network タブの見立て。レッスン 1 つが 1 行 (Name・Status・形・Waterfall) で、
  * 学ぶ順に並べると Waterfall の列が 1 本のガントチャートになる。済んだ行は 200、今ここの行は「次」
  */
-export default function LessonNetwork({ courses, progress }: { courses: readonly CourseId[]; progress: Progress }) {
-  const rows = planLessons(courses);
-  const here = currentLesson(courses, progress);
+export default function LessonNetwork({
+  courses,
+  progress,
+  lessons = LESSONS,
+}: {
+  courses: readonly CourseId[];
+  progress: Progress;
+  lessons?: readonly Lesson[];
+}) {
+  const rows = planLessons(courses, lessons);
+  const here = currentLesson(courses, progress, lessons);
   const doneCount = rows.filter((l) => isDone(progress, l.id)).length;
   return (
     <section className="net" aria-labelledby="net-title">
