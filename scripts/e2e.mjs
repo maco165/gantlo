@@ -12,6 +12,8 @@
 //   9. 答える前の AI のリンクは、どの種類の問題でも答えの手がかりを含まない
 //  10. 途中で本文へ飛ぶリンク (skip link) を押しても、何問目かが変わらない
 //  11. 390 幅では、主な操作 (閉じる・答えを送る・次へ・AI に聞く・空欄・4 択の行) の押せる範囲が 44px 以上
+//  12. どの画面でも、文が「…」で切られていない (問題文・選択肢・手順・解説・結果の一覧)
+//  13. 390 幅で、# だけが変わる戻るでもスマホのメニューが閉じ、レッスンは何問目かが変わらない
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
@@ -54,6 +56,41 @@ async function waitForServer() {
 async function noHorizontalOverflow(page, width, label) {
   const sw = await page.evaluate(() => document.documentElement.scrollWidth);
   check(sw <= width, `${label}: 横にはみ出さない (scrollWidth ${sw} <= ${width})`);
+  await noTruncatedText(page, label);
+}
+
+/**
+ * 選択肢や手順の文が、長くても折り返せる作りか (1 行に切る nowrap と … を持たない)。
+ * 見本の文が短くて今は切れていなくても、長い文で切れる作りを見つける
+ */
+async function wrapsText(page, selector, label) {
+  const single = await page.evaluate(
+    (sel) =>
+      [...document.querySelectorAll(`${sel} *`)]
+        .filter((el) => {
+          const cs = getComputedStyle(el);
+          return el.textContent.trim() !== '' && cs.whiteSpace === 'nowrap' && cs.textOverflow === 'ellipsis';
+        })
+        .map((el) => el.textContent.trim().slice(0, 20)),
+    selector,
+  );
+  check(single.length === 0, `${label}: 長い文も折り返せる (1 行に切る作りでない) ${single.join(' / ')}`);
+}
+
+/** 本文の中で、文が 1 行や数行に切られて「…」になっている所 (scrollWidth > clientWidth など) が無いか */
+async function noTruncatedText(page, label) {
+  const cut = await page.evaluate(() =>
+    [...document.querySelectorAll('#astryx-app-shell-main *')]
+      .filter((el) => {
+        const cs = getComputedStyle(el);
+        if (el.offsetParent === null || el.textContent.trim() === '') return false;
+        const ellipsis = cs.textOverflow === 'ellipsis' && el.scrollWidth > el.clientWidth + 1;
+        const clamped = cs.webkitLineClamp !== 'none' && cs.webkitLineClamp !== '' && el.scrollHeight > el.clientHeight + 1;
+        return ellipsis || clamped;
+      })
+      .map((el) => `${el.textContent.trim().slice(0, 20)} (${el.scrollWidth}>${el.clientWidth})`),
+  );
+  check(cut.length === 0, `${label}: 文が切れていない ${cut.join(' / ')}`);
 }
 
 const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -199,6 +236,19 @@ async function run(browser, name, width, height) {
     (await page.getByText(`2 / ${lesson.questions.length} 問`).first().isVisible()) && (await page.getByRole('heading', { name: qHttp.prompt }).isVisible()) && new URL(page.url()).pathname === new URL(LESSON_URL).pathname,
     `${tag} 途中で本文へ飛ぶリンクを押しても何問目かが変わらない`,
   );
+  if (phone) {
+    // # が付いた状態でメニューを開き、戻る (# だけが外れる) と、メニューは閉じ、レッスンはそのまま
+    const menuOpen = () => page.evaluate(() => [...document.querySelectorAll('dialog')].some((d) => d.open));
+    await page.getByRole('button', { name: 'メニューを開く' }).click();
+    await page.waitForFunction(() => [...document.querySelectorAll('dialog')].some((d) => d.open));
+    check(new URL(page.url()).hash !== '' && (await menuOpen()), `${tag} # が付いた状態でメニューが開く`);
+    await page.goBack();
+    await page.waitForTimeout(600);
+    check(
+      !(await menuOpen()) && new URL(page.url()).hash === '' && (await page.getByText(`2 / ${lesson.questions.length} 問`).first().isVisible()),
+      `${tag} # だけが変わる戻るでもメニューが閉じ、何問目かは変わらない`,
+    );
+  }
   await fill(page, ['content-type', 'Application/JSON']);
   await send(page);
   r = await response(page, 200);
@@ -222,6 +272,8 @@ async function run(browser, name, width, height) {
   const dataOrder = qChoice.choices.map((c, i) => `${String.fromCharCode(65 + i)}. ${c.text}`);
   check(order1.length === 4 && order1.join('|') !== dataOrder.join('|'), `${tag} 4 択の選択肢は開いたときに混ぜてある (${order1.map((t) => t.slice(3, 6)).join(',')})`);
   await checkNoLeak(page, qChoice, `${tag} 4 問目`);
+  await noHorizontalOverflow(page, width, `${tag} 問題 (4 択)`);
+  await wrapsText(page, '.astryx-radio-list', `${tag} 4 択の選択肢`);
   if (phone) {
     const rows = page.locator('.astryx-radio-list-item');
     for (let i = 0; i < (await rows.count()); i++) await checkTarget(rows.nth(i), `${tag} 4 択の行 ${i + 1}`);
@@ -239,6 +291,8 @@ async function run(browser, name, width, height) {
   // 5 問目: 実習。全部の手順に印を付けるまで終えられない
   await page.getByRole('heading', { name: qLab.prompt }).waitFor();
   await checkNoLeak(page, qLab, `${tag} 5 問目`);
+  await noHorizontalOverflow(page, width, `${tag} 問題 (実習)`);
+  await wrapsText(page, '.astryx-checkbox-list', `${tag} 実習の手順`);
   if (phone) {
     const steps = page.locator('.astryx-checkbox-list .astryx-item');
     for (let i = 0; i < (await steps.count()); i++) await checkTarget(steps.nth(i), `${tag} 実習の手順の行 ${i + 1}`);
@@ -249,6 +303,7 @@ async function run(browser, name, width, height) {
   await finishLab.click();
   r = await response(page, 200);
   check(await r.getByText('+10', { exact: true }).isVisible(), `${tag} 実習を終えると X-XP: +10`);
+  await noHorizontalOverflow(page, width, `${tag} 応答 (実習)`);
   check(await r.getByText(qLab.expected, { exact: false }).isVisible(), `${tag} 実習を終えると見えるはずのことが出る`);
   await next(page);
 
