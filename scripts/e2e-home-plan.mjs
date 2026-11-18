@@ -1,7 +1,7 @@
 // ホームと計画の画面の、ブラウザでの通しの検査。scripts/e2e.mjs (npm run e2e) から呼ぶ。
 // 空の localStorage から始め、次のことを確かめる:
 //   R-6  (390 幅と 1280 幅): 旅の 8 段がすべて未学習で、最初のレッスンだけが「次」。ホームの「次」のボタンでレッスンを開いて終え、
-//        ホームへ戻ると、そのレッスンが「完了」、紐づく段が「学習済み」、今日の XP が増えている。横にはみ出さない
+//        ホームへ戻ると、そのレッスンが「完了」、紐づく段が「学習済み」、今日の XP が増えている。横にはみ出さず、文が「…」で切れない
 //   R-17 (390 幅): 計画の画面でコースを選び、上下のボタンとキーボード (Tab・Enter・Space) だけで並べ替えると帯の順が変わる。
 //        ボタンはどれも 44px 以上。PUT この順で学ぶ で 200 OK を出し、読み直しても同じ順
 //   R-18 (1280 幅): 計画の帯・済みの塗り・今ここの印・次のレッスンへのリンクが出て、そのリンクでレッスンが開く
@@ -65,9 +65,13 @@ async function tabTo(page, label, max = 80) {
 
 /**
  * @param {import('playwright').Browser} browser
- * @param {{ base: string, check: (cond: boolean, label: string) => void }} opts
+ * @param {{
+ *   base: string,
+ *   check: (cond: boolean, label: string) => void,
+ *   noHorizontalOverflow: (page: import('playwright').Page, width: number, label: string) => Promise<void>,
+ * }} opts
  */
-export async function runHomeAndPlan(browser, { base, check }) {
+export async function runHomeAndPlan(browser, { base, check, noHorizontalOverflow }) {
   const lessons = loadLessons();
   const first = lessons[0];
 
@@ -80,10 +84,8 @@ export async function runHomeAndPlan(browser, { base, check }) {
     const page = await context.newPage();
     const errors = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    const overflow = async (label) => {
-      const sw = await page.evaluate(() => document.documentElement.scrollWidth);
-      check(sw <= width, `${tag} ${label}: 横にはみ出さない (scrollWidth ${sw} <= ${width})`);
-    };
+    // 横のはみ出しと、文が「…」で切れていないことは e2e.mjs の noHorizontalOverflow で見る
+    const overflow = (label) => noHorizontalOverflow(page, width, `${tag} ${label}`);
 
     // R-6: 空の localStorage のホーム
     await page.goto(base);
