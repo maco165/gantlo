@@ -230,6 +230,19 @@ describe('check-content', { timeout: 30_000 }, () => {
     expect(run(other.file, other.dir).code).toBe(0);
   });
 
+  it('4 択は選択肢がちょうど 4 つ', () => {
+    for (const [name, n] of [['three', 3], ['five', 5]] as const) {
+      const r = run(
+        mutate(`choices-${name}`, (d) => {
+          const cs = q(d, 3).choices;
+          q(d, 3).choices = n < cs.length ? cs.slice(0, n) : [...cs, { id: 'e', text: '418 I\'m a teapot' }];
+        }),
+      );
+      expect(r.code, name).toBe(1);
+      expect(r.out, name).toMatch(new RegExp(`main-w1-l1-q4: choices はちょうど 4 つにします \\(${n} つ\\)`));
+    }
+  });
+
   it('ほかの決まりも 1 つずつ NG にする', () => {
     const cases: [string, (d: any) => void, RegExp][] = [
       ['dup-choice-id', (d) => (q(d, 3).choices[1].id = 'a'), /main-w1-l1-q4: 選択肢の id が重複しています/],

@@ -15,6 +15,8 @@ const TOOLS = ['curl', 'dig', 'openssl'];
 const HTTP_FORMATS = ['http', 'json'];
 const MATCHES = ['text', 'header-name', 'media-type'];
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+/** 4 択の選択肢の数 */
+const CHOICE_COUNT = 4;
 
 /** 使ってよい欄。ほかの欄は打ち間違いとして NG にする (任意の欄の打ち間違いで採点や表示が黙って変わらないように) */
 const FIELDS = {
@@ -181,7 +183,7 @@ export function checkFiles(files, { stages, courseIds }) {
           }
           case 'choice': {
             const choices = Array.isArray(q.choices) ? q.choices : [];
-            if (choices.length < 2) ng(qid, 'choices は 2 つ以上要ります');
+            if (choices.length !== CHOICE_COUNT) ng(qid, `choices はちょうど ${CHOICE_COUNT} つにします (${choices.length} つ)`);
             const ids = choices.map((c) => c?.id);
             if (new Set(ids).size !== ids.length) ng(qid, '選択肢の id が重複しています');
             for (const [ci, c] of choices.entries()) {
