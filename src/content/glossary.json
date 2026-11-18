@@ -1,0 +1,906 @@
+{
+  "terms": [
+    {
+      "id": "http",
+      "term": "HTTP",
+      "aliases": [
+        "Hypertext Transfer Protocol"
+      ],
+      "standard": 1,
+      "description": "要求と応答をやり取りする、状態を持たないアプリケーション層のプロトコルの一族です。メソッド・ステータスコード・ヘッダーの意味を RFC 9110 が決めています。",
+      "sources": [
+        {
+          "label": "RFC 9110 1.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-1.1"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "uri",
+      "term": "URI",
+      "aliases": [
+        "URL",
+        "Uniform Resource Identifier",
+        "Uniform Resource Locator"
+      ],
+      "standard": 2,
+      "description": "資源 (リソース) を指す文字の並びです。URL は URI のうち、資源への行き方 (https など) まで示して場所を表すものを指します。",
+      "sources": [
+        {
+          "label": "RFC 3986 1.1.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc3986#section-1.1.3"
+        },
+        {
+          "label": "RFC 3986 3",
+          "url": "https://www.rfc-editor.org/rfc/rfc3986#section-3"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "json",
+      "term": "JSON",
+      "aliases": [
+        "JavaScript Object Notation",
+        "application/json"
+      ],
+      "standard": 3,
+      "description": "構造のあるデータを書き表すテキストの形式です。文字列・数・真偽値・null の 4 つの基本の型と、オブジェクト・配列の 2 つの入れ物の型を持ちます。メディアタイプは application/json です。",
+      "sources": [
+        {
+          "label": "RFC 8259 1",
+          "url": "https://www.rfc-editor.org/rfc/rfc8259#section-1"
+        },
+        {
+          "label": "RFC 8259 11",
+          "url": "https://www.rfc-editor.org/rfc/rfc8259#section-11"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "media-type",
+      "term": "MIME タイプ",
+      "aliases": [
+        "メディアタイプ",
+        "media type",
+        "MIME type"
+      ],
+      "standard": 4,
+      "description": "データの形式を type/subtype の形 (text/html・application/json など) で表す名前です。HTTP では Content-Type と Accept で使い、type と subtype は大文字と小文字を区別しません。一覧は IANA が持ちます。",
+      "sources": [
+        {
+          "label": "IANA Media Types",
+          "url": "https://www.iana.org/assignments/media-types/media-types.xhtml"
+        },
+        {
+          "label": "RFC 9110 8.3.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-8.3.1"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "utf-8",
+      "term": "UTF-8",
+      "standard": 5,
+      "description": "Unicode の文字を 1〜4 バイトの並びで表す符号化の方式です。ASCII の範囲はそのまま 1 バイトで表せます。閉じた環境の外でやり取りする JSON は UTF-8 で書きます。",
+      "sources": [
+        {
+          "label": "RFC 3629 3",
+          "url": "https://www.rfc-editor.org/rfc/rfc3629#section-3"
+        },
+        {
+          "label": "RFC 8259 8.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc8259#section-8.1"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "rest",
+      "term": "REST",
+      "aliases": [
+        "Representational State Transfer"
+      ],
+      "standard": 6,
+      "description": "Roy Fielding が 2000 年の博士論文で示した、分散したハイパーメディアの仕組みのための設計の型 (アーキテクチャスタイル) です。クライアントとサーバーの分離・状態を持たない通信・統一されたインターフェースなどの制約を重ねて作ります。",
+      "sources": [
+        {
+          "label": "Fielding 論文 5 章",
+          "url": "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm"
+        },
+        {
+          "label": "Fielding 論文 (表紙)",
+          "url": "https://ics.uci.edu/~fielding/pubs/dissertation/top.htm"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "dns",
+      "term": "DNS",
+      "aliases": [
+        "Domain Name System"
+      ],
+      "standard": 7,
+      "description": "ホスト名などの名前から、IP アドレスなどの情報を引く仕組みです。木の形の名前の空間と資源レコード、情報を持つネームサーバー、問い合わせるリゾルバの 3 つから成ります。",
+      "sources": [
+        {
+          "label": "RFC 1034 2.4",
+          "url": "https://www.rfc-editor.org/rfc/rfc1034#section-2.4"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "tcp-ip",
+      "term": "TCP/IP",
+      "aliases": [
+        "TCP",
+        "IP",
+        "Transmission Control Protocol",
+        "Internet Protocol"
+      ],
+      "standard": 8,
+      "description": "IP は、ネットワークをまたいでデータの包み (データグラム) を送り先まで届ける仕組みで、届いたかの確かめや順序は持ちません。TCP はその上で接続を作り、抜けを見つけて送り直し、順序どおりのバイトの流れを届けます。",
+      "sources": [
+        {
+          "label": "RFC 791 1.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc791#section-1.2"
+        },
+        {
+          "label": "RFC 9293 2.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9293#section-2.2"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "tls",
+      "term": "TLS",
+      "aliases": [
+        "Transport Layer Security"
+      ],
+      "standard": 9,
+      "description": "通信する 2 者の間に安全な通り道を作るプロトコルです。サーバーの認証、盗み見されないこと (機密性)、書き換えを見抜けること (完全性) を守ります。下の層には、抜けが無く順序どおりに届く流れ (TCP など) だけを求めます。",
+      "sources": [
+        {
+          "label": "RFC 8446 1",
+          "url": "https://www.rfc-editor.org/rfc/rfc8446#section-1"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "oauth2",
+      "term": "OAuth 2.0",
+      "aliases": [
+        "OAuth"
+      ],
+      "standard": 10,
+      "description": "資源の持ち主の資格情報 (パスワードなど) を渡さずに、別のアプリが HTTP のサービスに限られた範囲で入れるようにする認可の枠組みです。アプリには持ち主のものとは別の資格情報として、アクセストークンが与えられます。",
+      "sources": [
+        {
+          "label": "RFC 6749 1",
+          "url": "https://www.rfc-editor.org/rfc/rfc6749#section-1"
+        },
+        {
+          "label": "RFC 6749 1.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc6749#section-1.1"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "jwt",
+      "term": "JWT",
+      "aliases": [
+        "JSON Web Token"
+      ],
+      "standard": 10,
+      "description": "2 者の間で渡すクレーム (主体についての主張) を JSON のオブジェクトにして、小さく URL に入れても安全な形で表す書き方です。署名か MAC で改ざんを見抜けるようにでき、暗号化もできます。Authorization ヘッダーなどで使います。",
+      "sources": [
+        {
+          "label": "RFC 7519 1",
+          "url": "https://www.rfc-editor.org/rfc/rfc7519#section-1"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "openapi",
+      "term": "OpenAPI",
+      "aliases": [
+        "OpenAPI Specification",
+        "OAS"
+      ],
+      "standard": 11,
+      "description": "HTTP の API を、プログラムの言語によらない形で書き表す仕様です。書いた文書は JSON か YAML で表し、人もツールも、ソースコードを読まずにサービスにできることを知れます。",
+      "sources": [
+        {
+          "label": "OpenAPI Specification 1 章",
+          "url": "https://spec.openapis.org/oas/latest.html#introduction"
+        },
+        {
+          "label": "OpenAPI Specification 3 章",
+          "url": "https://spec.openapis.org/oas/latest.html#format"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "resource",
+      "term": "リソース",
+      "aliases": [
+        "資源",
+        "resource"
+      ],
+      "description": "HTTP の要求が向かう先です。HTTP は資源の中身を限らず、多くの資源は URI で指します。",
+      "sources": [
+        {
+          "label": "RFC 9110 3.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-3.1"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "https",
+      "term": "https スキーム",
+      "aliases": [
+        "HTTPS"
+      ],
+      "description": "TLS で守った接続の上で HTTP を使うことを表す URI のスキームです。サーバーが名前どおりの相手かを確かめ、やり取りの機密性と完全性を守ります。",
+      "sources": [
+        {
+          "label": "RFC 9110 4.2.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-4.2.2"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "method",
+      "term": "メソッド",
+      "aliases": [
+        "HTTP メソッド",
+        "method"
+      ],
+      "description": "要求の目的を表す語 (GET・POST など) です。要求の意味の主な源で、成功したときに何が返ると期待するかも表します。",
+      "sources": [
+        {
+          "label": "RFC 9110 9.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.1"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "get",
+      "term": "GET",
+      "description": "対象の資源の、今の表現 (中身) を送るよう求めるメソッドです。HTTP で情報を取り出す主な手段です。",
+      "sources": [
+        {
+          "label": "RFC 9110 9.3.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.1"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "head",
+      "term": "HEAD",
+      "description": "GET と同じですが、サーバーが応答に本文を入れないメソッドです。本文を受け取らずに、ヘッダーに載る情報だけを確かめるのに使います。",
+      "sources": [
+        {
+          "label": "RFC 9110 9.3.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "post",
+      "term": "POST",
+      "description": "要求に入れた本文を、対象の資源がそれぞれの決まりで処理するよう求めるメソッドです。フォームの送信や、まだ名前の無い新しい資源を作るときなどに使います。",
+      "sources": [
+        {
+          "label": "RFC 9110 9.3.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.3"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "put",
+      "term": "PUT",
+      "description": "対象の資源の状態を、要求の本文の状態で作る、または置き換えるよう求めるメソッドです。",
+      "sources": [
+        {
+          "label": "RFC 9110 9.3.4",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.4"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "delete",
+      "term": "DELETE",
+      "description": "対象の資源と、その今の働きとの結び付きを外すよう、サーバーに求めるメソッドです。",
+      "sources": [
+        {
+          "label": "RFC 9110 9.3.5",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.5"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "status-code",
+      "term": "ステータスコード",
+      "aliases": [
+        "status code"
+      ],
+      "description": "要求の結果と応答の意味を表す 3 桁の整数で、100〜599 の範囲です。1 桁目が分類 (1xx 情報・2xx 成功・3xx 転送・4xx クライアントの誤り・5xx サーバーの誤り) を表します。",
+      "sources": [
+        {
+          "label": "RFC 9110 15",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "200-ok",
+      "term": "200 OK",
+      "description": "要求が成功したことを表します。本文の意味はメソッドによって変わります。",
+      "sources": [
+        {
+          "label": "RFC 9110 15.3.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.3.1"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "201-created",
+      "term": "201 Created",
+      "description": "要求が満たされ、1 つ以上の新しい資源が作られたことを表します。作った資源は Location ヘッダーで、無ければ要求の URI で示します。",
+      "sources": [
+        {
+          "label": "RFC 9110 15.3.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.3.2"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "202-accepted",
+      "term": "202 Accepted",
+      "description": "要求を処理のために受け付けたが、処理はまだ終わっていないことを表します。",
+      "sources": [
+        {
+          "label": "RFC 9110 15.3.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.3.3"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "204-no-content",
+      "term": "204 No Content",
+      "description": "要求を満たし、応答に入れて送る本文がほかに無いことを表します。",
+      "sources": [
+        {
+          "label": "RFC 9110 15.3.5",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.3.5"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "400-bad-request",
+      "term": "400 Bad Request",
+      "description": "要求の書き方の誤りなど、クライアントの誤りと見て、サーバーが要求を処理できない、または処理しないことを表します。",
+      "sources": [
+        {
+          "label": "RFC 9110 15.5.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "404-not-found",
+      "term": "404 Not Found",
+      "description": "サーバーが対象の資源の今の表現を見つけられない、またはあることを明かさないことを表します。",
+      "sources": [
+        {
+          "label": "RFC 9110 15.5.5",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.5"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "409-conflict",
+      "term": "409 Conflict",
+      "description": "対象の資源の今の状態と食い違うため、要求を終えられなかったことを表します。利用者が食い違いを直して送り直せる場面で使います。",
+      "sources": [
+        {
+          "label": "RFC 9110 15.5.10",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "415-unsupported-media-type",
+      "term": "415 Unsupported Media Type",
+      "description": "要求の本文の形式を、その資源とメソッドでは扱えないので、サーバーが断ることを表します。",
+      "sources": [
+        {
+          "label": "RFC 9110 15.5.16",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.16"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "header",
+      "term": "ヘッダー",
+      "aliases": [
+        "ヘッダーフィールド",
+        "header field"
+      ],
+      "description": "本文より前に送る、名前と値の組 (フィールド) です。送り手のことや本文の形式など、メッセージの意味を足したり補ったりします。",
+      "sources": [
+        {
+          "label": "RFC 9110 6.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-6.3"
+        },
+        {
+          "label": "RFC 9110 5",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-5"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "content-type",
+      "term": "Content-Type",
+      "description": "本文の表現のメディアタイプを示すヘッダーです。データの形式と、受け手がどう処理するかを伝えます。",
+      "sources": [
+        {
+          "label": "RFC 9110 8.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-8.3"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "content-length",
+      "term": "Content-Length",
+      "description": "表現のデータの長さを、0 以上のバイト数 (10 進の整数) で示すヘッダーです。",
+      "sources": [
+        {
+          "label": "RFC 9110 8.6",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-8.6"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "host",
+      "term": "Host",
+      "description": "要求の対象の URI のホストとポートを伝えるヘッダーです。1 台のサーバーで複数のホスト名を受けるとき、どの名前あての要求かを見分けるのに使います。HTTP/2 と HTTP/3 では :authority が代わることがあります。",
+      "sources": [
+        {
+          "label": "RFC 9110 7.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-7.2"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "location",
+      "term": "Location",
+      "description": "応答に関係する特定の資源を指すヘッダーです。201 Created では作った資源を、3xx の転送では行き先を指します。",
+      "sources": [
+        {
+          "label": "RFC 9110 10.2.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.2"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "retry-after",
+      "term": "Retry-After",
+      "description": "次の要求を送るまでにどれだけ待つべきかを伝えるヘッダーです。値は日時か秒数です。",
+      "sources": [
+        {
+          "label": "RFC 9110 10.2.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.3"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "authorization",
+      "term": "Authorization",
+      "description": "利用者の側 (ユーザーエージェント) が、サーバーに自分を認証させるための資格情報を載せるヘッダーです。OAuth のアクセストークンは Bearer の形でここに入れて送ります。",
+      "sources": [
+        {
+          "label": "RFC 9110 11.6.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-11.6.2"
+        },
+        {
+          "label": "RFC 6750 2.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc6750#section-2.1"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "accept",
+      "term": "Accept",
+      "description": "受け取りたい応答のメディアタイプの好みを伝えるヘッダーです。",
+      "sources": [
+        {
+          "label": "RFC 9110 12.5.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "charset",
+      "term": "charset",
+      "description": "テキストの文字の符号化の方式 (UTF-8 など) の名前です。Content-Type の引数に書き、名前の大文字と小文字は区別しません。",
+      "sources": [
+        {
+          "label": "RFC 9110 8.3.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-8.3.2"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "status-line",
+      "term": "ステータス行",
+      "aliases": [
+        "status-line"
+      ],
+      "description": "応答の最初の行です。HTTP の版・ステータスコード・理由の句 (OK など。省ける) を空白で区切って並べます。例: HTTP/1.1 200 OK",
+      "sources": [
+        {
+          "label": "RFC 9112 4",
+          "url": "https://www.rfc-editor.org/rfc/rfc9112#section-4"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "request-line",
+      "term": "リクエスト行",
+      "aliases": [
+        "要求の行",
+        "request-line"
+      ],
+      "description": "要求の最初の行です。メソッド・対象 (request-target)・HTTP の版を空白で区切って並べます。例: GET / HTTP/1.1",
+      "sources": [
+        {
+          "label": "RFC 9112 3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9112#section-3"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "tls-handshake",
+      "term": "TLS ハンドシェイク",
+      "aliases": [
+        "handshake",
+        "ハンドシェイク"
+      ],
+      "description": "TLS の最初のやり取りで、使う版と暗号の方式を決め、相手を認証し (互いにすることもある)、共有の鍵の材料を作ります。終わると、その鍵でアプリのデータを守ります。",
+      "sources": [
+        {
+          "label": "RFC 8446 2",
+          "url": "https://www.rfc-editor.org/rfc/rfc8446#section-2"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "three-way-handshake",
+      "term": "3 ウェイハンドシェイク",
+      "aliases": [
+        "three-way handshake",
+        "スリーウェイハンドシェイク"
+      ],
+      "description": "TCP の接続を作る手順です。片方が SYN を送り、相手が SYN と ACK (受け取りの確かめ) で応え、最初の側が ACK を返す、の 3 つで接続ができます。",
+      "sources": [
+        {
+          "label": "RFC 9293 3.5",
+          "url": "https://www.rfc-editor.org/rfc/rfc9293#section-3.5"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "port",
+      "term": "ポート番号",
+      "aliases": [
+        "ポート",
+        "port"
+      ],
+      "description": "TCP で、同じホストの上のアプリのサービスを見分け、別々の通信の流れを分ける番号です。URI ではホストの後ろに : で区切って書きます。",
+      "sources": [
+        {
+          "label": "RFC 9293 2.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9293#section-2.2"
+        },
+        {
+          "label": "RFC 3986 3.2.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc3986#section-3.2.3"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "quic",
+      "term": "QUIC",
+      "description": "UDP のデータグラムに載せて使う、安全で汎用のトランスポートのプロトコルです。TLS のハンドシェイクを組み込んでいます。HTTP/3 は TCP の代わりに QUIC の上で HTTP を送ります。",
+      "sources": [
+        {
+          "label": "RFC 9000 1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9000#section-1"
+        },
+        {
+          "label": "RFC 9114 1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9114#section-1"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "resolver",
+      "term": "リゾルバ",
+      "aliases": [
+        "リゾルバー",
+        "resolver"
+      ],
+      "description": "利用者の求めに応じて、ネームサーバーから情報を取り出すプログラムです。答えを持つ別のネームサーバーへの案内をたどって答えを探すこともあります。",
+      "sources": [
+        {
+          "label": "RFC 1034 2.4",
+          "url": "https://www.rfc-editor.org/rfc/rfc1034#section-2.4"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "curl",
+      "term": "curl",
+      "description": "URL を使ってサーバーとデータをやり取りするコマンドです。-I (--head) でヘッダーだけを、-v (--verbose) で送ったヘッダー (> の行) と受け取ったヘッダー (< の行) を見られます。",
+      "sources": [
+        {
+          "label": "curl の man page (-I)",
+          "url": "https://curl.se/docs/manpage.html#--head"
+        },
+        {
+          "label": "curl の man page (-v)",
+          "url": "https://curl.se/docs/manpage.html#--verbose"
+        }
+      ],
+      "lessons": [
+        "main-w1-l1"
+      ]
+    },
+    {
+      "id": "scheme",
+      "term": "スキーム",
+      "aliases": [
+        "scheme"
+      ],
+      "description": "URI の先頭の名前 (https など) です。その名前の仕様が、後ろの部分の書き方と意味を決めます。",
+      "sources": [
+        {
+          "label": "RFC 3986 3.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc3986#section-3.1"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "query",
+      "term": "クエリ",
+      "aliases": [
+        "クエリー",
+        "query"
+      ],
+      "description": "URI の ? の後ろから、# の前 (無ければ最後) までの部分です。パスと合わせて資源を指すのに使い、階層を持たないデータを入れます。",
+      "sources": [
+        {
+          "label": "RFC 3986 3.4",
+          "url": "https://www.rfc-editor.org/rfc/rfc3986#section-3.4"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "fragment",
+      "term": "フラグメント",
+      "aliases": [
+        "フラグメント識別子",
+        "fragment"
+      ],
+      "description": "URI の # の後ろの部分で、主な資源の一部など、別の資源を指します。要求を送る前に URI から外され、ブラウザなど利用者の側だけで使います。",
+      "sources": [
+        {
+          "label": "RFC 3986 3.5",
+          "url": "https://www.rfc-editor.org/rfc/rfc3986#section-3.5"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "percent-encoding",
+      "term": "パーセントエンコーディング",
+      "aliases": [
+        "percent-encoding"
+      ],
+      "description": "URI の中でそのまま使えない文字や、区切りに使う文字を、% と 16 進の 2 桁で表す書き方です。例えば空白のバイトは %20 です。",
+      "sources": [
+        {
+          "label": "RFC 3986 2.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc3986#section-2.1"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "access-token",
+      "term": "アクセストークン",
+      "aliases": [
+        "access token"
+      ],
+      "description": "守られた資源に入るための資格情報で、クライアントに与えられた認可を表す文字列です。入れる範囲と期間を表し、クライアントからはふつう中身が読めません。",
+      "sources": [
+        {
+          "label": "RFC 6749 1.4",
+          "url": "https://www.rfc-editor.org/rfc/rfc6749#section-1.4"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "bearer-token",
+      "term": "Bearer トークン",
+      "aliases": [
+        "bearer token",
+        "Bearer"
+      ],
+      "description": "持っている人なら誰でも使えるトークンです。使うときに鍵を持っていることの証明は要りません。HTTP では Authorization: Bearer <トークン> の形で送ります。",
+      "sources": [
+        {
+          "label": "RFC 6750 1.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc6750#section-1.2"
+        },
+        {
+          "label": "RFC 6750 2.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc6750#section-2.1"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "claim",
+      "term": "クレーム",
+      "aliases": [
+        "claim"
+      ],
+      "description": "主体 (subject) について主張する 1 つの情報です。JWT では、名前と値の組で表します。",
+      "sources": [
+        {
+          "label": "RFC 7519 2",
+          "url": "https://www.rfc-editor.org/rfc/rfc7519#section-2"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "stateless",
+      "term": "ステートレス",
+      "aliases": [
+        "stateless"
+      ],
+      "description": "クライアントからの要求が、それを分かるのに要る情報をすべて含み、サーバーに残した文脈に頼らないことです。REST の制約の 1 つで、セッションの状態はクライアントが持ちます。",
+      "sources": [
+        {
+          "label": "Fielding 論文 5.1.3",
+          "url": "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_3"
+        }
+      ],
+      "lessons": []
+    },
+    {
+      "id": "bom",
+      "term": "BOM",
+      "aliases": [
+        "バイトオーダーマーク",
+        "byte order mark"
+      ],
+      "description": "文字の並びの先頭に置く U+FEFF の文字で、どの符号化かの手がかりにするものです。ネットワークで送る JSON の先頭には付けてはいけません。",
+      "sources": [
+        {
+          "label": "RFC 3629 6",
+          "url": "https://www.rfc-editor.org/rfc/rfc3629#section-6"
+        },
+        {
+          "label": "RFC 8259 8.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc8259#section-8.1"
+        }
+      ],
+      "lessons": []
+    }
+  ]
+}
