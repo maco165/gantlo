@@ -1,0 +1,480 @@
+{
+  "lessons": [
+    {
+      "id": "main-w4-l1",
+      "title": "OAuth 2.0 の役割と流れ",
+      "course": "main",
+      "stage": "oauth",
+      "questions": [
+        {
+          "id": "main-w4-l1-q1",
+          "kind": "choice",
+          "prompt": "OAuth 2.0 の 4 つの役割のうち、資源の持ち主を認証して認可を得たあと、クライアントにアクセストークンを出すのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "認可サーバー (authorization server)" },
+            { "id": "b", "text": "リソースサーバー (resource server)", "why": "リソースサーバーは守られた資源を置き、アクセストークンを受け取って要求に答える側です。" },
+            { "id": "c", "text": "クライアント (client)", "why": "クライアントはアクセストークンを受け取り、持ち主に代わって資源を求めるアプリケーションです。" },
+            { "id": "d", "text": "資源の持ち主 (resource owner)", "why": "持ち主はアクセスを許す側で、トークンを出すのは認可サーバーです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6749 の 1.1 は、資源の持ち主・リソースサーバー・クライアント・認可サーバーの 4 つの役割を定め、認可サーバーを、持ち主を認証して認可を得たあとクライアントにアクセストークンを出すサーバーとしています。認可サーバーとリソースサーバーは同じでも別でもかまいません。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-1.1"]
+        },
+        {
+          "id": "main-w4-l1-q2",
+          "kind": "order",
+          "prompt": "RFC 6749 の図 1 (抽象的なプロトコルの流れ) の手順を、起きる順に並べてください。",
+          "items": [
+            { "id": "a", "text": "クライアントが資源の持ち主に認可を求める" },
+            { "id": "b", "text": "クライアントが認可グラント (持ち主の認可を表す資格) を受け取る" },
+            { "id": "c", "text": "クライアントが認可サーバーで認証し、認可グラントを示してアクセストークンを求める" },
+            { "id": "d", "text": "認可サーバーがグラントを確かめ、アクセストークンを出す" },
+            { "id": "e", "text": "クライアントがアクセストークンを示してリソースサーバーに資源を求める" },
+            { "id": "f", "text": "リソースサーバーがトークンを確かめ、資源を返す" }
+          ],
+          "answer": ["a", "b", "c", "d", "e", "f"],
+          "explanation": "RFC 6749 の 1.2 の (A)〜(F) の流れです。認可を求めるのは持ち主へ直接でもよいですが、認可サーバーを仲立ちにする形が望ましいとされています。どの方法で認可を得るかは、4 つのグラントの種類 (1.3) で変わります。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-1.2"]
+        },
+        {
+          "id": "main-w4-l1-q3",
+          "kind": "choice",
+          "prompt": "クライアントから見たアクセストークンについて、RFC 6749 の説明に合うものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "ふつうはクライアントには中身の分からない (opaque) 文字列で、範囲 (scope) と期間の付いた認可を表す" },
+            { "id": "b", "text": "必ず JWT で、クライアントが中身を読んで使う", "why": "トークンは認可の情報を引く識別子でも、検証できる形で情報を含むものでもよく、形は決められていません。" },
+            { "id": "c", "text": "利用者のパスワードを暗号化したもの", "why": "アクセストークンは、ユーザー名とパスワードのような認可の形の違いを隠す抽象の層です。パスワードそのものではありません。" },
+            { "id": "d", "text": "一度出したら期限なく使える", "why": "トークンは持ち主が許した範囲と期間を表し、期間の付いたものです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6749 の 1.4 は、アクセストークンを守られた資源に触れるための資格で、クライアントに出された認可を表す文字列とし、ふつうクライアントには中身の分からないものだと書いています。トークンは範囲と期間を表し、リソースサーバーと認可サーバーが守らせます。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-1.4"]
+        },
+        {
+          "id": "main-w4-l1-q4",
+          "kind": "choice",
+          "prompt": "リフレッシュトークンの扱いとして正しいものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "認可サーバーにだけ送り、リソースサーバーには送らない" },
+            { "id": "b", "text": "アクセストークンの代わりにリソースサーバーへ送る", "why": "RFC 6749 は、リフレッシュトークンはリソースサーバーに決して送らないと書いています。" },
+            { "id": "c", "text": "認可サーバーは必ずリフレッシュトークンを出す", "why": "出すかどうかは認可サーバーの判断に任されています (optional)。" },
+            { "id": "d", "text": "前より広い範囲のアクセストークンを得るために使う", "why": "得られるのは同じか、より狭い範囲のアクセストークンです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6749 の 1.5 は、リフレッシュトークンを新しいアクセストークン (同じかより狭い範囲) を得るための資格とし、アクセストークンと違って認可サーバーとだけ使い、リソースサーバーには決して送らないと書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-1.5"]
+        },
+        {
+          "id": "main-w4-l1-q5",
+          "kind": "choice",
+          "prompt": "トークンエンドポイントへの要求について、RFC 6749 が MUST としていることはどれですか。",
+          "choices": [
+            { "id": "a", "text": "認可サーバーは TLS を求め、クライアントは POST で送る" },
+            { "id": "b", "text": "GET のクエリーに資格を入れて送る", "why": "アクセストークンを求める要求は POST で送らなければなりません (MUST)。" },
+            { "id": "c", "text": "TLS は任意で、社内なら平文でよい", "why": "資格が平文で流れるので、認可サーバーは TLS を求めなければなりません (MUST)。" },
+            { "id": "d", "text": "トークンはリダイレクトの URL のクエリーで返す", "why": "トークンエンドポイントは、本文の JSON でトークンを返します (5.1)。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6749 の 3.2 は、トークンエンドポイントへの要求では資格が平文で送られるので、認可サーバーは TLS を使うことを求めなければならない (MUST)、クライアントはアクセストークンの要求に POST を使わなければならない (MUST) としています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-3.2"]
+        },
+        {
+          "id": "main-w4-l1-q6",
+          "kind": "http",
+          "format": "http",
+          "prompt": "トークンを返す応答です。キャッシュに残さないようにするヘッダーの値を埋めてください。",
+          "code": "HTTP/1.1 200 OK\nContent-Type: application/json;charset=UTF-8\nCache-Control: {{blank}}\nPragma: no-cache\n\n{\"access_token\": \"2YotnFZFEjr1zCsicMWpAA\", \"token_type\": \"Bearer\", \"expires_in\": 3600}",
+          "blanks": [{ "answers": ["no-store"] }],
+          "explanation": "RFC 6749 の 5.1 は、トークンや資格などの秘密の情報を含む応答に、Cache-Control: no-store と Pragma: no-cache を付けなければならない (MUST) としています。expires_in はアクセストークンの寿命の秒数で、付けることが勧められています (RECOMMENDED)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-5.1"]
+        }
+      ]
+    },
+    {
+      "id": "main-w4-l2",
+      "title": "認可コードの流れと PKCE",
+      "course": "main",
+      "stage": "oauth",
+      "questions": [
+        {
+          "id": "main-w4-l2-q1",
+          "kind": "order",
+          "prompt": "認可コードグラント (RFC 6749 の図 3) の手順を、起きる順に並べてください。",
+          "items": [
+            { "id": "a", "text": "クライアントが、持ち主のブラウザを認可エンドポイントへ向かわせる (client_id・scope・state・redirect_uri を付ける)" },
+            { "id": "b", "text": "認可サーバーが持ち主を認証し、許すかどうかを決めてもらう" },
+            { "id": "c", "text": "認可サーバーが、認可コードと state を付けてブラウザを redirect_uri へ戻す" },
+            { "id": "d", "text": "クライアントが、認可コードと redirect_uri をトークンエンドポイントへ送る" },
+            { "id": "e", "text": "認可サーバーがクライアントとコードを確かめ、アクセストークンを返す" }
+          ],
+          "answer": ["a", "b", "c", "d", "e"],
+          "explanation": "RFC 6749 の 4.1 の (A)〜(E) の流れです。(A)〜(C) はブラウザ (ユーザーエージェント) を通り、(D) と (E) はクライアントと認可サーバーが直接やり取りします。(E) では redirect_uri が (C) で使ったものと一致することも確かめます。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-4.1"]
+        },
+        {
+          "id": "main-w4-l2-q2",
+          "kind": "http",
+          "format": "http",
+          "prompt": "認可コードグラントで、認可エンドポイントへ送る要求です。response_type の値を埋めてください。",
+          "code": "GET /authorize?response_type={{blank}}&client_id=s6BhdRkqt3&state=xyz&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb HTTP/1.1\nHost: server.example.com",
+          "blanks": [{ "answers": ["code"] }],
+          "explanation": "RFC 6749 の 4.1.1 は、認可の要求の response_type を必須とし、値を code にしなければならない (MUST) と定めています。client_id は必須、state は勧められ (RECOMMENDED)、redirect_uri と scope は任意です。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-4.1.1"]
+        },
+        {
+          "id": "main-w4-l2-q3",
+          "kind": "http",
+          "format": "http",
+          "prompt": "受け取った認可コードをアクセストークンに換える要求です。本文のメディアタイプと grant_type の値を埋めてください。",
+          "code": "POST /token HTTP/1.1\nHost: server.example.com\nAuthorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW\nContent-Type: {{blank}}\n\ngrant_type={{blank}}&code=SplxlOBeZQQYbYS6WxSbIA&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb",
+          "blanks": [
+            { "answers": ["application/x-www-form-urlencoded"], "match": "media-type" },
+            { "answers": ["authorization_code"] }
+          ],
+          "explanation": "RFC 6749 の 4.1.3 は、トークンの要求の引数を application/x-www-form-urlencoded の形で本文に入れて送るとし、grant_type を必須で、値を authorization_code にしなければならない (MUST) と定めています。認可の要求に redirect_uri を付けたなら、ここでも同じ値が要ります。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-4.1.3"]
+        },
+        {
+          "id": "main-w4-l2-q4",
+          "kind": "choice",
+          "prompt": "認可の要求に付ける state の主な目的はどれですか。",
+          "choices": [
+            { "id": "a", "text": "要求と戻りを結び付け、クロスサイトリクエストフォージェリ (CSRF) を防ぐ" },
+            { "id": "b", "text": "アクセストークンの有効期限を伝える", "why": "有効期限はトークンの応答の expires_in で伝えます。" },
+            { "id": "c", "text": "求める権限の範囲を伝える", "why": "範囲は scope で伝えます。" },
+            { "id": "d", "text": "クライアントを認可サーバーに認証させる", "why": "クライアントの認証は、トークンエンドポイントでの資格 (3.2.1) で行います。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6749 の 4.1.1 は、state を要求と戻り (コールバック) の間で状態を保つための値とし、10.12 で述べる CSRF を防ぐために使うべきだ (SHOULD) としています。認可サーバーは受け取った値をそのまま返します (4.1.2)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc6749#section-4.1.1",
+            "https://www.rfc-editor.org/rfc/rfc6749#section-10.12"
+          ]
+        },
+        {
+          "id": "main-w4-l2-q5",
+          "kind": "choice",
+          "prompt": "認可コードについて、RFC 6749 の決まりに合うものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "出してすぐに期限が切れるようにし、クライアントは 1 回しか使わない" },
+            { "id": "b", "text": "期限は無く、何回でもトークンに換えられる", "why": "期限は短くしなければならず (MUST)、2 回以上使ってはいけません (MUST NOT)。" },
+            { "id": "c", "text": "最長 24 時間の寿命が勧められている", "why": "勧められている最長の寿命は 10 分です。" },
+            { "id": "d", "text": "どのクライアントが使ってもよい", "why": "認可コードはクライアントの識別子と redirect_uri に結び付いています。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6749 の 4.1.2 は、認可コードは漏れたときの危険を減らすため出してすぐ期限が切れなければならず (MUST)、最長 10 分を勧め (RECOMMENDED)、クライアントは 2 回以上使ってはならない (MUST NOT) としています。2 回使われたら、認可サーバーは要求を拒まなければなりません (MUST)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-4.1.2"]
+        },
+        {
+          "id": "main-w4-l2-q6",
+          "kind": "choice",
+          "prompt": "PKCE (code_verifier と code_challenge) は、もともとどんな攻撃を防ぐために作られましたか。",
+          "choices": [
+            { "id": "a", "text": "公開クライアントへ返る認可コードを横取りして、トークンに換える攻撃" },
+            { "id": "b", "text": "パスワードの総当たり", "why": "PKCE は認可コードとトークンの要求を結び付ける仕組みで、パスワードの推測とは関係がありません。" },
+            { "id": "c", "text": "TLS の通り道での盗聴", "why": "RFC 7636 が想定するのは、OS の中のアプリ間の通信のように TLS で守られない通り道でコードを横取りされる場合です。" },
+            { "id": "d", "text": "JWT の署名の偽造", "why": "PKCE は JWT の署名とは関係がありません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 7636 の 1 節は、公開クライアントが認可コードの横取り (authorization code interception) に弱いことを挙げ、PKCE でこれを防ぎます。S256 を使えるクライアントは S256 を使わなければなりません (4.2、MUST)。RFC 9700 の 2.1.1 は、公開クライアントは PKCE を使わなければならない (MUST)、機密クライアントにも勧める (RECOMMENDED) としています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7636#section-1",
+            "https://www.rfc-editor.org/rfc/rfc7636#section-4.2",
+            "https://www.rfc-editor.org/rfc/rfc9700#section-2.1.1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-w4-l3",
+      "title": "Bearer トークンを送る",
+      "course": "main",
+      "stage": "oauth",
+      "questions": [
+        {
+          "id": "main-w4-l3-q1",
+          "kind": "http",
+          "format": "http",
+          "prompt": "アクセストークンを付けて資源を求める要求です。ヘッダー名と認証の方式を埋めてください。",
+          "code": "GET /resource HTTP/1.1\nHost: server.example.com\n{{blank}}: {{blank}} mF_9.B5f-4.1JqM",
+          "blanks": [
+            { "answers": ["Authorization"], "match": "header-name" },
+            { "answers": ["Bearer"], "match": "header-name" }
+          ],
+          "explanation": "RFC 6750 の 2.1 は、Authorization ヘッダーで Bearer の方式を使ってアクセストークンを送る形を定め、クライアントはこの方法を使うべきで (SHOULD)、リソースサーバーは対応しなければならない (MUST) としています。認証の方式の名前は大文字と小文字を区別しません (RFC 9110 11.1)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc6750#section-2.1",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-11.1"
+          ]
+        },
+        {
+          "id": "main-w4-l3-q2",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "curl で、Bearer トークンを Authorization ヘッダーに入れて送るオプションを埋めてください。",
+          "code": "curl {{blank}} \"mF_9.B5f-4.1JqM\" https://api.example.com/resource",
+          "blanks": [{ "answers": ["--oauth2-bearer"] }],
+          "explanation": "--oauth2-bearer は、OAuth 2.0 の Bearer トークンを指定するオプションで、RFC 6750 の形で送ります (curl の --oauth2-bearer の説明)。-H \"Authorization: Bearer ...\" と書いても同じヘッダーになります。",
+          "sources": [
+            "https://curl.se/docs/manpage.html",
+            "https://www.rfc-editor.org/rfc/rfc6750#section-2.1"
+          ]
+        },
+        {
+          "id": "main-w4-l3-q3",
+          "kind": "http",
+          "format": "http",
+          "prompt": "期限切れのアクセストークンが送られてきました。リソースサーバーの応答の error の値を埋めてください。",
+          "code": "HTTP/1.1 401 Unauthorized\nWWW-Authenticate: Bearer realm=\"example\",\n                  error=\"{{blank}}\",\n                  error_description=\"The access token expired\"",
+          "blanks": [{ "answers": ["invalid_token"] }],
+          "explanation": "RFC 6750 の 3.1 は、トークンが期限切れ・取り消し済み・形の誤りなどで無効なときの error を invalid_token とし、401 で答えるべきだ (SHOULD) としています。クライアントは新しいアクセストークンを得て送り直してかまいません (MAY)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6750#section-3.1"]
+        },
+        {
+          "id": "main-w4-l3-q4",
+          "kind": "choice",
+          "prompt": "トークン自体は有効ですが、要求に要る権限 (scope) が足りません。RFC 6750 が勧める応答はどれですか。",
+          "choices": [
+            { "id": "a", "text": "403 と error=\"insufficient_scope\"" },
+            { "id": "b", "text": "401 と error=\"invalid_token\"", "why": "invalid_token はトークンそのものが無効なときの値です。" },
+            { "id": "c", "text": "400 と error=\"invalid_request\"", "why": "invalid_request は、引数の不足や重なりなど要求の形の誤りのときの値です。" },
+            { "id": "d", "text": "404 Not Found", "why": "資源はあり、権限が足りないことを伝えるべき場面です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6750 の 3.1 は、要求にトークンより高い権限が要るときの error を insufficient_scope とし、403 で答えるべきで (SHOULD)、要る範囲を scope の属性で示してもよい (MAY) としています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6750#section-3.1"]
+        },
+        {
+          "id": "main-w4-l3-q5",
+          "kind": "choice",
+          "prompt": "アクセストークンを URL のクエリー (?access_token=...) で送るのを避けるべき主な理由はどれですか。",
+          "choices": [
+            { "id": "a", "text": "URL はブラウザの履歴やサーバーのログに残りやすく、トークンが盗まれやすい" },
+            { "id": "b", "text": "URL には長さの上限があり、トークンが入らない", "why": "RFC 6750 が挙げる理由は長さではなく、URL が記録されやすいという安全の弱さです。" },
+            { "id": "c", "text": "クエリーは TLS で暗号化されない", "why": "https ではクエリーも暗号化されます。問題は、届いた先や手元で記録に残ることです。" },
+            { "id": "d", "text": "クエリーで送ることは仕様で禁止されている", "why": "禁止 (MUST NOT) ではなく、ほかの方法が使えない限り使うべきでない (SHOULD NOT) とされています。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6750 の 2.3 は、トークンを含む URL が記録される見込みが高いなどの弱さから、ヘッダーや本文で送れない場合を除き、クエリーの方法を使うべきでない (SHOULD NOT) としています。5.3 も、履歴やログからトークンが盗まれ得るとして、ページの URL で渡すべきでないと勧めています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc6750#section-2.3",
+            "https://www.rfc-editor.org/rfc/rfc6750#section-5.3"
+          ]
+        },
+        {
+          "id": "main-w4-l3-q6",
+          "kind": "choice",
+          "prompt": "「Bearer (持参人)」トークンという名前が表している性質はどれですか。",
+          "choices": [
+            { "id": "a", "text": "持っている人なら誰でも使え、鍵を持っていることの証明は要らない" },
+            { "id": "b", "text": "持ち主の本人確認をしてからでないと使えない", "why": "使う人が持ち主本人かどうかは確かめません。だからこそ漏らさないことが大事です。" },
+            { "id": "c", "text": "暗号の鍵と組で使い、鍵を持っていることを毎回証明する", "why": "それは proof-of-possession の方式で、Bearer トークンでは要りません。" },
+            { "id": "d", "text": "1 回使うと無効になる", "why": "1 回きりという決まりはありません。期限 (1 時間以下が勧められる) までは何回でも使えます。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6750 の 1.2 は、Bearer トークンを、持っている人 (bearer) なら誰でも同じように使え、暗号の鍵を持っていることの証明が要らないトークンと定めています。そのため 5.3 は、漏らさないこと、いつも TLS を使うこと (MUST)、短い寿命にすること (SHOULD) を勧めています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc6750#section-1.2",
+            "https://www.rfc-editor.org/rfc/rfc6750#section-5.3"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-w4-l4",
+      "title": "JWT の形と検証",
+      "course": "main",
+      "stage": "oauth",
+      "questions": [
+        {
+          "id": "main-w4-l4-q1",
+          "kind": "order",
+          "prompt": "署名付きの JWT (JWS のコンパクトな形) は 3 つの部分を . でつないだものです。左から順に並べてください。",
+          "items": [
+            { "id": "header", "text": "ヘッダー (alg などを入れた JSON) の base64url" },
+            { "id": "payload", "text": "ペイロード (クレームを入れた JSON) の base64url" },
+            { "id": "sig", "text": "署名 (または MAC) の base64url" }
+          ],
+          "answer": ["header", "payload", "sig"],
+          "explanation": "RFC 7515 の 3.1 は、JWS のコンパクトな形を、保護されたヘッダー・ペイロード・署名をそれぞれ base64url にして . でつないだものと定めています。RFC 7519 の 3.1 の例の JWT も、この順に並んでいます。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7515#section-3.1",
+            "https://www.rfc-editor.org/rfc/rfc7519#section-3.1"
+          ]
+        },
+        {
+          "id": "main-w4-l4-q2",
+          "kind": "http",
+          "format": "json",
+          "prompt": "RFC 7519 の例のクレームです。発行者と有効期限を表す、登録済みのクレームの名前を埋めてください。",
+          "code": "{\n  \"{{blank}}\": \"joe\",\n  \"{{blank}}\": 1300819380,\n  \"http://example.com/is_root\": true\n}",
+          "blanks": [{ "answers": ["iss"] }, { "answers": ["exp"] }],
+          "explanation": "RFC 7519 の 4.1 は登録済みのクレームを定め、iss は JWT を出した者 (4.1.1)、exp はそれ以降は処理に受け入れてはならない有効期限 (4.1.4) です。exp の値は NumericDate (1970-01-01T00:00:00Z からの秒数) の数でなければなりません (MUST)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1",
+            "https://www.rfc-editor.org/rfc/rfc7519#section-4.1.4",
+            "https://www.rfc-editor.org/rfc/rfc7519#section-3.1"
+          ]
+        },
+        {
+          "id": "main-w4-l4-q3",
+          "kind": "choice",
+          "prompt": "署名付き (JWS) の JWT のペイロードについて正しいものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "base64url は暗号化ではないので、JWT を手に入れた人は誰でも読める" },
+            { "id": "b", "text": "署名があるので、中身は第三者に読めない", "why": "署名は改ざんを見つけるためのもので、中身を隠しません。" },
+            { "id": "c", "text": "base64url で暗号化されている", "why": "base64url は文字の置き換えの規則 (符号化) で、鍵がありません。" },
+            { "id": "d", "text": "秘密の情報を入れても、受け手しか読めない", "why": "隠したいなら暗号化した JWT を使うか、入れないことです。" }
+          ],
+          "answer": "a",
+          "explanation": "JWS のペイロードは base64url にしただけなので、誰でも元に戻せます (RFC 7515 の 2 節の Base64url Encoding)。RFC 7519 の 12 節は、JWT が秘密の情報を含むなら漏れを防ぐ手立てを取らなければならない (MUST) とし、暗号化した JWT や TLS を挙げ、入れないのがいちばん簡単だと書いています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7519#section-12",
+            "https://www.rfc-editor.org/rfc/rfc7515#section-2"
+          ]
+        },
+        {
+          "id": "main-w4-l4-q4",
+          "kind": "choice",
+          "prompt": "JWT を検証するライブラリについて、RFC 8725 が求めていることはどれですか。",
+          "choices": [
+            { "id": "a", "text": "受け入れるアルゴリズムを呼び出し側が決められるようにし、それ以外は使わない" },
+            { "id": "b", "text": "ヘッダーの alg に書かれたアルゴリズムをそのまま使って検証する", "why": "alg を none に変えたり、RS256 を HS256 に変えたりする攻撃が実際に起きたので、ヘッダーの言うままにしてはいけません。" },
+            { "id": "c", "text": "alg が none なら、署名の確認を省いて受け入れる", "why": "none の JWT は、明示して頼まれない限り受け入れるべきではありません (SHOULD NOT)。" },
+            { "id": "d", "text": "1 つの鍵をいくつものアルゴリズムで使い回す", "why": "鍵はちょうど 1 つのアルゴリズムだけで使わなければなりません (MUST)。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8725 の 2.1 は、alg を none にする・RS256 を HS256 に変える攻撃を挙げ、3.1 で、ライブラリは呼び出し側が受け入れるアルゴリズムの組を決められるようにし、それ以外を使ってはならない (MUST NOT)、各鍵はちょうど 1 つのアルゴリズムで使わなければならない (MUST) としています。3.2 は none の JWT を、明示して頼まれない限り作るべきでも受け入れるべきでもない (SHOULD NOT) としています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc8725#section-2.1",
+            "https://www.rfc-editor.org/rfc/rfc8725#section-3.1",
+            "https://www.rfc-editor.org/rfc/rfc8725#section-3.2"
+          ]
+        },
+        {
+          "id": "main-w4-l4-q5",
+          "kind": "choice",
+          "prompt": "aud が \"https://api-a.example.com\" の JWT が、別の API (https://api-b.example.com) に届きました。この API はどう扱いますか。",
+          "choices": [
+            { "id": "a", "text": "自分が aud に入っていないので、拒否する" },
+            { "id": "b", "text": "署名が正しければ受け入れる", "why": "署名が正しくても、aud があって自分が入っていなければ拒否しなければなりません (MUST)。" },
+            { "id": "c", "text": "exp が過ぎていなければ受け入れる", "why": "期限の確認とは別に、宛先 (aud) の確認が要ります。" },
+            { "id": "d", "text": "aud は参考の情報なので無視してよい", "why": "aud がある場合、処理する者は自分が入っているかを確かめなければなりません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 7519 の 4.1.3 は、aud を JWT の宛先とし、aud があるのに処理する者が自分をその値の中に見つけられなければ、JWT を拒否しなければならない (MUST) としています。RFC 8725 の 3.9 も、宛先を使い、確かめることを求めています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3",
+            "https://www.rfc-editor.org/rfc/rfc8725#section-3.9"
+          ]
+        },
+        {
+          "id": "main-w4-l4-q6",
+          "kind": "choice",
+          "prompt": "ヘッダーが {\"typ\":\"JWT\",\"alg\":\"HS256\"} の JWT です。HS256 が表すものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "SHA-256 を使った HMAC (共通の鍵で作る MAC)" },
+            { "id": "b", "text": "SHA-256 を使った RSA の署名", "why": "RSA の署名 (PKCS #1 v1.5) は RS256 です。" },
+            { "id": "c", "text": "SHA-256 を使った ECDSA の署名", "why": "P-256 と SHA-256 の ECDSA は ES256 です。" },
+            { "id": "d", "text": "ペイロードを SHA-256 で暗号化したもの", "why": "SHA-256 はハッシュ関数で、暗号化はしません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 7518 の 3.1 の表は、HS256 を HMAC using SHA-256 とし、実装が必須 (Required) としています。HMAC は送る側と受ける側が同じ鍵を持つ方式です (3.2)。RFC 7519 の 3.1 の例も、HMAC SHA-256 で MAC を付けた JWT だと書いています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7518#section-3.1",
+            "https://www.rfc-editor.org/rfc/rfc7518#section-3.2",
+            "https://www.rfc-editor.org/rfc/rfc7519#section-3.1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-w4-l5",
+      "title": "実習: JWT と PKCE を手元で確かめる",
+      "course": "main",
+      "stage": "oauth",
+      "questions": [
+        {
+          "id": "main-w4-l5-q1",
+          "kind": "lab",
+          "prompt": "RFC 7519 の例の JWT のヘッダーを、手元で base64url から戻して読んでください (ネットワークは使いません)。",
+          "steps": [
+            { "text": "1 つ目の部分 (ヘッダー) を戻す", "command": "printf '%s' 'eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9' | basenc --base64url -d" }
+          ],
+          "expected": "{\"typ\":\"JWT\", と \"alg\":\"HS256\"} が 2 行に分かれて出ます (例の JSON は途中に改行を含みます)。",
+          "explanation": "JWT の各部分は base64url で、鍵なしで元に戻せます。basenc の --base64url と -d は、ファイル名と URL に安全な base64 (RFC 4648 の 5 節) から戻します (GNU coreutils の basenc の説明)。ヘッダーの例は RFC 7519 の 3.1 にあります。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7519#section-3.1",
+            "https://www.gnu.org/software/coreutils/manual/html_node/basenc-invocation.html"
+          ]
+        },
+        {
+          "id": "main-w4-l5-q2",
+          "kind": "lab",
+          "prompt": "同じ JWT のペイロードを戻し、exp の時刻を読んでください。",
+          "steps": [
+            { "text": "2 つ目の部分 (ペイロード) を戻す。base64url では末尾の = が省かれるので、長さが 4 の倍数になるよう == を足す", "command": "printf '%s' 'eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ==' | basenc --base64url -d" },
+            { "text": "exp の値を UTC の日時に直す (GNU の date)", "command": "date -u -d @1300819380" }
+          ],
+          "expected": "iss が joe、exp が 1300819380、http://example.com/is_root が true のクレームが出ます。date は 2011 年 3 月 22 日 18:43:00 UTC を出します (表示の形は言語の設定で変わります)。== を足さずに戻すと、basenc が invalid input のエラーを出すことがあります。",
+          "explanation": "JWS の base64url は末尾の = を省きます (RFC 7515 の 2 節)。exp は NumericDate で、1970-01-01T00:00:00Z UTC からの秒数です (RFC 7519 の 2 節・4.1.4)。この例の JWT は、とうに期限切れです。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7515#section-2",
+            "https://www.rfc-editor.org/rfc/rfc7519#section-2",
+            "https://www.rfc-editor.org/rfc/rfc7519#section-4.1.4"
+          ]
+        },
+        {
+          "id": "main-w4-l5-q3",
+          "kind": "lab",
+          "prompt": "RFC 7515 の付録 A.1 の鍵で HMAC SHA-256 を計算し、例の JWT の 3 つ目の部分 (署名) と同じになることを確かめてください。",
+          "steps": [
+            { "text": "付録 A.1 の鍵 (JWK の k、base64url) を 16 進に直す", "command": "KEY_HEX=$(printf '%s' 'AyM1SysPpbyDfgZld3umj1qzKObwVMkoqQ-EstJQLr_T-1qS0gZH75aKtMN3Yj0iPS4hcgUuTwjAzZr1Z9CAow==' | basenc --base64url -d | od -An -tx1 -v | tr -d ' \\n')" },
+            { "text": "「ヘッダー.ペイロード」の HMAC を計算し、base64url にして = を落とす", "command": "printf '%s' 'eyJ0eXAiOiJKV1QiLA0KICJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJqb2UiLA0KICJleHAiOjEzMDA4MTkzODAsDQogImh0dHA6Ly9leGFtcGxlLmNvbS9pc19yb290Ijp0cnVlfQ' | openssl dgst -sha256 -mac HMAC -macopt hexkey:$KEY_HEX -binary | basenc --base64url | tr -d '='" },
+            { "text": "ペイロードの 1 文字を変えて、もう一度計算する" }
+          ],
+          "expected": "1 回目は dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk が出て、例の JWT の 3 つ目の部分と一致します。ペイロードを 1 文字でも変えると、まったく違う値になります。",
+          "explanation": "HS256 の MAC は、base64url にしたヘッダーとペイロードを . でつないだ文字列に対して計算します (RFC 7515 の付録 A.1)。openssl dgst の -mac HMAC と -macopt hexkey: は、16 進で渡した鍵で HMAC を作ります (openssl-dgst の説明)。値が合わなければ検証は失敗で、JWT は拒否しなければなりません (RFC 7519 7.2、MUST)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7515#appendix-A.1",
+            "https://docs.openssl.org/master/man1/openssl-dgst/",
+            "https://www.rfc-editor.org/rfc/rfc7519#section-7.2"
+          ]
+        },
+        {
+          "id": "main-w4-l5-q4",
+          "kind": "lab",
+          "prompt": "RFC 7636 の付録 B の code_verifier から、S256 の code_challenge を手元で作ってください。",
+          "steps": [
+            { "text": "code_verifier の SHA-256 を base64url にし、= を落とす", "command": "printf '%s' 'dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk' | openssl dgst -sha256 -binary | basenc --base64url | tr -d '='" },
+            { "text": "出た値を、付録 B の code_challenge と見比べる" }
+          ],
+          "expected": "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM が出て、付録 B の code_challenge と一致します。",
+          "explanation": "S256 は code_challenge = BASE64URL-ENCODE(SHA256(ASCII(code_verifier))) です (RFC 7636 の 4.2)。クライアントは認可の要求で code_challenge を送り、トークンの要求で code_verifier を送るので、認可コードだけを横取りした人はトークンに換えられません (4.3・4.5・4.6)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7636#section-4.2",
+            "https://www.rfc-editor.org/rfc/rfc7636#appendix-B",
+            "https://www.rfc-editor.org/rfc/rfc7636#section-4.6"
+          ]
+        },
+        {
+          "id": "main-w4-l5-q5",
+          "kind": "choice",
+          "prompt": "実習 3 で、受け取った JWT の 3 つ目の部分と、自分で計算した HMAC が一致しませんでした。どう扱いますか。",
+          "choices": [
+            { "id": "a", "text": "検証の失敗として、JWT を拒否する" },
+            { "id": "b", "text": "ペイロードの exp が未来なら受け入れる", "why": "期限が有効でも、MAC が合わなければ中身が改ざんされている恐れがあります。" },
+            { "id": "c", "text": "ヘッダーの alg を none に変えて受け入れる", "why": "これはまさに RFC 8725 が警告する攻撃の形です。" },
+            { "id": "d", "text": "ペイロードを base64url から戻せたので受け入れる", "why": "戻せるのは誰にでもできます。戻せることは正しさの証明になりません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 7519 の 7.2 は、検証の手順のどれかが失敗したら JWT を拒否しなければならない (MUST) としています。RFC 7515 の 5.2 も、少なくとも 1 つの署名が正しく検証できなければ JWS を無効とみなさなければならない (MUST) としています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc7519#section-7.2",
+            "https://www.rfc-editor.org/rfc/rfc7515#section-5.2"
+          ]
+        }
+      ]
+    }
+  ]
+}
