@@ -486,6 +486,7 @@ code {
     grid-template-columns: 12rem 10rem minmax(0, 1fr);
     grid-template-areas: 'name count track';
   }
+}
 
 /* レッスンの画面 (上の帯・問題・穴埋めのコードの枠) */
 .lesson {
