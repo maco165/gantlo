@@ -1,0 +1,280 @@
+{
+  "lessons": [
+    {
+      "id": "tech-history-l12",
+      "title": "TLS (SSL)",
+      "course": "tech-history",
+      "stage": "tls",
+      "questions": [
+        {
+          "id": "tech-history-l12-q1",
+          "kind": "choice",
+          "prompt": "答え: IETF が標準にした TLS 1.0 (RFC 2246) は、何をもとにしていると書いていますか。",
+          "choices": [
+            { "id": "a", "text": "Netscape が公開した SSL 3.0 の仕様" },
+            { "id": "b", "text": "SSH の仕様", "why": "RFC 2246 の第 3 節は、SSL 3.0 の仕様をもとにしていると書いています。" },
+            { "id": "c", "text": "HTTP/1.1 の仕様", "why": "TLS は HTTP より下の層の規約で、HTTP をもとにしたものではありません。" },
+            { "id": "d", "text": "何ももとにせず、一から設計した", "why": "RFC 2246 は SSL 3.0 との違いは大きくないと書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 2246 (1999 年 1 月) の第 3 節に、この文書と TLS は Netscape が公開した SSL 3.0 の仕様をもとにしている、とあります。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc2246#section-3"]
+        },
+        {
+          "id": "tech-history-l12-q2",
+          "kind": "choice",
+          "prompt": "RFC 2246 によると、TLS 1.0 と SSL 3.0 はそのまま通じ合いますか。",
+          "choices": [
+            { "id": "a", "text": "違いは大きくないが、そのままでは相互に通じない (TLS 1.0 に SSL 3.0 へ下げる仕組みはある)" },
+            { "id": "b", "text": "名前を変えただけで、完全に同じものなので通じる", "why": "RFC 2246 は、違いは大きくないが相互に通じない程度にはある、と書いています。" },
+            { "id": "c", "text": "まったく別物で、下げる仕組みも無い", "why": "TLS 1.0 には SSL 3.0 へ下げる仕組みが入っていると書かれています。" },
+            { "id": "d", "text": "SSL 3.0 の側だけが TLS 1.0 を話せる", "why": "下げる仕組みを持つのは TLS 1.0 の側です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 2246 の第 3 節は、TLS と SSL 3.0 の違いは劇的ではないが、TLS 1.0 と SSL 3.0 が相互に通じない程度には大きく、ただし TLS 1.0 には SSL 3.0 へ下げる仕組みがある、と書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc2246#section-3"]
+        },
+        {
+          "id": "tech-history-l12-q3",
+          "kind": "order",
+          "prompt": "SSL と TLS の出来事を、古い順に並べてください。",
+          "items": [
+            { "id": "ssl3", "text": "SSL 3.0 の最後に公開された版 (RFC 6101 が記録として載せたもの)" },
+            { "id": "tls10", "text": "TLS 1.0 (RFC 2246)" },
+            { "id": "le", "text": "Let's Encrypt が最初の証明書を出す" },
+            { "id": "tls13", "text": "TLS 1.3 (RFC 8446)" }
+          ],
+          "answer": ["ssl3", "tls10", "le", "tls13"],
+          "explanation": "RFC 6101 は SSL 3.0 の最後に公開された版を 1996 年 11 月 18 日の版と書いています。RFC 2246 は 1999 年 1 月、Let's Encrypt の最初の証明書は 2015 年 9 月 14 日 (公式ブログ)、RFC 8446 は 2018 年 8 月です。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc6101",
+            "https://www.rfc-editor.org/rfc/rfc2246",
+            "https://letsencrypt.org/2015/09/14/our-first-cert/",
+            "https://www.rfc-editor.org/rfc/rfc8446"
+          ]
+        },
+        {
+          "id": "tech-history-l12-q4",
+          "kind": "command",
+          "tool": "openssl",
+          "prompt": "今: サーバーが最新の TLS 1.3 で話せるかを確かめたい。TLS 1.3 だけを使わせる openssl s_client のオプションを埋めてください。",
+          "code": "openssl s_client -connect example.com:443 -servername example.com {{blank}} -brief < /dev/null",
+          "blanks": [{ "answers": ["-tls1_3"] }],
+          "output": "CONNECTION ESTABLISHED\nProtocol version: TLSv1.3\n...",
+          "explanation": "OpenSSL の s_client のマニュアルは、-tls1_3 などで使う版を選べるとし、例に openssl s_client -connect <server address>:443 -tls1_3 を挙げています。-servername は SNI に入れる名前、-brief は接続の要約だけを出します。TLS 1.3 は RFC 8446 (2018 年 8 月) です。",
+          "sources": ["https://docs.openssl.org/3.0/man1/openssl-s_client/", "https://www.rfc-editor.org/rfc/rfc8446"]
+        },
+        {
+          "id": "tech-history-l12-q5",
+          "kind": "choice",
+          "prompt": "今: HTTPS が広がった後押しの一つが Let's Encrypt です。公式のページが書く Let's Encrypt の説明はどれですか。",
+          "choices": [
+            { "id": "a", "text": "非営利の ISRG が運営する、無料で自動の、開かれた認証局" },
+            { "id": "b", "text": "IETF が運営する、TLS の規格を決める作業部会", "why": "Let's Encrypt は証明書を出す認証局で、規格を決める場ではありません。" },
+            { "id": "c", "text": "ブラウザの会社が売る、有料の証明書の販売店", "why": "公式のページは無料 (free) と書いています。" },
+            { "id": "d", "text": "TLS の代わりになる新しい暗号の規約", "why": "Let's Encrypt は TLS で使う証明書を出すもので、規約ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "Let's Encrypt の About のページは、Let's Encrypt を公共のために運営される無料・自動・開かれた認証局 (CA) とし、非営利の Internet Security Research Group (ISRG) が提供すると書いています。",
+          "sources": ["https://letsencrypt.org/about/"]
+        },
+        {
+          "id": "tech-history-l12-q6",
+          "kind": "choice",
+          "prompt": "SSL 3.0 の仕様は、2011 年に RFC 6101 として載りました。この RFC の分類 (Category) はどれですか。",
+          "choices": [
+            { "id": "a", "text": "Historic (歴史的な記録)" },
+            { "id": "b", "text": "Standards Track", "why": "RFC 6101 は SSL 3.0 を標準にするためではなく、記録として残すためのものです。" },
+            { "id": "c", "text": "Best Current Practice", "why": "RFC 6101 の冒頭の分類は Historic です。" },
+            { "id": "d", "text": "Experimental", "why": "RFC 6101 の冒頭の分類は Historic です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6101 (2011 年 8 月、Freier・Karlton (Netscape Communications)・Kocher) の冒頭の分類は Historic です。本文は、元の文書を参照できるよう、最後に公開された SSL 3.0 の版を載せると書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6101"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l13",
+      "title": "OAuth 2.0 と JWT",
+      "course": "tech-history",
+      "stage": "oauth",
+      "questions": [
+        {
+          "id": "tech-history-l13-q1",
+          "kind": "choice",
+          "prompt": "以前の困りごと: RFC 6749 の序論は、別のアプリに資源を使わせるために利用者が自分の資格情報 (パスワードなど) を渡すと、どんな問題が起きると挙げていますか。",
+          "choices": [
+            { "id": "a", "text": "別のアプリが広すぎる権限を持ち、期間や範囲を絞れない" },
+            { "id": "b", "text": "通信が遅くなる", "why": "序論が挙げるのは速度ではなく、資格情報の保存・広すぎる権限・取り消しの難しさなどです。" },
+            { "id": "c", "text": "画面のデザインが崩れる", "why": "見た目の問題は挙がっていません。" },
+            { "id": "d", "text": "サーバーが JSON を返せなくなる", "why": "データの形式の問題は挙がっていません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6749 の第 1 節は、資格情報を渡すと、別のアプリが (多くは平文の) パスワードを保存しなければならない、サーバーがパスワード認証を支え続けなければならない、別のアプリが広すぎる権限を持ち期間や範囲を絞れない、などの問題があると挙げています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-1"]
+        },
+        {
+          "id": "tech-history-l13-q2",
+          "kind": "choice",
+          "prompt": "oauth.net の紹介によると、OAuth はどんなきっかけで始まりましたか。",
+          "choices": [
+            { "id": "a", "text": "2006 年 11 月ごろ、Blaine Cook が Twitter の OpenID の実装をしていて、Twitter の API に権限を任せる方法を探した" },
+            { "id": "b", "text": "2012 年、IETF が一から設計を始めた", "why": "2012 年は OAuth 2.0 の RFC 6749 の年です。始まりは 2006 年ごろの Twitter の OpenID の実装です。" },
+            { "id": "c", "text": "1999 年、Netscape がカード番号を守るために作った", "why": "それは SSL・TLS の話に近く、OAuth の始まりではありません。" },
+            { "id": "d", "text": "Google が「Google でログイン」のために社内で作った", "why": "oauth.net の紹介は、Twitter の OpenID の実装が始まりだと書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "oauth.net の Introduction は、OAuth は 2006 年 11 月ごろ、Blaine Cook が Twitter の OpenID の実装をしていたときに始まり、OpenID と Twitter の API を組み合わせて認証を任せる方法を求めて Chris Messina に連絡した、と書いています。",
+          "sources": ["https://oauth.net/about/introduction/"]
+        },
+        {
+          "id": "tech-history-l13-q3",
+          "kind": "order",
+          "prompt": "OAuth と JWT の文書を、出た順に並べてください。",
+          "items": [
+            { "id": "core10", "text": "OAuth Core 1.0 (oauth.net の仕様)" },
+            { "id": "rfc5849", "text": "RFC 5849 (The OAuth 1.0 Protocol)" },
+            { "id": "rfc6749", "text": "RFC 6749 (The OAuth 2.0 Authorization Framework)" },
+            { "id": "oidc", "text": "OpenID Connect Core 1.0 (final)" },
+            { "id": "rfc7519", "text": "RFC 7519 (JSON Web Token)" }
+          ],
+          "answer": ["core10", "rfc5849", "rfc6749", "oidc", "rfc7519"],
+          "explanation": "OAuth Core 1.0 は 2007 年 12 月 4 日、RFC 5849 は 2010 年 4 月、RFC 6749 は 2012 年 10 月 (RFC 5849 を置き換え)、OpenID Connect Core 1.0 (final) は 2014 年 2 月、RFC 7519 は 2015 年 5 月です。",
+          "sources": [
+            "https://oauth.net/core/1.0/",
+            "https://www.rfc-editor.org/rfc/rfc5849",
+            "https://www.rfc-editor.org/rfc/rfc6749",
+            "https://openid.net/specs/openid-connect-core-1_0.html",
+            "https://www.rfc-editor.org/rfc/rfc7519"
+          ]
+        },
+        {
+          "id": "tech-history-l13-q4",
+          "kind": "choice",
+          "prompt": "OpenID Connect 1.0 は、OAuth 2.0 とどんな関係にありますか。",
+          "choices": [
+            { "id": "a", "text": "OAuth 2.0 の上に載せた、利用者が誰かを確かめるための薄い層 (identity layer)" },
+            { "id": "b", "text": "OAuth 2.0 を置き換えて廃止する仕様", "why": "OpenID Connect は OAuth 2.0 の上に載る層で、置き換えるものではありません。" },
+            { "id": "c", "text": "OAuth 1.0 の別名", "why": "OpenID Connect は OAuth 2.0 の上に載る仕様です。" },
+            { "id": "d", "text": "TLS の証明書を出す仕組み", "why": "証明書を出すのは認証局で、OpenID Connect は ID の層です。" }
+          ],
+          "answer": "a",
+          "explanation": "OpenID Connect Core 1.0 の要旨は、OpenID Connect 1.0 は OAuth 2.0 の上の単純な identity layer で、クライアントが利用者の身元を確かめ、基本的なプロフィールを得られるようにする、と書いています。",
+          "sources": ["https://openid.net/specs/openid-connect-core-1_0.html"]
+        },
+        {
+          "id": "tech-history-l13-q5",
+          "kind": "http",
+          "format": "http",
+          "prompt": "今: 手に入れたアクセストークンを、API への要求に付けて送ります。RFC 6750 の例に合うように空欄を埋めてください。",
+          "code": "GET /resource HTTP/1.1\nHost: server.example.com\n{{blank}}: {{blank}} mF_9.B5f-4.1JqM",
+          "blanks": [
+            { "answers": ["Authorization"], "match": "header-name" },
+            { "answers": ["Bearer"] }
+          ],
+          "explanation": "RFC 6750 の第 2.1 節は、Authorization のヘッダーで Bearer の認証の方式を使ってアクセストークンを送る、と書き、この例を載せています。パスワードそのものではなく、権限を絞ったトークンを渡すのが OAuth の答えです。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6750#section-2.1"]
+        },
+        {
+          "id": "tech-history-l13-q6",
+          "kind": "choice",
+          "prompt": "RFC 7519 は JWT (JSON Web Token) をどう定義していますか。",
+          "choices": [
+            { "id": "a", "text": "2 者のあいだで受け渡す主張 (claims) を表す、小さく URL に載せても安全な形式。主張は JSON のオブジェクトで、JWS の中身か JWE の平文になる" },
+            { "id": "b", "text": "パスワードを暗号化して保存するための形式", "why": "JWT は主張を受け渡す形式で、パスワードの保存の形式ではありません。" },
+            { "id": "c", "text": "OAuth 2.0 で必ず使わなければならないトークンの形式", "why": "RFC 6749 はトークンの形式を決めていません。JWT は別の RFC の形式です。" },
+            { "id": "d", "text": "XML で書く署名付きの文書", "why": "JWT の主張は JSON のオブジェクトです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 7519 (2015 年 5 月) の要旨は、JWT を 2 者のあいだで受け渡す主張を表す小さく URL に安全な手段とし、主張は JSON のオブジェクトとして JWS の中身か JWE の平文になり、署名や MAC、暗号化ができる、と書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc7519"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l14",
+      "title": "OpenAPI (Swagger)",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l14-q1",
+          "kind": "choice",
+          "prompt": "以前の困りごと: SOAP の時代には、機械が読める API の説明として WSDL がありました。W3C の文書は WSDL をどう説明していますか。",
+          "choices": [
+            { "id": "a", "text": "ネットワークのサービスを説明するための XML の形式" },
+            { "id": "b", "text": "JSON で書く REST API の仕様書", "why": "WSDL は XML の形式です。JSON や YAML で REST API を書くのは OpenAPI です。" },
+            { "id": "c", "text": "HTTP の新しい版", "why": "WSDL はサービスの説明の形式で、HTTP の版ではありません。" },
+            { "id": "d", "text": "Web のページを書く言語", "why": "それは HTML です。" }
+          ],
+          "answer": "a",
+          "explanation": "W3C Note「Web Services Description Language (WSDL) 1.1」(2001 年 3 月 15 日) は、WSDL をネットワークのサービスを、文書や手続きの情報を含むメッセージを扱う端点の集まりとして説明する XML の形式、と書いています。",
+          "sources": ["https://www.w3.org/TR/2001/NOTE-wsdl-20010315"]
+        },
+        {
+          "id": "tech-history-l14-q2",
+          "kind": "order",
+          "prompt": "Swagger から OpenAPI への出来事を、古い順に並べてください。",
+          "items": [
+            { "id": "sw10", "text": "Swagger の仕様の最初の版 (1.0)" },
+            { "id": "sw20", "text": "Swagger 2.0" },
+            { "id": "oai", "text": "Linux Foundation の下に OpenAPI Initiative ができると発表される" },
+            { "id": "oas30", "text": "OpenAPI Specification 3.0.0" }
+          ],
+          "answer": ["sw10", "sw20", "oai", "oas30"],
+          "explanation": "Swagger 2.0 の仕様の版の履歴では、1.0 が 2011-08-10、2.0 が 2014-09-08 です。OpenAPI の FAQ は 2015 年 11 月に OpenAPI Initiative の結成が発表されたと書き、OAS 3.0.0 の版の履歴は 3.0.0 を 2017-07-26 としています。",
+          "sources": [
+            "https://swagger.io/specification/v2/",
+            "https://www.openapis.org/faq",
+            "https://spec.openapis.org/oas/v3.0.0.html"
+          ]
+        },
+        {
+          "id": "tech-history-l14-q3",
+          "kind": "choice",
+          "prompt": "OpenAPI Specification は、もとは何だったと OpenAPI Initiative は書いていますか。",
+          "choices": [
+            { "id": "a", "text": "SmartBear Software が寄贈した Swagger の仕様" },
+            { "id": "b", "text": "W3C の WSDL", "why": "OpenAPI の FAQ は、Swagger 2.0 の仕様が名前を変えて OpenAPI になったと書いています。" },
+            { "id": "c", "text": "IETF の RFC 9110", "why": "RFC 9110 は HTTP の意味論で、OpenAPI のもとではありません。" },
+            { "id": "d", "text": "Spring の springdoc", "why": "springdoc は OpenAPI の文書を出すライブラリで、仕様のもとではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "OpenAPI Initiative の About と FAQ は、OpenAPI Specification はもとは SmartBear Software が寄贈した Swagger の仕様で、名前を変えた Swagger 2.0 に基づき、OAI は Linux Foundation の下の開かれた運営の組織だ、と書いています。OAS 3.0.0 の版の履歴にも「2.0 2015-12-31 Donation of Swagger 2.0 to the Open API Initiative」とあります。",
+          "sources": [
+            "https://www.openapis.org/about",
+            "https://www.openapis.org/faq",
+            "https://spec.openapis.org/oas/v3.0.0.html"
+          ]
+        },
+        {
+          "id": "tech-history-l14-q4",
+          "kind": "http",
+          "format": "json",
+          "prompt": "OpenAPI 3.0.0 の文書の一番上の階層です。OAS 3.0.0 で必須 (REQUIRED) の欄の名前を空欄に埋めてください。",
+          "code": "{\n  \"openapi\": \"3.0.0\",\n  \"{{blank}}\": { \"title\": \"gantlo API\", \"version\": \"1.0.0\" },\n  \"{{blank}}\": {}\n}",
+          "blanks": [
+            { "answers": ["info"] },
+            { "answers": ["paths"] }
+          ],
+          "explanation": "OAS 3.0.0 の第 4.7.1.1 節 (OpenAPI Object の Fixed Fields) で REQUIRED なのは openapi・info・paths です。openapi は使う仕様の版の番号で、API 自体の版 (info.version) とは別だと書かれています。",
+          "sources": ["https://spec.openapis.org/oas/v3.0.0.html"]
+        },
+        {
+          "id": "tech-history-l14-q5",
+          "kind": "choice",
+          "prompt": "今: Spring Boot のアプリで springdoc-openapi のライブラリを依存に足すと、何が起きると公式のページは書いていますか。",
+          "choices": [
+            { "id": "a", "text": "追加の設定なしで swagger-ui が自動で使えるようになる" },
+            { "id": "b", "text": "OpenAPI の文書を手で書かないと起動しない", "why": "springdoc はアプリから OpenAPI 3 の文書を作るライブラリで、依存に足すだけで swagger-ui が出ると書かれています。" },
+            { "id": "c", "text": "Spring Boot が使えなくなり、WSDL に切り替わる", "why": "springdoc は Spring Boot と組み合わせて使うライブラリです。" },
+            { "id": "d", "text": "API の認証が自動で外れる", "why": "認証の扱いは変わりません。" }
+          ],
+          "answer": "a",
+          "explanation": "springdoc-openapi の公式のページは、spring-boot と swagger-ui をつなぐにはライブラリを依存に足すだけでよく (追加の設定は要らない)、swagger-ui が自動で配置される、と書いています。",
+          "sources": ["https://springdoc.org/"]
+        }
+      ]
+    }
+  ]
+}
