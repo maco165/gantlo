@@ -1,0 +1,328 @@
+{
+  "lessons": [
+    {
+      "id": "tech-history-l1",
+      "title": "Spring Framework と DI",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l1-q1",
+          "kind": "choice",
+          "prompt": "以前の困りごと: Spring の公式文書は、Spring が 2003 年に何への反応として生まれたと書いていますか。",
+          "choices": [
+            { "id": "a", "text": "初期の J2EE の仕様が複雑すぎたこと" },
+            { "id": "b", "text": "Java の実行速度が遅かったこと", "why": "公式文書が挙げる理由は速度ではなく、J2EE の仕様の複雑さです。" },
+            { "id": "c", "text": "XML の設定ファイルが無く、設定を書く場所が無かったこと", "why": "当時はむしろ XML の設定が多い側でした。公式文書は J2EE の複雑さを挙げています。" },
+            { "id": "d", "text": "Java EE が無くなり、代わりが要ったこと", "why": "公式文書は Spring と Java EE (今の Jakarta EE) を競合ではなく補い合うものと書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "Spring Framework の参照文書の「History of Spring and the Spring Framework」に、Spring は 2003 年に初期の J2EE の仕様の複雑さへの反応として生まれた、と書いてあります。同じ節は、Spring が EE の仕様の中から選んだものを組み込んでいるとも書いています。",
+          "sources": ["https://docs.spring.io/spring-framework/reference/overview.html"]
+        },
+        {
+          "id": "tech-history-l1-q2",
+          "kind": "order",
+          "prompt": "Spring の始まりの出来事を、古い順に並べてください。",
+          "items": [
+            { "id": "book", "text": "Rod Johnson の著書『Expert One-on-One J2EE Design and Development』が出る" },
+            { "id": "fowler", "text": "Martin Fowler が記事で「Dependency Injection」という呼び名を示す" },
+            { "id": "spring10", "text": "Spring Framework 1.0 final が出る" },
+            { "id": "boot10", "text": "Spring Boot 1.0 GA が出る" }
+          ],
+          "answer": ["book", "fowler", "spring10", "boot10"],
+          "explanation": "著書は 2002 年 10 月 (Wiley の書誌)、Fowler の記事は 2004 年 1 月 14 日の初出 (記事の改訂履歴)、Spring Framework 1.0 final は 2004 年 3 月 24 日 (Spring の公式ブログ)、Spring Boot 1.0 GA は 2014 年 4 月 1 日 (同じく公式ブログ) です。",
+          "sources": [
+            "https://www.wiley.com/en-us/Expert+One-on-One+J2EE+Design+and+Development-p-9780764543852",
+            "https://martinfowler.com/articles/injection.html",
+            "https://spring.io/blog/2004/03/24/spring-framework-1-0-final-released",
+            "https://spring.io/blog/2014/04/01/spring-boot-1-0-ga-released"
+          ]
+        },
+        {
+          "id": "tech-history-l1-q3",
+          "kind": "choice",
+          "prompt": "Martin Fowler は 2004 年の記事で、なぜ「Inversion of Control」ではなく「Dependency Injection」という名前を選んだと書いていますか。",
+          "choices": [
+            { "id": "a", "text": "Inversion of Control は一般的すぎる言葉で、紛らわしいから" },
+            { "id": "b", "text": "Inversion of Control という言葉が商標だったから", "why": "記事に商標の話はありません。言葉が一般的すぎることを理由に挙げています。" },
+            { "id": "c", "text": "Spring がすでに Dependency Injection と名乗っていたから", "why": "記事は、IoC を勧める人たちと話し合って名前を決めたと書いています。" },
+            { "id": "d", "text": "Inversion of Control は Service Locator のことだから", "why": "記事は Service Locator を、依存を外す「もう一つの型」として DI と別に扱っています。" }
+          ],
+          "answer": "a",
+          "explanation": "記事「Inversion of Control Containers and the Dependency Injection pattern」で Fowler は、Inversion of Control は一般的すぎて人を混乱させるので、より具体的な名前が要る、と書き、IoC を勧める人たちとの議論で Dependency Injection に決めたと述べています。",
+          "sources": ["https://martinfowler.com/articles/injection.html"]
+        },
+        {
+          "id": "tech-history-l1-q4",
+          "kind": "choice",
+          "prompt": "2004 年の Spring Framework 1.0 final の発表は、コンテナが持つ注入の方法を何と書いていますか。",
+          "choices": [
+            { "id": "a", "text": "setter injection と constructor injection" },
+            { "id": "b", "text": "フィールドへの注入だけ", "why": "1.0 の発表が挙げているのは setter と constructor による注入です。" },
+            { "id": "c", "text": "JNDI から引く方法だけ", "why": "JNDI は Bean と JNDI 上のオブジェクトをつなぐ支援として別に挙げられていて、注入の方法そのものではありません。" },
+            { "id": "d", "text": "注入は無く、Service Locator で引く", "why": "発表は「setter と constructor の注入を持つ軽量コンテナ」を 1 番目に挙げています。" }
+          ],
+          "answer": "a",
+          "explanation": "公式ブログの 1.0 final の発表は、範囲の 1 番目に「setter と constructor による注入を持つ軽量コンテナ」を挙げ、続けて AOP Alliance に基づく AOP、JNDI の支援、汎用のトランザクション管理などを並べています。",
+          "sources": ["https://spring.io/blog/2004/03/24/spring-framework-1-0-final-released"]
+        },
+        {
+          "id": "tech-history-l1-q5",
+          "kind": "choice",
+          "prompt": "Fowler の記事は、部品の実装を外から差し替えられるようにする方法として、DI のほかにもう一つの型を挙げています。どれですか。",
+          "choices": [
+            { "id": "a", "text": "Service Locator" },
+            { "id": "b", "text": "Singleton", "why": "記事が DI と並べて比べているのは Service Locator です。" },
+            { "id": "c", "text": "Active Record", "why": "データベースの行とオブジェクトを結ぶ型で、この記事の比べる相手ではありません。" },
+            { "id": "d", "text": "Observer", "why": "通知の型で、依存を外す方法として記事が挙げるものではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "記事は、アプリのクラスから実装への依存を外す方法は DI だけではなく、もう一つの型が Service Locator だと書き、「Service Locator vs Dependency Injection」の節で両者を比べています。Service Locator も設計しだいで実装を差し替えてテストできる、とも書いています。",
+          "sources": ["https://martinfowler.com/articles/injection.html"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l2",
+      "title": "Spring Boot と自動設定",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l2-q1",
+          "kind": "choice",
+          "prompt": "Spring Boot 1.0 の GA (一般提供) が発表されたのはいつですか。",
+          "choices": [
+            { "id": "a", "text": "2014 年" },
+            { "id": "b", "text": "2004 年", "why": "2004 年は Spring Framework 1.0 final の年です。" },
+            { "id": "c", "text": "2010 年", "why": "公式ブログの GA の発表は 2014 年 4 月 1 日です。" },
+            { "id": "d", "text": "2018 年", "why": "公式ブログの GA の発表は 2014 年 4 月 1 日です。" }
+          ],
+          "answer": "a",
+          "explanation": "Spring の公式ブログに、Phil Webb による 2014 年 4 月 1 日付の「Spring Boot 1.0 GA Released」があります。",
+          "sources": ["https://spring.io/blog/2014/04/01/spring-boot-1-0-ga-released"]
+        },
+        {
+          "id": "tech-history-l2-q2",
+          "kind": "choice",
+          "prompt": "答え: Spring Boot の自動設定 (auto-configuration) は、何を手がかりにアプリの設定を決めようとしますか。",
+          "choices": [
+            { "id": "a", "text": "アプリに足した jar の依存" },
+            { "id": "b", "text": "サーバーの CPU とメモリの量", "why": "公式文書は、足した jar の依存をもとに設定すると書いています。" },
+            { "id": "c", "text": "開発者が書いた XML の設定ファイルだけ", "why": "XML を書かなくても、クラスパスにある依存から設定するのが自動設定です。" },
+            { "id": "d", "text": "前回起動したときのログ", "why": "ログは手がかりにしません。足した jar の依存を見ます。" }
+          ],
+          "answer": "a",
+          "explanation": "Spring Boot の参照文書の Auto-configuration の節は、自動設定は足した jar の依存をもとに Spring のアプリを自動で設定しようとする、と書いています。",
+          "sources": ["https://docs.spring.io/spring-boot/reference/using/auto-configuration.html"]
+        },
+        {
+          "id": "tech-history-l2-q3",
+          "kind": "choice",
+          "prompt": "クラスパスに HSQLDB があり、データベースの接続の Bean を自分で定義していません。Spring Boot は何をしますか。",
+          "choices": [
+            { "id": "a", "text": "インメモリのデータベースを自動で設定する" },
+            { "id": "b", "text": "起動に失敗して、接続の設定を求める", "why": "公式文書の例では、手で設定していなければインメモリのデータベースを自動で設定します。" },
+            { "id": "c", "text": "何もしない。データベースは必ず手で設定する", "why": "それでは自動設定の意味がありません。公式文書はこの場合を自動設定の例に挙げています。" },
+            { "id": "d", "text": "本番のデータベースを探して接続する", "why": "勝手に外のデータベースへはつなぎません。インメモリのデータベースを用意します。" }
+          ],
+          "answer": "a",
+          "explanation": "公式文書は自動設定の例として、HSQLDB がクラスパスにあり、接続の Bean を手で設定していなければ、インメモリのデータベースを自動で設定する、と書いています。",
+          "sources": ["https://docs.spring.io/spring-boot/reference/using/auto-configuration.html"]
+        },
+        {
+          "id": "tech-history-l2-q4",
+          "kind": "choice",
+          "prompt": "自動設定が使われているアプリで、自分の DataSource の Bean を定義しました。公式文書によると、どうなりますか。",
+          "choices": [
+            { "id": "a", "text": "組み込みのデータベースの既定の設定が退き、自分の Bean が使われる" },
+            { "id": "b", "text": "Bean が 2 つになり、起動に失敗する", "why": "公式文書は自動設定を「non-invasive (出しゃばらない)」と呼び、自分の設定で置き換えられると書いています。" },
+            { "id": "c", "text": "自動設定が優先され、自分の Bean は無視される", "why": "逆です。自分で定義すると、その部分の自動設定が退きます。" },
+            { "id": "d", "text": "自動設定がすべて止まる", "why": "置き換わるのは自分で定義した部分だけです。" }
+          ],
+          "answer": "a",
+          "explanation": "公式文書の「Gradually Replacing Auto-configuration」は、自動設定は non-invasive で、いつでも自分の設定で一部を置き換えられると書き、例として自分の DataSource の Bean を足すと組み込みのデータベースの既定の支援が退く (backs away) と述べています。",
+          "sources": ["https://docs.spring.io/spring-boot/reference/using/auto-configuration.html"]
+        },
+        {
+          "id": "tech-history-l2-q5",
+          "kind": "lab",
+          "prompt": "今: 手元の Spring Boot のアプリで、どの自動設定が効いていて、なぜ効いたのかを見てください。",
+          "steps": [
+            { "text": "手元にある Spring Boot のアプリ (start.spring.io で作った空のものでよい) を、--debug を付けて起動する", "command": "java -jar target/demo-0.0.1-SNAPSHOT.jar --debug" },
+            { "text": "起動のログから CONDITIONS EVALUATION REPORT を探し、Positive matches と Negative matches を見比べる" }
+          ],
+          "expected": "条件の評価の報告が端末に出て、効いた自動設定 (Positive matches) と、条件が合わず効かなかった自動設定 (Negative matches) が、その理由 (例: あるクラスがクラスパスに無い) とともに並びます。",
+          "explanation": "公式文書は、どの自動設定がなぜ効いているかを知りたいときは --debug を付けて起動すると、主なロガーのデバッグのログが有効になり、条件の報告 (conditions report) がコンソールに出る、と書いています。jar の名前は自分のアプリのものに読み替えてください。",
+          "sources": ["https://docs.spring.io/spring-boot/reference/using/auto-configuration.html"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l3",
+      "title": "トランザクション",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l3-q1",
+          "kind": "choice",
+          "prompt": "Jim Gray の 1981 年の論文「The Transaction Concept: Virtues and Limitations」は、要約でトランザクションの性質を 3 つ挙げています。挙げていないのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "isolation (独立性)" },
+            { "id": "b", "text": "atomicity (原子性、全部か無しか)", "why": "要約に「atomicity (all or nothing)」とあります。" },
+            { "id": "c", "text": "durability (永続性)", "why": "要約に「durability (effects survive failures)」とあります。" },
+            { "id": "d", "text": "consistency (一貫性)", "why": "要約に「consistency (a correct transformation)」とあります。" }
+          ],
+          "answer": "a",
+          "explanation": "Gray の論文 (Tandem の技術報告 TR 81.3、1981 年 6 月。VLDB 1981 で発表) の要約は、トランザクションを atomicity・durability・consistency を持つ状態の変換と書いています。isolation を加えて 4 つを ACID とまとめたのは、1983 年の Härder と Reuter の論文です。",
+          "sources": ["https://jimgray.azurewebsites.net/papers/thetransactionconcept.pdf"]
+        },
+        {
+          "id": "tech-history-l3-q2",
+          "kind": "choice",
+          "prompt": "答え: 原子性・一貫性・独立性・永続性の 4 つを「ACID」とまとめた論文はどれですか。",
+          "choices": [
+            { "id": "a", "text": "Härder と Reuter「Principles of Transaction-Oriented Database Recovery」(ACM Computing Surveys、1983 年)" },
+            { "id": "b", "text": "Codd「A Relational Model of Data for Large Shared Data Banks」(1970 年)", "why": "リレーショナルモデルの論文で、トランザクションの 4 つの性質をまとめたものではありません。" },
+            { "id": "c", "text": "Gray「The Transaction Concept: Virtues and Limitations」(1981 年)", "why": "Gray の論文の要約は atomicity・durability・consistency の 3 つで、ACID の名はまだ出てきません。" },
+            { "id": "d", "text": "Fielding の博士論文 (2000 年)", "why": "Web のアーキテクチャ (REST) の論文です。" }
+          ],
+          "answer": "a",
+          "explanation": "Härder と Reuter の論文は、atomicity・consistency・isolation・durability の 4 つを (ACID) と書き、トランザクションを支えるかどうかをシステムの品質の「ACID test」と呼んでいます。掲載は ACM Computing Surveys の 15 巻 4 号 (1983 年 12 月) です。",
+          "sources": ["https://doi.org/10.1145/289.291"]
+        },
+        {
+          "id": "tech-history-l3-q3",
+          "kind": "order",
+          "prompt": "トランザクションの考え方が Java のフレームワークに届くまでを、古い順に並べてください。",
+          "items": [
+            { "id": "gray", "text": "Jim Gray の論文「The Transaction Concept」" },
+            { "id": "acid", "text": "Härder と Reuter の論文で ACID の名が出る" },
+            { "id": "spring", "text": "Spring Framework 1.0 final が汎用のトランザクション管理を持って出る" }
+          ],
+          "answer": ["gray", "acid", "spring"],
+          "explanation": "Gray の論文は 1981 年 6 月、Härder と Reuter の論文は 1983 年 12 月の ACM Computing Surveys、Spring Framework 1.0 final は 2004 年 3 月 24 日で、その発表に「差し替えのきく戦略を持つ汎用のトランザクション管理」が挙がっています。",
+          "sources": [
+            "https://jimgray.azurewebsites.net/papers/thetransactionconcept.pdf",
+            "https://doi.org/10.1145/289.291",
+            "https://spring.io/blog/2004/03/24/spring-framework-1-0-final-released"
+          ]
+        },
+        {
+          "id": "tech-history-l3-q4",
+          "kind": "choice",
+          "prompt": "今: Spring の宣言的なトランザクション管理 (@Transactional など) は EJB の CMT に似ています。公式文書が挙げる違いはどれですか。",
+          "choices": [
+            { "id": "a", "text": "EJB の CMT は JTA に縛られるが、Spring のものはどの環境でも動く" },
+            { "id": "b", "text": "Spring のものはメソッド単位では指定できない", "why": "公式文書は、EJB の CMT と同じくメソッド単位まで指定できる点を似ている点に挙げています。" },
+            { "id": "c", "text": "Spring のものはアプリケーションサーバーが必ず要る", "why": "逆です。JTA のトランザクションにもローカルのトランザクションにも使え、どの環境でも動くと書いています。" },
+            { "id": "d", "text": "Spring のものは setRollbackOnly() を呼べない", "why": "公式文書は、必要ならトランザクションの中で setRollbackOnly() を呼べると書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "Spring Framework の参照文書の Declarative Transaction Management は、EJB の CMT と似てメソッド単位で振る舞いを指定できるとしたうえで、違いの 1 つ目に「JTA に縛られる EJB CMT と違い、どの環境でも動く (JTA でも、JDBC・JPA・Hibernate のローカルのトランザクションでも)」を挙げています。",
+          "sources": ["https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative.html"]
+        },
+        {
+          "id": "tech-history-l3-q5",
+          "kind": "choice",
+          "prompt": "@Transactional のメソッドが例外を投げました。ロールバックの規則を何も指定していないとき、Spring の既定ではどうなりますか。",
+          "choices": [
+            { "id": "a", "text": "実行時の例外 (RuntimeException とその子) ならロールバックし、検査例外ならロールバックしない" },
+            { "id": "b", "text": "どんな例外でもロールバックする", "why": "既定では、検査例外 (checked exception) はロールバックになりません。" },
+            { "id": "c", "text": "どんな例外でもコミットする", "why": "実行時の例外ならロールバックの印が付きます。" },
+            { "id": "d", "text": "検査例外ならロールバックし、実行時の例外ならロールバックしない", "why": "逆です。" }
+          ],
+          "answer": "a",
+          "explanation": "公式文書の Rolling Back a Declarative Transaction は、既定では実行時の非検査の例外 (RuntimeException の実例か子) の場合だけロールバックの印を付け、検査例外はロールバックにならないと書いています。検査例外でもロールバックしたいときはロールバックの規則で指定します。",
+          "sources": ["https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l4",
+      "title": "プロキシと AOP",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l4-q1",
+          "kind": "choice",
+          "prompt": "以前の困りごと: 1997 年の論文「Aspect-Oriented Programming」(Kiczales ら、Xerox PARC) は、ある種の設計の判断がコードにきれいに書けない理由を何だと述べていますか。",
+          "choices": [
+            { "id": "a", "text": "その判断がシステムの基本の機能を横切る (cross-cut) から" },
+            { "id": "b", "text": "当時のコンパイラが遅かったから", "why": "論文は速度ではなく、関心ごとが基本の機能を横切ることを理由に挙げています。" },
+            { "id": "c", "text": "オブジェクト指向の言語が無かったから", "why": "論文はオブジェクト指向などの手法があっても、横切る関心ごとはきれいに分けられないと論じています。" },
+            { "id": "d", "text": "クラスが少なすぎたから", "why": "クラスの数の問題ではなく、関心ごとが多くのところに散らばることが問題です。" }
+          ],
+          "answer": "a",
+          "explanation": "論文は ECOOP 1997 (Springer LNCS 1241、1997 年 6 月) の発表で、著者は Xerox PARC の Gregor Kiczales らです。こうした判断が扱う性質を aspect と呼び、それがシステムの基本の機能を横切るのでコードに捉えにくい、と書いています。",
+          "sources": ["https://www.cs.ubc.ca/~gregor/papers/kiczales-ECOOP1997-AOP.pdf"]
+        },
+        {
+          "id": "tech-history-l4-q2",
+          "kind": "choice",
+          "prompt": "Spring の AOP の文書によると、オブジェクト指向でモジュールの単位がクラスなのに対し、AOP でのモジュールの単位は何ですか。",
+          "choices": [
+            { "id": "a", "text": "アスペクト (aspect)" },
+            { "id": "b", "text": "パッケージ", "why": "公式文書は AOP の単位を aspect と書いています。" },
+            { "id": "c", "text": "メソッド", "why": "メソッドは aspect が働きかける先 (join point) の例で、モジュールの単位ではありません。" },
+            { "id": "d", "text": "Bean", "why": "Bean は Spring のコンテナが管理するオブジェクトです。AOP の単位は aspect です。" }
+          ],
+          "answer": "a",
+          "explanation": "Spring Framework の参照文書の AOP の章は、OOP のモジュールの単位はクラス、AOP では aspect で、aspect はトランザクション管理のように多くの型やオブジェクトを横切る関心ごと (crosscutting concerns) をまとめる、と書いています。",
+          "sources": ["https://docs.spring.io/spring-framework/reference/core/aop.html", "https://docs.spring.io/spring-framework/reference/core/aop/introduction-defn.html"]
+        },
+        {
+          "id": "tech-history-l4-q3",
+          "kind": "choice",
+          "prompt": "答え: Spring AOP は代理のオブジェクト (プロキシ) を作ります。対象のオブジェクトがインターフェースを 1 つも実装していないとき、どの仕組みでプロキシを作りますか。",
+          "choices": [
+            { "id": "a", "text": "CGLIB" },
+            { "id": "b", "text": "JDK の動的プロキシ", "why": "JDK の動的プロキシはインターフェースを通して代理を作ります。インターフェースが無いときは CGLIB です。" },
+            { "id": "c", "text": "コンパイル時のウィービング (AspectJ)", "why": "Spring AOP 自体は実行時にプロキシを作ります。コンパイル時のウィービングは AspectJ の別の方式です。" },
+            { "id": "d", "text": "プロキシは作れないので、AOP は効かない", "why": "インターフェースが無くても CGLIB でプロキシを作ります。" }
+          ],
+          "answer": "a",
+          "explanation": "公式文書の Proxying Mechanisms は、Spring AOP は JDK の動的プロキシか CGLIB でプロキシを作り、対象がインターフェースを実装していなければ CGLIB のプロキシを作る、と書いています。JDK の動的プロキシの java.lang.reflect.Proxy は、API 文書に Since 1.3 とあります。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/core/aop/proxying.html",
+            "https://docs.oracle.com/javase/8/docs/api/java/lang/reflect/Proxy.html"
+          ]
+        },
+        {
+          "id": "tech-history-l4-q4",
+          "kind": "choice",
+          "prompt": "今: 同じクラスの中で、@Transactional の付いていないメソッドから this.save() で @Transactional のメソッドを呼びました。既定のプロキシの方式では、どうなりますか。",
+          "code": {
+            "format": "java",
+            "text": "@Service\npublic class OrderService {\n  public void placeAll() {\n    this.save();   // 同じクラスの中から呼ぶ\n  }\n\n  @Transactional\n  public void save() { /* ... */ }\n}"
+          },
+          "choices": [
+            { "id": "a", "text": "プロキシを通らないので、save() にトランザクションは掛からない" },
+            { "id": "b", "text": "save() に新しいトランザクションが掛かる", "why": "this での呼び出しはプロキシではなく対象のオブジェクトそのものに届くので、アドバイスが働きません。" },
+            { "id": "c", "text": "コンパイルエラーになる", "why": "コンパイルは通ります。実行時にトランザクションが黙って掛からないのが落とし穴です。" },
+            { "id": "d", "text": "起動時に例外が出て、アプリが止まる", "why": "例外は出ません。公式文書は注釈が黙って無視されることがあると書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "公式文書は、プロキシの方式 (既定) では外からプロキシを通って入る呼び出しだけが横取りされ、対象のオブジェクトが自分のメソッドを呼ぶ自己呼び出し (self-invocation) は、そのメソッドに @Transactional があっても実行時のトランザクションにならない、と書いています。AOP の文書も、this.bar() のような呼び出しはプロキシではなく this に届くと説明しています。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+            "https://docs.spring.io/spring-framework/reference/core/aop/proxying.html"
+          ]
+        },
+        {
+          "id": "tech-history-l4-q5",
+          "kind": "choice",
+          "prompt": "Spring の宣言的なトランザクション管理を実際に動かしている仕組みは何だと、公式文書は書いていますか。",
+          "choices": [
+            { "id": "a", "text": "Spring の AOP (アスペクト指向プログラミング)" },
+            { "id": "b", "text": "データベースのトリガー", "why": "公式文書は、宣言的なトランザクション管理は Spring の AOP によって可能になっていると書いています。" },
+            { "id": "c", "text": "JVM の GC", "why": "GC はメモリの回収で、トランザクションとは関係ありません。" },
+            { "id": "d", "text": "Java のコンパイラがコードを書き換える", "why": "既定のプロキシの方式は実行時に代理のオブジェクトを作ります。" }
+          ],
+          "answer": "a",
+          "explanation": "Declarative Transaction Management の冒頭に、宣言的なトランザクション管理は Spring の AOP によって可能になっているが、トランザクションの aspect は Spring に同梱されているので、使うだけなら AOP の考え方を理解していなくてよい、とあります。",
+          "sources": ["https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative.html"]
+        }
+      ]
+    }
+  ]
+}
