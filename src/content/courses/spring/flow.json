@@ -87,7 +87,7 @@
         {
           "id": "spring-l1-q6",
           "kind": "order",
-          "prompt": "Spring Boot は起動するとき、次の 4 か所から application.properties を探して読みます。値がぶつかったときに負ける側から勝つ側へ (優先の低い順に) 並べてください。",
+          "prompt": "Spring Boot は起動するとき、主な 4 か所から application.properties を探して読みます。値がぶつかったときに負ける側から勝つ側へ (優先の低い順に) 並べてください。",
           "items": [
             { "id": "cp-root", "text": "クラスパスの根 (jar の中の application.properties)" },
             { "id": "cp-config", "text": "クラスパスの /config パッケージ" },
@@ -134,7 +134,7 @@
             { "id": "tomcat", "text": "組み込みの Tomcat が 8080 番で待ち受けを始める" }
           ],
           "answer": ["main", "env", "scan", "auto", "beans", "tomcat"],
-          "explanation": "Environment は文脈 (ApplicationContext) を作る前に決まります (Application Events and Listeners の ApplicationEnvironmentPreparedEvent)。自動設定は、利用者が定義した Bean を登録し終えた後に読み込まれることが保証されています (Bean Conditions)。シングルトンの Bean は既定で初期化の中で前もって作られ (Lazy-initialized Beans)、ログの例でも Tomcat started on port 8080 の行は文脈の初期化の後に出ます。なお Tomcat の用意 (Tomcat initialized) 自体はもっと早く始まります。",
+          "explanation": "Environment は文脈 (ApplicationContext) を作る前に決まります (Application Events and Listeners の ApplicationEnvironmentPreparedEvent)。自動設定は、利用者が定義した Bean を登録し終えた後に読み込まれることが保証されています (Bean Conditions)。シングルトンの Bean は既定で初期化の中で前もって作られます (Lazy-initialized Beans)。なお Tomcat の用意 (Tomcat initialized) 自体はもっと早く始まります。",
           "sources": [
             "https://docs.spring.io/spring-boot/reference/features/spring-application.html#features.spring-application.application-events-and-listeners",
             "https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html#features.developing-auto-configuration.condition-annotations.bean-conditions",
@@ -225,7 +225,7 @@
         {
           "id": "spring-l2-q7",
           "kind": "choice",
-          "prompt": "起動のログの一部です。curl で要求を送っても受け付けられる状態になったことを最初に示す行はどれですか。",
+          "prompt": "起動のログの一部です。組み込みのサーバーがポートで待ち受けを始めたことを示す最初の行はどれですか。",
           "code": {
             "format": "text",
             "text": "(1) Tomcat initialized with port 8080 (http)\n(2) Root WebApplicationContext: initialization completed in 4023 ms\n(3) Tomcat started on port 8080 (http) with context path '/'\n(4) Started MyApplication in 7.98 seconds"
@@ -238,7 +238,7 @@
           ],
           "answer": "a",
           "fixedOrder": true,
-          "explanation": "公式文書の起動のログの例では、Tomcat initialized → initialization completed → Tomcat started on port 8080 → Started の順に出ます (SpringApplication の章の冒頭)。待ち受けを始めたと読めるのは started の行です。Web サーバーが整ったことを知らせる WebServerInitializedEvent は、ApplicationStartedEvent より前に出ます (Application Events and Listeners)。",
+          "explanation": "公式文書の起動のログの例では、Tomcat initialized → initialization completed → Tomcat started on port 8080 → Started の順に出ます (SpringApplication の章の冒頭)。待ち受けを始めたと読めるのは started の行です。Web サーバーが整ったことを知らせる WebServerInitializedEvent は、ApplicationStartedEvent より前に出ます。一方、アプリが要求を受ける用意ができた印 (ReadinessState.ACCEPTING_TRAFFIC) は ApplicationReadyEvent の直後で、待ち受けの開始よりもっと後です (Application Events and Listeners)。",
           "sources": [
             "https://docs.spring.io/spring-boot/reference/features/spring-application.html",
             "https://docs.spring.io/spring-boot/reference/features/spring-application.html#features.spring-application.application-events-and-listeners"
@@ -291,9 +291,12 @@
           "format": "http",
           "prompt": "Controller が @RestController @RequestMapping(\"/persons\") で、メソッドに @GetMapping(\"/{id}\") が付いています。このメソッドに振り分けられる要求になるよう、空欄のメソッドを埋めてください。",
           "code": "{{blank}} /persons/42 HTTP/1.1\nHost: localhost:8080\nAccept: application/json",
-          "blanks": [{ "answers": ["GET"] }],
-          "explanation": "クラスに付けた @RequestMapping は共通の道を、メソッドに付けた @GetMapping はその先の道と HTTP のメソッドを表します。@GetMapping は GET に絞った @RequestMapping の略記です。{id} の部分は @PathVariable で受け取れます (Spring Web MVC の Mapping Requests)。",
-          "sources": ["https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html#mvc-ann-requestmapping-annotation"]
+          "blanks": [{ "answers": ["GET", "HEAD"] }],
+          "explanation": "クラスに付けた @RequestMapping は共通の道を、メソッドに付けた @GetMapping はその先の道と HTTP のメソッドを表します。@GetMapping は GET に絞った @RequestMapping の略記です。{id} の部分は @PathVariable で受け取れます (Spring Web MVC の Mapping Requests)。@GetMapping は HTTP の HEAD も、Controller を変えずにそのまま受けるので、HEAD も別解です (同じ章の HTTP HEAD, OPTIONS)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html#mvc-ann-requestmapping-annotation",
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html#mvc-ann-requestmapping-head-options"
+          ]
         },
         {
           "id": "spring-l3-q4",
@@ -445,12 +448,13 @@
             { "id": "commit", "text": "本体が例外を投げずに戻り、プロキシがコミットする" }
           ],
           "answer": ["call", "begin", "target", "commit"],
-          "explanation": "呼び出し側が持っているのはプロキシへの参照で、プロキシがそのメソッドに関係する処理を挟んでから本体へ渡します (Understanding AOP Proxies)。トランザクションの場合、TransactionInterceptor がメソッドの呼び出しの周りでトランザクションを動かします (Understanding the Spring Framework's Declarative Transaction Implementation)。宣言的なトランザクションの例のログでも、プロキシの TransactionInterceptor がトランザクションを取ってから本体が動きます (Example of Declarative Transaction Implementation)。ロールバックの印は、ロールバックの対象の例外が投げられたときだけ付き、付かなければコミットされます (Rolling Back a Declarative Transaction)。",
+          "explanation": "呼び出し側が持っているのはプロキシへの参照で、プロキシがそのメソッドに関係する処理を挟んでから本体へ渡します (Understanding AOP Proxies)。トランザクションの場合、TransactionInterceptor がメソッドの呼び出しの周りでトランザクションを動かします (Understanding the Spring Framework's Declarative Transaction Implementation)。宣言的なトランザクションの例のログでも、プロキシの TransactionInterceptor がトランザクションを取ってから本体が動きます (Example of Declarative Transaction Implementation)。既定では、ロールバックの対象の例外 (RuntimeException と Error) が投げられると印が付き、付かなければコミットされます (Rolling Back a Declarative Transaction)。検査例外ではロールバックしないことは @Transactional Settings の既定の一覧にあります (Using @Transactional)。",
           "sources": [
             "https://docs.spring.io/spring-framework/reference/core/aop/proxying.html#aop-understanding-aop-proxies",
             "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-decl-explained.html",
             "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/first-example.html",
-            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html"
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html",
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html#transaction-declarative-attransactional-settings"
           ]
         },
         {
@@ -472,6 +476,7 @@
           "kind": "lab",
           "prompt": "どの自動設定がなぜ効いたのかを、条件の評価の報告 (conditions report) で確かめてください。手元のアプリで行います。",
           "steps": [
+            { "text": "アプリの依存に spring-boot-starter-jdbc と、組み込みのデータベース (H2 か HSQLDB) を足す" },
             { "text": "アプリの jar を作ってから、--debug を付けて起動する (application.properties に debug=true と書いても同じ)", "command": "java -jar target/<名前>.jar --debug" },
             { "text": "コンソールに出た報告から、DispatcherServlet や DataSource に関係する自動設定を探す" },
             { "text": "自分で DataSource の Bean を足した版でも起動し、報告がどう変わるかを比べる" }
