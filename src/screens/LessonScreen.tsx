@@ -2,7 +2,7 @@ import { Button } from '@astryxdesign/core/Button';
 import { CodeBlock } from '@astryxdesign/core/CodeBlock';
 import { List, ListItem } from '@astryxdesign/core/List';
 import { ProgressBar } from '@astryxdesign/core/ProgressBar';
-import { HStack, VStack } from '@astryxdesign/core/Stack';
+import { HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useCallback, useMemo, useState } from 'react';
@@ -10,13 +10,14 @@ import AnswerResponse from '../components/AnswerResponse';
 import ChoiceQuestionView from '../components/ChoiceQuestionView';
 import FillQuestionView from '../components/FillQuestionView';
 import LabQuestionView from '../components/LabQuestionView';
-import { ActionArea, PrimaryAction, QuestionHead } from '../components/QuestionFrame';
+import OrderQuestionView from '../components/OrderQuestionView';
 import type { Lesson, Question } from '../content/types';
-import { finishLesson, isGraded, lessonScore, resultBody, resultLocation, type Outcome } from '../lib/lessonRun';
+import { finishLesson, lessonScore, resultBody, resultLocation, type Outcome } from '../lib/lessonRun';
 import { currentStreak, goalXp, recordAnswer, todayXp, type Progress } from '../lib/progress';
 import { homeHref, scrollToTop } from '../lib/route';
+import { shuffleItems } from '../lib/order';
 import { shuffleChoices } from '../lib/shuffle';
-import { KIND_NOT_IMPLEMENTED, lessonCreated } from '../lib/status';
+import { lessonCreated } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
 type Props = {
@@ -29,7 +30,6 @@ const OUTCOME_LABEL: Record<Outcome, { code: string; ja: string }> = {
   right: { code: '200', ja: '正解' },
   wrong: { code: '400', ja: '不正解 · 復習へ' },
   done: { code: '200', ja: '実習を終えた' },
-  skipped: { code: '501', ja: '準備中のため飛ばした' },
 };
 
 /** 上の帯: 閉じる・レッスン名と何問目か・進み具合 */
@@ -47,29 +47,14 @@ function LessonBar({ title, current, total }: { title: string; current: number; 
   );
 }
 
-/** 並べ替えなど、まだ解けない種類の問題。501 を出して飛ばせるようにする */
-function NotImplementedView({ question, head, request, nextLabel, onNext }: { question: Question; head: string; request: string; nextLabel: string; onNext: () => void }) {
-  return (
-    <VStack gap={5}>
-      <QuestionHead kind={`並べ替え · ${head}`} prompt={question.prompt} />
-      <ActionArea>
-        <AnswerResponse status={KIND_NOT_IMPLEMENTED} request={request} headers={[]}>
-          <Text>この種類 (並べ替え) の問題は準備中です。正答数には数えずに次へ進みます。</Text>
-        </AnswerResponse>
-        <PrimaryAction label={nextLabel} onClick={onNext} />
-      </ActionArea>
-    </VStack>
-  );
-}
-
 /** レッスンを 1 問ずつ解き、最後に 201 Created で結果を出す */
 export default function LessonScreen({ lesson, progress, updateProgress }: Props) {
   const [index, setIndex] = useState(0);
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
   const [finished, setFinished] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  // 4 択の選択肢は、開いたときと「もう一度解く」のたびに混ぜ直す (attempt が変わるたび)
-  const questions = useMemo(() => lesson.questions.map((q) => shuffleChoices(q)), [lesson, attempt]);
+  // 4 択の選択肢と並べ替えの項目は、開いたときと「もう一度解く」のたびに混ぜ直す (attempt が変わるたび)
+  const questions = useMemo(() => lesson.questions.map((q) => (q.kind === 'order' ? shuffleItems(q) : shuffleChoices(q))), [lesson, attempt]);
   const total = questions.length;
   const q = questions[index];
   const isLast = index === total - 1;
@@ -88,19 +73,15 @@ export default function LessonScreen({ lesson, progress, updateProgress }: Props
   };
 
   const onNext = useCallback(() => {
-    // まだ解けない種類 (並べ替え) は、次へ進んだときに「飛ばした」と残す
-    const final = [...outcomes];
-    if (q.kind === 'order') final[index] = 'skipped';
-    setOutcomes(final);
     if (!isLast) {
       setIndex((i) => i + 1);
       scrollToTop();
       return;
     }
-    updateProgress((p) => finishLesson(p, lesson.id, lessonScore(questions, final), new Date()));
+    updateProgress((p) => finishLesson(p, lesson.id, lessonScore(questions, outcomes), new Date()));
     setFinished(true);
     scrollToTop();
-  }, [q, index, isLast, outcomes, questions, updateProgress, lesson.id]);
+  }, [isLast, outcomes, questions, updateProgress, lesson.id]);
 
   const restart = () => {
     setIndex(0);
@@ -121,9 +102,9 @@ export default function LessonScreen({ lesson, progress, updateProgress }: Props
     view = <FillQuestionView key={key} question={q} head={head} request={request} onChecked={onChecked} nextLabel={nextLabel} onNext={onNext} />;
   else if (q.kind === 'choice')
     view = <ChoiceQuestionView key={key} question={q} head={head} request={request} onChecked={onChecked} nextLabel={nextLabel} onNext={onNext} />;
-  else if (q.kind === 'lab')
-    view = <LabQuestionView key={key} question={q} head={head} request={request} onDone={() => setOutcome('done')} nextLabel={nextLabel} onNext={onNext} />;
-  else view = <NotImplementedView key={key} question={q} head={head} request={request} nextLabel={nextLabel} onNext={onNext} />;
+  else if (q.kind === 'order')
+    view = <OrderQuestionView key={key} question={q} head={head} request={request} onChecked={onChecked} nextLabel={nextLabel} onNext={onNext} />;
+  else view = <LabQuestionView key={key} question={q} head={head} request={request} onDone={() => setOutcome('done')} nextLabel={nextLabel} onNext={onNext} />;
 
   return (
     <div className="lesson">
@@ -203,7 +184,8 @@ function ResultView({
         </h2>
         <List hasDividers>
           {questions.map((q, i) => {
-            const o = outcomes[i] ?? (isGraded(q) ? 'wrong' : 'skipped');
+            // どの問題も答えるまで次へ進めないので、結果の欠けは起きない。念のため欠けは不正解として出す
+            const o = outcomes[i] ?? 'wrong';
             const l = OUTCOME_LABEL[o];
             return (
               <ListItem

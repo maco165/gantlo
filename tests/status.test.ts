@@ -3,13 +3,13 @@ import {
   ANSWER_OK,
   ANSWER_WRONG,
   ANSWER_WRONG_MEDIA_TYPE,
-  KIND_NOT_IMPLEMENTED,
   LAB_DONE,
   NOT_FOUND,
   NOT_IMPLEMENTED,
   choiceStatus,
   fillStatus,
   lessonCreated,
+  orderStatus,
   progressStatus,
 } from '../src/lib/status';
 
@@ -52,6 +52,17 @@ describe('答えのステータス', () => {
     expect(fillStatus([text, text], [true]).code).toBe(400);
     expect(fillStatus([], []).code).toBe(400);
   });
+  it('並べ替えは、全部の行が正しい位置なら 200 OK', () => {
+    expect(orderStatus(0)).toBe(ANSWER_OK);
+    expect(orderStatus(0).reason).toBe('OK');
+  });
+  it('並べ替えの順が違えば 409 Conflict で、違う位置の行の数を日本語の説明に入れる', () => {
+    const s = orderStatus(2);
+    expect(s.code).toBe(409);
+    expect(s.reason).toBe('Conflict');
+    expect(s.ja).toContain('2 行が違う位置です');
+    expect(orderStatus(1).ja).toContain('1 行が違う位置です');
+  });
   it('レッスンの完了は 201 Created で、正答数を説明に入れる', () => {
     const s = lessonCreated(2, 3);
     expect(s.code).toBe(201);
@@ -70,7 +81,8 @@ describe('どのステータスにも日本語の説明がある', () => {
     ANSWER_OK,
     ANSWER_WRONG,
     ANSWER_WRONG_MEDIA_TYPE,
-    KIND_NOT_IMPLEMENTED,
+    orderStatus(0),
+    orderStatus(3),
     LAB_DONE,
     lessonCreated(0, 3),
   ];

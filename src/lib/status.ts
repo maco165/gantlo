@@ -30,9 +30,6 @@ export const ANSWER_WRONG_MEDIA_TYPE: Status = {
   ja: 'メディアタイプが違います。不正解として明日の復習に入ります',
 };
 
-/** 並べ替えなど、まだ解けない種類の問題 */
-export const KIND_NOT_IMPLEMENTED: Status = { code: 501, reason: 'Not Implemented', ja: 'この種類の問題はまだ解けません。準備中です' };
-
 /** 実習を終えた (採点はしない) */
 export const LAB_DONE: Status = { code: 200, reason: 'OK', ja: '実習を終えました' };
 
@@ -48,6 +45,15 @@ export function fillStatus(blanks: readonly { match?: string }[], results: reado
 
 export function choiceStatus(correct: boolean): Status {
   return correct ? ANSWER_OK : ANSWER_WRONG;
+}
+
+/**
+ * 並べ替えの答えのステータス。全部の行が正しい位置なら 200。
+ * 順が違えば 409 Conflict (並べた順が正しい順と食い違う) で、違う位置の行の数を説明に入れる
+ */
+export function orderStatus(misplaced: number): Status {
+  if (misplaced <= 0) return ANSWER_OK;
+  return { code: 409, reason: 'Conflict', ja: `${misplaced} 行が違う位置です。不正解として明日の復習に入ります` };
 }
 
 /** レッスンを終えた。結果を記録として作ったので 201 */

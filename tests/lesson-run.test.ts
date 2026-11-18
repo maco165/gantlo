@@ -1,30 +1,32 @@
 import { describe, expect, it } from 'vitest';
 import { findLesson } from '../src/content/index';
 import { XP_PER_CORRECT, XP_PER_LAB } from '../src/lib/grade';
-import { finishLesson, isGraded, isSupported, lessonScore, resultBody, resultLocation } from '../src/lib/lessonRun';
+import { finishLesson, isGraded, lessonScore, resultBody, resultLocation } from '../src/lib/lessonRun';
 import { emptyProgress, recordAnswer } from '../src/lib/progress';
 
 const lesson = findLesson('main-w1-l1')!;
 const now = new Date(2026, 10, 19, 10, 0, 0);
 
 describe('レッスンの採点の流れ', () => {
-  it('採点するのは command・http・choice。実習は採点せず、並べ替えはまだ解けない', () => {
-    expect(lesson.questions.map((q) => [q.kind, isGraded(q), isSupported(q)])).toEqual([
-      ['command', true, true],
-      ['http', true, true],
-      ['order', false, false],
-      ['choice', true, true],
-      ['lab', false, true],
+  it('採点するのは command・http・order・choice。実習だけは採点しない', () => {
+    expect(lesson.questions.map((q) => [q.kind, isGraded(q)])).toEqual([
+      ['command', true],
+      ['http', true],
+      ['order', true],
+      ['choice', true],
+      ['lab', false],
     ]);
   });
 
-  it('正答数は採点した問題だけで数え、XP は正解ごとと終えた実習ごとに足す', () => {
-    const score = lessonScore(lesson.questions, ['right', 'wrong', 'skipped', 'right', 'done']);
-    expect(score).toEqual({ correct: 2, total: 3, xp: 2 * XP_PER_CORRECT + XP_PER_LAB });
+  it('正答数は採点した問題 (並べ替えを含む) で数え、XP は正解ごとと終えた実習ごとに足す', () => {
+    const score = lessonScore(lesson.questions, ['right', 'wrong', 'right', 'right', 'done']);
+    expect(score).toEqual({ correct: 3, total: 4, xp: 3 * XP_PER_CORRECT + XP_PER_LAB });
+    // 並べ替えを誤れば正答数は減るが、分母は変わらない
+    expect(lessonScore(lesson.questions, ['right', 'wrong', 'wrong', 'right', 'done'])).toEqual({ correct: 2, total: 4, xp: 2 * XP_PER_CORRECT + XP_PER_LAB });
   });
 
   it('実習を終えていなければ実習の XP は入らない。答えていない問題は不正解として数える', () => {
-    expect(lessonScore(lesson.questions, ['right'])).toEqual({ correct: 1, total: 3, xp: XP_PER_CORRECT });
+    expect(lessonScore(lesson.questions, ['right'])).toEqual({ correct: 1, total: 4, xp: XP_PER_CORRECT });
   });
 
   it('終えると、完了・最高の正答率・XP が残り、問題ごとの正誤の回数はそのまま残る', () => {
