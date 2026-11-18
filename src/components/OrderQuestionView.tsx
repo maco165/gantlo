@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import type { OrderQuestion } from '../content/types';
 import { XP_PER_CORRECT } from '../lib/grade';
 import { answerIndex, gradeOrder, moveItem, type OrderGrade } from '../lib/order';
-import { RETRY_AFTER_SECONDS, orderStatus } from '../lib/status';
+import { RETRY_AFTER_SECONDS, orderStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
 import { ActionArea, PrimaryAction, QuestionHead } from './QuestionFrame';
@@ -28,7 +28,7 @@ export default function OrderQuestionView({
   question: OrderQuestion;
   head: string;
   request: string;
-  onChecked: (correct: boolean) => void;
+  onChecked: (correct: boolean, status: Status) => void;
   nextLabel: string;
   onNext: () => void;
 }) {
@@ -61,7 +61,7 @@ export default function OrderQuestionView({
     if (checked) return;
     const g = gradeOrder(question, order);
     setResult(g);
-    onChecked(g.correct);
+    onChecked(g.correct, orderStatus(g.misplaced));
   };
 
   const announce = moved && !checked ? `「${textOf(moved.id)}」を ${order.indexOf(moved.id) + 1} 行目へ動かしました` : '';

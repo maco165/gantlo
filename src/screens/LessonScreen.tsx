@@ -12,12 +12,12 @@ import FillQuestionView from '../components/FillQuestionView';
 import LabQuestionView from '../components/LabQuestionView';
 import OrderQuestionView from '../components/OrderQuestionView';
 import type { Lesson, Question } from '../content/types';
-import { finishLesson, lessonScore, resultBody, resultLocation, type Outcome } from '../lib/lessonRun';
+import { finishLesson, lessonScore, resultCode, resultBody, resultLocation, type Outcome } from '../lib/lessonRun';
 import { currentStreak, goalXp, recordAnswer, todayXp, type Progress } from '../lib/progress';
 import { homeHref, scrollToTop } from '../lib/route';
 import { shuffleItems } from '../lib/order';
 import { shuffleChoices } from '../lib/shuffle';
-import { lessonCreated } from '../lib/status';
+import { lessonCreated, type Status } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
 type Props = {
@@ -26,10 +26,10 @@ type Props = {
   updateProgress: (fn: (p: Progress) => Progress) => void;
 };
 
-const OUTCOME_LABEL: Record<Outcome, { code: string; ja: string }> = {
-  right: { code: '200', ja: '正解' },
-  wrong: { code: '400', ja: '不正解 · 復習へ' },
-  done: { code: '200', ja: '実習を終えた' },
+const OUTCOME_LABEL: Record<Outcome, string> = {
+  right: '正解',
+  wrong: '不正解 · 復習へ',
+  done: '実習を終えた',
 };
 
 /** 上の帯: 閉じる・レッスン名と何問目か・進み具合 */
@@ -51,6 +51,8 @@ function LessonBar({ title, current, total }: { title: string; current: number; 
 export default function LessonScreen({ lesson, progress, updateProgress }: Props) {
   const [index, setIndex] = useState(0);
   const [outcomes, setOutcomes] = useState<Outcome[]>([]);
+  // 答えの画面に出したステータスのコード (完了画面の一覧に同じコードを出す)
+  const [codes, setCodes] = useState<number[]>([]);
   const [finished, setFinished] = useState(false);
   const [attempt, setAttempt] = useState(0);
   // 4 択の選択肢と並べ替えの項目は、開いたときと「もう一度解く」のたびに混ぜ直す (attempt が変わるたび)
@@ -67,8 +69,13 @@ export default function LessonScreen({ lesson, progress, updateProgress }: Props
       return next;
     });
 
-  const onChecked = (correct: boolean) => {
+  const onChecked = (correct: boolean, status: Status) => {
     setOutcome(correct ? 'right' : 'wrong');
+    setCodes((c) => {
+      const next = [...c];
+      next[index] = status.code;
+      return next;
+    });
     updateProgress((p) => recordAnswer(p, q.id, correct, new Date()));
   };
 
@@ -86,12 +93,13 @@ export default function LessonScreen({ lesson, progress, updateProgress }: Props
   const restart = () => {
     setIndex(0);
     setOutcomes([]);
+    setCodes([]);
     setFinished(false);
     setAttempt((a) => a + 1);
     scrollToTop();
   };
 
-  if (finished) return <ResultView lesson={lesson} questions={questions} outcomes={outcomes} score={score} progress={progress} onRetry={restart} />;
+  if (finished) return <ResultView lesson={lesson} questions={questions} outcomes={outcomes} codes={codes} score={score} progress={progress} onRetry={restart} />;
 
   const head = `${index + 1} / ${total} 問`;
   const request = `POST /lessons/${lesson.id}/answers/${index + 1}`;
@@ -118,6 +126,7 @@ function ResultView({
   lesson,
   questions,
   outcomes,
+  codes,
   score,
   progress,
   onRetry,
@@ -125,6 +134,7 @@ function ResultView({
   lesson: Lesson;
   questions: Question[];
   outcomes: Outcome[];
+  codes: number[];
   score: ReturnType<typeof lessonScore>;
   progress: Progress;
   onRetry: () => void;
@@ -186,15 +196,15 @@ function ResultView({
           {questions.map((q, i) => {
             // どの問題も答えるまで次へ進めないので、結果の欠けは起きない。念のため欠けは不正解として出す
             const o = outcomes[i] ?? 'wrong';
-            const l = OUTCOME_LABEL[o];
+            const code = resultCode(o, codes[i]);
             return (
               <ListItem
                 key={q.id}
                 align="first-line"
                 // 文字列の label は 1 行に切られるので、Text で渡して問題文を折り返させる
                 label={<Text>{q.prompt}</Text>}
-                startContent={<code className={`result__code result__code--${o}`}>{l.code}</code>}
-                endContent={<Text type="supporting">{l.ja}</Text>}
+                startContent={<code className={`result__code result__code--${o}`}>{code}</code>}
+                endContent={<Text type="supporting">{OUTCOME_LABEL[o]}</Text>}
               />
             );
           })}

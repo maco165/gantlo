@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { findLesson } from '../src/content/index';
 import { XP_PER_CORRECT, XP_PER_LAB } from '../src/lib/grade';
-import { finishLesson, isGraded, lessonScore, resultBody, resultLocation } from '../src/lib/lessonRun';
+import { finishLesson, isGraded, lessonScore, resultCode, resultBody, resultLocation } from '../src/lib/lessonRun';
 import { emptyProgress, recordAnswer } from '../src/lib/progress';
 
 const lesson = findLesson('main-w1-l1')!;
@@ -39,6 +39,16 @@ describe('レッスンの採点の流れ', () => {
     p = finishLesson(p, lesson.id, { correct: 1, total: 3, xp: 3 }, now);
     expect(p.lessons[lesson.id].best).toBe(2 / 3);
     expect(p.xp.total).toBe(19);
+  });
+
+  it('完了画面の一覧のコードは、答えの画面に出したステータス (並べ替えの 409・メディアタイプの 415) と同じ', () => {
+    expect(resultCode('wrong', 409)).toBe('409');
+    expect(resultCode('wrong', 415)).toBe('415');
+    expect(resultCode('wrong', 400)).toBe('400');
+    expect(resultCode('right', 200)).toBe('200');
+    // 応答のコードが無い (実習など) ときは結果の既定
+    expect(resultCode('done')).toBe('200');
+    expect(resultCode('wrong')).toBe('400');
   });
 
   it('完了のレスポンスの本文は lesson・correct・total・xp の JSON で、Location は /me/lessons/<id>', () => {

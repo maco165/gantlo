@@ -488,6 +488,24 @@ async function run(browser, name, width, height) {
   await page.getByRole('heading', { name: qChoice.prompt }).waitFor();
   const order2 = await choiceOrder(page);
   check(order2.join('|') !== order1.join('|'), `${tag} もう一度解くと 4 択の並びが混ぜ直される (${order2.map((t) => t.slice(3, 6)).join(',')})`);
+  // 2 周目を終え、完了画面の一覧のコードが答えの画面と同じ (415・409) か
+  await choiceRadio(page, qChoice.answer).check();
+  await send(page);
+  await response(page, 200);
+  await next(page);
+  await page.getByRole('heading', { name: qLab.prompt }).waitFor();
+  for (const box of await page.getByRole('checkbox').all()) await box.check();
+  await page.getByRole('button', { name: 'POST 実習を終える' }).click();
+  await response(page, 200);
+  await next(page);
+  await response(page, 201);
+  const listCodes = await page.locator('.result__code').allInnerTexts();
+  check(
+    listCodes.join(',') === '200,415,409,200,200',
+    `${tag} 完了画面の一覧は答えの画面と同じコード (コマンド 200・メディアタイプの誤り 415・並べ替えの誤り 409・4 択 200・実習 200) (${listCodes.join(',')})`,
+  );
+  await noHorizontalOverflow(page, width, `${tag} 完了 201 (2 周目)`);
+
 
   // 知らないレッスンは 404。左のメニューはそのまま
   await page.goto(`${BASE}lesson/no-such-lesson/`);

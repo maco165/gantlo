@@ -11,6 +11,15 @@ export function isGraded(q: Question): boolean {
   return q.kind !== 'lab';
 }
 
+/**
+ * 完了画面の一覧に出すコード。答えの画面に出したステータス (並べ替えの 409・メディアタイプの 415 など) があればそれを、
+ * 無ければ結果の既定 (正解・実習 200、不正解 400) を出す
+ */
+export function resultCode(outcome: Outcome, answered?: number): string {
+  if (answered !== undefined) return String(answered);
+  return outcome === 'wrong' ? '400' : '200';
+}
+
 export type LessonScore = { correct: number; total: number; xp: number };
 
 /** 正答数は採点した問題だけで数える。XP は正解 1 問ごとと、終えた実習ごとに足す */
