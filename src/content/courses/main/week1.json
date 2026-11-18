@@ -142,9 +142,9 @@
           "id": "main-w1-l2-q3",
           "kind": "http",
           "format": "http",
-          "prompt": "https://example.com:8443/search?q=api#top を HTTP/1.1 で直接サーバーに取りに行きます。要求の行の宛先と、Host ヘッダーの値を埋めてください。",
+          "prompt": "https://example.com:8443/search?q=api#top を HTTP/1.1 で直接サーバーに取りに行きます。要求の行の宛先と、Host ヘッダーの値を埋めてください (host は小文字で書いてください)。",
           "code": "GET {{blank}} HTTP/1.1\nHost: {{blank}}",
-          "blanks": [{ "answers": ["/search?q=api"] }, { "answers": ["example.com:8443", "EXAMPLE.COM:8443", "Example.com:8443", "Example.Com:8443"] }],
+          "blanks": [{ "answers": ["/search?q=api"] }, { "answers": ["example.com:8443"] }],
           "explanation": "オリジンサーバーに直接送るとき、クライアントは要求の行に URI の path と query だけを書かなければなりません (MUST、RFC 9112 3.2.1 の origin-form)。fragment は要求の対象から外れるので #top は送りません (RFC 9110 7.1)。host と port は Host ヘッダーで伝えます (RFC 9110 7.2、Host = uri-host [ \":\" port ])。https の既定の 443 ではないので port も書きます。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc9112#section-3.2.1",
