@@ -153,6 +153,25 @@ export async function runHomeAndPlan(browser, { base, check, noHorizontalOverflo
       await page.keyboard.press('Enter');
       const last = await ganttOrder(page);
       check(last.join(',') === [...before.slice(0, -2), 'main', before.at(-2)].join(','), `${t} 端から続けて Enter で上げられる (${last.join(',')})`);
+      // 上下のあとに別のコースのチェックへ Tab で移り、Space で外して選び直しても、手元はそのチェックに残る (ボタンへ引き戻されない)
+      const lastCourse = last.at(-1);
+      const onCheck = () =>
+        page.evaluate((c) => {
+          const el = document.activeElement;
+          return el instanceof HTMLInputElement && el.type === 'checkbox' && el.closest('.plan__item')?.getAttribute('data-course') === c ? el.checked : null;
+        }, lastCourse);
+      await page.keyboard.press('Tab');
+      await page.keyboard.press('Tab');
+      const reached = await onCheck();
+      await page.keyboard.press('Space');
+      const afterOff = await onCheck();
+      const offOrder = await ganttOrder(page);
+      await page.keyboard.press('Space');
+      const afterOn = await onCheck();
+      check(
+        reached === true && afterOff === false && afterOn === true && !offOrder.includes(lastCourse) && (await ganttOrder(page)).join(',') === last.join(','),
+        `${t} 上下のあとにチェックを Space で切り替えても、手元はそのチェックに残る (${reached} → ${afterOff} → ${afterOn})`,
+      );
       // ボタンはどれも 44px 以上
       const sizes = await page.locator('.page button').evaluateAll((bs) => bs.map((b) => [b.getAttribute('aria-label') ?? b.textContent?.trim(), b.getBoundingClientRect().width, b.getBoundingClientRect().height]));
       const small = sizes.filter(([, w, h]) => w < MIN_TARGET || h < MIN_TARGET);

@@ -15,7 +15,8 @@ export default function Plan({ progress, updateProgress }: Props) {
   // 保存した計画が無ければ、既定の順 (全コース) から組み始める
   const [draft, setDraft] = useState<CourseId[]>(() => planOrder(progress));
   const [saved, setSaved] = useState(false);
-  // 並べ替えたあと、押したボタンに (端で押せなくなったら反対のボタンに) 手元を戻す。キーボードだけで続けて動かせるように
+  // 並べ替えたあと、押したボタンに (端で押せなくなったら反対のボタンに) 手元を戻す。キーボードだけで続けて動かせるように。
+  // 上下を押したときだけ走らせる (チェックを切り替えて draft が変わったときに、手元をボタンへ引き戻さない)
   const [focus, setFocus] = useState<{ course: CourseId; dir: 'up' | 'down' } | null>(null);
   const buttons = useRef(new Map<string, HTMLButtonElement>());
   useEffect(() => {
@@ -23,7 +24,7 @@ export default function Plan({ progress, updateProgress }: Props) {
     const other = focus.dir === 'up' ? 'down' : 'up';
     const el = [buttons.current.get(`${focus.course}-${focus.dir}`), buttons.current.get(`${focus.course}-${other}`)].find((b) => b && !b.disabled);
     el?.focus();
-  }, [focus, draft]);
+  }, [focus]);
 
   const change = (next: CourseId[]) => {
     setDraft(next);
@@ -38,7 +39,8 @@ export default function Plan({ progress, updateProgress }: Props) {
     updateProgress((p) => savePlan(p, draft) ?? p);
     setSaved(true);
   };
-  const unchosen = COURSES.filter((c) => !draft.includes(c.id));
+  // 選んだコース (学ぶ順) のあとに選んでいないコースを続け、1 つの並びにする。チェックを切り替えても同じ行のまま動くので、手元がチェックに残る
+  const rows = [...draft, ...COURSES.filter((c) => !draft.includes(c.id)).map((c) => c.id)];
   const titleOf = (id: CourseId) => COURSES.find((c) => c.id === id)?.title ?? id;
   const ref = (key: string) => (el: HTMLButtonElement | null) => {
     if (el) buttons.current.set(key, el);
@@ -57,46 +59,39 @@ export default function Plan({ progress, updateProgress }: Props) {
         <h2 id="plan-courses-title" className="display">
           Request Body
         </h2>
-        <ol className="plan__list" aria-label="学ぶ順">
-          {draft.map((id, i) => (
-            <li key={id} className="plan__item" data-course={id}>
-              <label className="plan__check">
-                <input type="checkbox" checked onChange={() => change(toggleCourse(draft, id))} />
-                <span className="plan__no">{i + 1}</span>
-                <span className="plan__title">{titleOf(id)}</span>
-                <Text type="supporting">{lessonsOf(id).length} レッスン</Text>
-              </label>
-              <span className="plan__moves">
-                <button type="button" className="btn btn--icon" ref={ref(`${id}-up`)} disabled={i === 0} onClick={() => move(id, 'up')} aria-label={`${titleOf(id)} を上へ`}>
-                  ↑
-                </button>
-                <button
-                  type="button"
-                  className="btn btn--icon"
-                  ref={ref(`${id}-down`)}
-                  disabled={i === draft.length - 1}
-                  onClick={() => move(id, 'down')}
-                  aria-label={`${titleOf(id)} を下へ`}
-                >
-                  ↓
-                </button>
-              </span>
-            </li>
-          ))}
-        </ol>
-        {unchosen.length > 0 && (
-          <ul className="plan__list plan__list--off" aria-label="選んでいないコース">
-            {unchosen.map((c) => (
-              <li key={c.id} className="plan__item" data-course={c.id}>
+        <ol className="plan__list" aria-label="コース (選んだものは学ぶ順)">
+          {rows.map((id) => {
+            const i = draft.indexOf(id);
+            const chosen = i >= 0;
+            return (
+              <li key={id} className={chosen ? 'plan__item' : 'plan__item plan__item--off'} data-course={id}>
                 <label className="plan__check">
-                  <input type="checkbox" checked={false} onChange={() => change(toggleCourse(draft, c.id))} />
-                  <span className="plan__title">{c.title}</span>
-                  <Text type="supporting">{lessonsOf(c.id).length} レッスン</Text>
+                  <input type="checkbox" checked={chosen} onChange={() => change(toggleCourse(draft, id))} />
+                  {chosen && <span className="plan__no">{i + 1}</span>}
+                  <span className="plan__title">{titleOf(id)}</span>
+                  <Text type="supporting">{lessonsOf(id).length} レッスン</Text>
                 </label>
+                {chosen && (
+                  <span className="plan__moves">
+                    <button type="button" className="btn btn--icon" ref={ref(`${id}-up`)} disabled={i === 0} onClick={() => move(id, 'up')} aria-label={`${titleOf(id)} を上へ`}>
+                      ↑
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn--icon"
+                      ref={ref(`${id}-down`)}
+                      disabled={i === draft.length - 1}
+                      onClick={() => move(id, 'down')}
+                      aria-label={`${titleOf(id)} を下へ`}
+                    >
+                      ↓
+                    </button>
+                  </span>
+                )}
               </li>
-            ))}
-          </ul>
-        )}
+            );
+          })}
+        </ol>
       </section>
 
       <PlanGantt courses={draft} progress={progress} />
