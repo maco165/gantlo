@@ -28,6 +28,10 @@ jobs:
       - run: npm test
       - run: npm run build
 
+      # 通しの検査 (npm run e2e と同じ中身)。dist は上で組み立てたものを使う
+      - run: npx playwright install --with-deps chromium
+      - run: node scripts/e2e.mjs
+
       - if: github.event_name == 'push'
         uses: actions/upload-pages-artifact@v3
         with:
