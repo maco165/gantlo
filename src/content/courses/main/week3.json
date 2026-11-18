@@ -435,7 +435,8 @@
           "kind": "lab",
           "prompt": "springdoc-openapi を入れた Spring Boot の API が手元にあれば、作られた OpenAPI の文書を見てください (手元のアプリだけで試します)。",
           "steps": [
-            { "text": "Spring Boot のアプリを 8080 番で起動しておく (依存に springdoc-openapi-starter-webmvc-ui を入れる)" },
+            { "text": "起動する前に ss -ltn で 8080 番が空いていることを確かめる。ほかのサービスが使っていたら、自分のアプリを別の番号で起動し、以降の 8080 をその番号に読み替える", "command": "ss -ltn" },
+            { "text": "自分の Spring Boot のアプリを起動する (依存に springdoc-openapi-starter-webmvc-ui を入れる)。以降の要求は、自分で起動したこのアプリにだけ送る" },
             { "text": "OpenAPI の文書 (JSON) を取る", "command": "curl -s http://localhost:8080/v3/api-docs | python3 -m json.tool" },
             { "text": "ブラウザで http://localhost:8080/swagger-ui.html を開き、同じ API が Swagger UI に出ることを見る" }
           ],
