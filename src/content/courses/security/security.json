@@ -115,7 +115,7 @@
             }
           ],
           "answer": "a",
-          "explanation": "FIPS 180-4 の 1 章は、これらのハッシュ関数を「安全」と呼ぶ理由を、与えられたダイジェストに対応するデータを見つけることと、同じダイジェストになる 2 つの異なるデータを見つけることが計算の上で現実的でないこと、としています。データが少しでも変わればダイジェストは非常に高い確率で変わるので、改ざんの検知に使えます。",
+          "explanation": "FIPS 180-4 の冒頭の告示 (Explanation) と RFC 6234 の 1 章は、これらのハッシュ関数を「安全」と呼ぶ理由を、与えられたダイジェストに対応するデータを見つけることと、同じダイジェストになる 2 つの異なるデータを見つけることが計算の上で現実的でないこと、としています。データが少しでも変わればダイジェストは非常に高い確率で変わるので、改ざんの検知に使えます。",
           "sources": [
             "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf",
             "https://www.rfc-editor.org/rfc/rfc6234#section-1"
@@ -163,7 +163,7 @@
           "choices": [
             {
               "id": "a",
-              "text": "(EC)DHE などの鍵交換で決める。静的な RSA の鍵交換は外され、どの方式も前方秘匿性を持つ"
+              "text": "(EC)DHE などで決める。静的な RSA の鍵交換は外され、公開鍵を使う鍵交換はどれも前方秘匿性を持つ"
             },
             {
               "id": "b",
@@ -182,10 +182,11 @@
             }
           ],
           "answer": "a",
-          "explanation": "RFC 8446 の 1.2 節は TLS 1.2 からの大きな違いとして、静的な RSA と Diffie-Hellman の暗号スイートが外され、公開鍵による鍵交換はすべて前方秘匿性を持つようになったと書いています。「公開鍵暗号で共通鍵を決める」の中身は、TLS 1.3 では (EC)DHE の鍵交換です。",
+          "explanation": "RFC 8446 の 1.2 節は TLS 1.2 からの大きな違いとして、静的な RSA と Diffie-Hellman の暗号スイートが外され、公開鍵による鍵交換はすべて前方秘匿性を持つようになったと書いています。「公開鍵暗号で共通鍵を決める」の中身は、TLS 1.3 では (EC)DHE の鍵交換です。なお、以前の接続で決めた鍵 (PSK) だけで接続すると、前方秘匿性は得られません (2.2 節・付録 E.1)。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc8446#section-1.2",
-            "https://www.rfc-editor.org/rfc/rfc8446#section-2"
+            "https://www.rfc-editor.org/rfc/rfc8446#section-2.2",
+            "https://www.rfc-editor.org/rfc/rfc8446#appendix-E.1"
           ]
         },
         {
@@ -557,7 +558,7 @@
         {
           "id": "security-l3-q4",
           "kind": "order",
-          "prompt": "自分のラボで見つけた XSS を、原因 (どの入力が、どこで、何として解釈されたか) と対策の組で書き残します。調べて直すまでを、進める順に並べてください。",
+          "prompt": "自分のラボで見つけた XSS を、原因 (どの入力が、どこで、何として解釈されたか) と対策の組で書き残します。入力から順にたどって原因を調べ、直して確かめるまでを、進める順に並べてください。",
           "items": [
             {
               "id": "input",
@@ -666,7 +667,7 @@
             {
               "id": "b",
               "text": "原因は同じ。対策: セッション ID を URL の引数で受け渡す",
-              "why": "URL の引数のセッション ID は Referer などで外へ漏れます。IPA も Cookie で受け渡すよう求めています。"
+              "why": "URL の引数のセッション ID は Referer などで外へ漏れます。IPA は URL の引数に入れないよう求めています (4-(ii))。"
             },
             {
               "id": "c",
@@ -722,6 +723,7 @@
             "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#cookies",
             "https://www.rfc-editor.org/rfc/rfc6265#section-4.1.2.6",
             "https://www.rfc-editor.org/rfc/rfc6265#section-4.1.2.5",
+            "https://www.rfc-editor.org/rfc/rfc6265#section-4.1.2.4",
             "https://www.ipa.go.jp/security/vuln/websecurity/session-management.html"
           ]
         },
@@ -1032,12 +1034,8 @@
         {
           "id": "security-l5-q5",
           "kind": "order",
-          "prompt": "自分の CA でサーバー証明書を発行し、手元の HTTPS のサーバーで使うまでを、進める順に並べてください。",
+          "prompt": "ラボ用の CA の鍵と自己署名の CA 証明書 (ca.key と ca.crt) は、もう作ってあります。その CA でサーバー証明書を発行し、手元の HTTPS のサーバーで使うまでを、進める順に並べてください。",
           "items": [
-            {
-              "id": "ca",
-              "text": "CA の鍵と、自己署名の CA 証明書を作る (openssl req -x509)"
-            },
             {
               "id": "csr",
               "text": "サーバーの鍵と、名前 (localhost) を書いた署名要求 CSR を作る (openssl req -newkey)"
@@ -1056,13 +1054,12 @@
             }
           ],
           "answer": [
-            "ca",
             "csr",
             "issue",
             "serve",
             "trust"
           ],
-          "explanation": "証明書は、CA が公開鍵と名前の結び付きに署名したものです (RFC 5280 3.1)。だから先に CA の鍵が要り、次にサーバーの公開鍵と名前を CSR にまとめ、CA の鍵で署名して発行します (openssl-x509 の -req と -CA)。最後に、検証する側に信頼の起点として CA 証明書を渡すと、鎖がたどれて検証が通ります。",
+          "explanation": "証明書は、CA が公開鍵と名前の結び付きに署名したものです (RFC 5280 3.1)。まずサーバーの公開鍵と名前を CSR にまとめ、発行のときに CA の鍵でそれに署名します (openssl-x509 の -req と -CA)。発行した証明書が無いとサーバーは起動できず、サーバーが待ち受けていないと接続できません。最後に、検証する側に信頼の起点として CA 証明書を渡すと、鎖がたどれて検証が通ります。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc5280#section-3.1",
             "https://docs.openssl.org/3.5/man1/openssl-x509/",
@@ -1099,8 +1096,12 @@
               "command": "openssl s_client -connect 127.0.0.1:8443 -servername localhost < /dev/null"
             },
             {
-              "text": "curl でも、CA を渡す場合と渡さない場合を比べる",
+              "text": "curl でも、CA を渡す場合を見る",
               "command": "curl -v --cacert ca.crt https://localhost:8443/ -o /dev/null"
+            },
+            {
+              "text": "curl で CA を渡さない場合と比べる",
+              "command": "curl -v https://localhost:8443/ -o /dev/null"
             }
           ],
           "expected": "CA を渡すと、s_client の出力に subject=CN=localhost と issuer=CN=My Lab CA、Protocol: TLSv1.3、Verify return code: 0 (ok) が出ます。CA を渡さないと Verify return code: 21 (unable to verify the first certificate) になります。curl は --cacert ありなら 200 が返り、無しなら証明書を検証できないエラー (60) で止まります。",
