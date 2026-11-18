@@ -1,5 +1,5 @@
 // テーマと文字のコントラストの、ブラウザでの検査。scripts/e2e.mjs (npm run e2e) から呼ぶ。
-// 390 幅と 1280 幅で、主な画面 (ホーム・計画・レッスンの問題と応答 400 / 200 / 409・完了 201・404) を開き、次を確かめる:
+// 390 幅と 1280 幅で、主な画面 (ホーム・計画・復習・レッスンの問題と応答 400 / 200 / 409・完了 201・404・設定と記録を消す確かめ) を開き、次を確かめる:
 //   - テーマが Gothic で読み込まれている (地の token --color-background-body が #101314 で、body の地がその色)
 //   - 文字を持つ見える要素 (本文・補助の文字・ボタン・リンク・ステータスのコード・入力欄) のどれも、文字の色と実際の地の色
 //     (根から要素まで地を塗り重ね、opacity の祖先は字と地の両方を奥の地に重ねる) のコントラスト比が 4.5:1 以上。大きな文字の 3:1 の例外は使わない
@@ -202,6 +202,11 @@ export async function runContrast(browser, { base, check }) {
     await page.locator('.gantt__row').first().waitFor();
     await measure('計画');
 
+    // 復習 (今日の分が無いとき)
+    await page.goto(`${base}review/`);
+    await page.locator('h1', { hasText: '復習' }).waitFor();
+    await measure('復習 (予定なし)');
+
     // レッスン: 問題 → 不正解 400 → 正解 200 → 並べ替えの 409 → 4 択 → 実習 → 完了 201
     const [qCmd, qHttp, qOrder, qChoice] = lesson.questions;
     await page.goto(`${base}lesson/${lesson.id}/`);
@@ -244,6 +249,30 @@ export async function runContrast(browser, { base, check }) {
     await page.goto(`${base}lesson/no-such-lesson/`);
     await page.getByText('Not Found', { exact: true }).waitFor();
     await measure('404', ['404', 'Not Found']);
+
+    // 復習 (今日の分があるとき): レッスンで間違えた問題の予定を今日 (手元の日付) にする
+    await page.evaluate(() => {
+      const d = new Date();
+      const today = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const p = JSON.parse(localStorage.getItem('gantlo.v1') ?? '{}');
+      for (const a of Object.values(p.answers ?? {})) if (a.wrong > 0) a.nextReview = today;
+      localStorage.setItem('gantlo.v1', JSON.stringify(p));
+    });
+    await page.goto(`${base}review/`);
+    await page.getByRole('button', { name: '復習を始める' }).waitFor();
+    await measure('復習 (今日の分あり)', ['復習を始める']);
+
+    // 設定と、記録を消す前の確かめ (画面の中の dialog)
+    await page.goto(`${base}settings/`);
+    await page.getByRole('button', { name: 'DELETE 記録を消す' }).waitFor();
+    await measure('設定', ['DELETE 記録を消す', 'GET 記録を書き出す (JSON)']);
+    await page.getByRole('button', { name: 'DELETE 記録を消す' }).click();
+    const dialog = page.getByRole('alertdialog');
+    await dialog.waitFor();
+    await page.waitForTimeout(400);
+    await measure('設定 (記録を消す確かめ)', ['記録を消しますか?', '消す', 'やめる']);
+    await dialog.getByRole('button', { name: 'やめる' }).click();
+    await dialog.waitFor({ state: 'hidden' });
     await context.close();
   }
   return mins;
