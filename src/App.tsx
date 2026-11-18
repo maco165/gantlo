@@ -7,8 +7,8 @@ import { useEffect } from 'react';
 import AppSideNav, { AppMobileNav } from './components/AppSideNav';
 import MobileBar from './components/MobileBar';
 import { findLesson } from './content/index';
-import { COURSES, useRoute, type PageName, type Route } from './lib/route';
-import { SITE_NAME, SITE_TAGLINE } from './lib/site';
+import { documentTitle, PAGE_TITLES, titleOf } from './lib/pageMeta';
+import { useRoute } from './lib/route';
 import { NOT_FOUND, NOT_IMPLEMENTED } from './lib/status';
 import { useMobileNav } from './lib/useMobileNav';
 import { useProgress } from './lib/useProgress';
@@ -19,25 +19,15 @@ import Review from './screens/Review';
 import Settings from './screens/Settings';
 import StatusPage from './screens/StatusPage';
 
-const PAGE_TITLES: Record<PageName, string> = { plan: '計画 (Gantt)', review: '復習', progress: '進捗', glossary: '用語集', settings: '設定' };
-
-/** 画面の題 (ブラウザのタブと検索結果に出る)。ホームは null */
-export function titleOf(route: Route): string | null {
-  if (route.name === 'page') return PAGE_TITLES[route.page];
-  if (route.name === 'course') return COURSES.find((c) => c.id === route.course)?.title ?? null;
-  if (route.name === 'lesson') return findLesson(route.lessonId)?.title ?? 'ページが見つかりません';
-  if (route.name === 'notFound') return 'ページが見つかりません';
-  return null;
-}
-
 export default function App() {
   const { route, nav, close } = useRoute();
   const title = titleOf(route);
   const [navOpen, setNavOpen] = useMobileNav(close);
   const [progress, updateProgress] = useProgress();
+  const docTitle = documentTitle(route);
   useEffect(() => {
-    document.title = title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | ガントチャートで計画する ${SITE_TAGLINE}`;
-  }, [title]);
+    document.title = docTitle;
+  }, [docTitle]);
 
   let screen;
   if (route.name === 'page' && route.page === 'plan') screen = <Plan key={nav} progress={progress} updateProgress={updateProgress} />;

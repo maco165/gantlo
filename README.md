@@ -85,6 +85,23 @@ flowchart LR
   index --> planlib
 ```
 
+検索に届く形 (# の無い URL・ページごとの HTML・sitemap) は、`npm run build` のあとに次の形で書き出します。GitHub Pages は `dist/<道>/index.html` があれば HTTP 200 で返すので、下層の URL (`/gantlo/plan/` など) も 200 になります。知らない道は `404.html` (HTTP 404) で、画面は JS で 404 を出します。
+
+```mermaid
+flowchart LR
+  build["vite build"] --> tpl["dist/index.html<br/>型 (JS と CSS の読み込み)"]
+  content["content/index.ts<br/>LESSONS"] --> pages["src/prerender/pages.ts<br/>道・題・説明・本文"]
+  route["lib/route.ts<br/>道と COURSES"] --> pages
+  meta["lib/pageMeta.ts<br/>題の正本"] --> pages
+  meta --> app["src/App.tsx<br/>document.title"]
+  tpl --> html["src/prerender/html.ts<br/>head と #root を置き換え"]
+  pages --> html
+  html --> pre["scripts/prerender.mjs"]
+  pre --> out["dist/#lt;道#gt;/index.html<br/>ホーム・画面・コース・レッスン"]
+  pre --> nf["dist/404.html<br/>noindex"]
+  pre --> sm["dist/sitemap.xml<br/>検索に載せるページ"]
+```
+
 | ファイル | 役目 |
 |---|---|
 | `src/lib/route.ts` | URL の道から画面を決める。# は使わない (検索エンジンが # の後ろを別のページとして扱わないため)。今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) は奪わず、画面を移ったことにしない (解いている途中のレッスンが 1 問目に戻らないように)。`useRoute` は画面をやり直す合図 `nav` と、スマホのメニューを閉じる合図 `close` を分けて返す (# だけが変わる戻る・進むでは `close` だけが増える) |
@@ -116,7 +133,12 @@ flowchart LR
 | `scripts/e2e-review-settings.mjs` | `scripts/e2e.mjs` から呼ぶ、復習と設定の画面の通しの検査。時計を止め、UTC と手元の日付が違う時差 (390 幅は東京、1280 幅はロサンゼルス) で、今日の復習を解くと 0 問になること・目標 10 XP がホームに出ること・書き出した JSON を読み込むと記録が戻ること・壊れたファイル (422) と 1 MB を超えるファイル (413) を読まないこと・記録を消す前に確かめること・390 幅でボタンが 44px 以上であることを見る |
 | `scripts/e2e-home-plan.mjs` | `scripts/e2e.mjs` から呼ぶ、ホームと計画の画面の通しの検査。空の状態から次のレッスンを終えて戻ると完了・段の学習済み・XP の増加が出ること (390・1280 幅)、390 幅でキーボードだけで並べ替えて保存できボタンが 44px 以上であること、1280 幅で計画の帯・済みの塗り・今ここ・次のレッスンへのリンクが出てレッスンが開くことを見る |
 | `src/styles.css` | Astryx の部品で作れない所 (ステータス行・帯・ヘッダーの行) と、狭い画面 (768px 未満) の共通の決まりだけ。狭い画面ではボタン・入力欄の高さのトークン (`--size-element-*`) と 4 択・手順の行を 44px にそろえ、ページごとには大きさを書かない。色はテーマのトークンだけを使う。括弧の崩れはブラウザも build も黙って読むので、`tests/styles.test.ts` が postcss で読んで見つける |
-| `scripts/spa-fallback.mjs` | `dist/index.html` を `404.html` に写す。画面ごとの HTML を書き出すまでの間、どの道から開いても画面が出るようにする |
+| `src/lib/pageMeta.ts` | 画面の題の正本。サイトの中で移ったときの `document.title` と、書き出す HTML の `<title>` が同じ関数を使う |
+| `src/prerender/pages.ts` | 書き出すページの一覧 (ホーム・メニューの画面・全コース・全レッスン) と、ページごとの題・説明・本文。画面と同じデータ (経路・コース・レッスン) から作る。レッスンの見出しは題で、本文は問題文まで (答えと解説は書かない)。一人ひとりの記録の画面 (計画・復習・進捗・設定) は noindex にして sitemap から外す。画面の JS には入らない |
+| `src/prerender/html.ts` | `dist/index.html` を型にして、title・description・canonical・og と `#root` の中身をページのものに置き換える。置き換える場所が型に無ければ止める。`sitemap.xml` も作る (検索に載せるページだけ。lastmod は付けない) |
+| `scripts/prerender.mjs` | `npm run build` の最後の段。vite で `src/prerender/` を読み (ポートは開かず、依存の事前の束ねもしない)、`dist/<道>/index.html`・`404.html` (noindex)・`sitemap.xml` を書く |
+| `public/robots.txt` | sitemap の場所。検索エンジンが読むのはドメインの直下 (`maco165.github.io` のリポジトリ) の robots.txt だけなので、そちらにも同じ行を置く |
+| `tests/meta.test.ts` | 検索に届く形の検査。ページごとの title・description・canonical が重ならないこと、canonical が # の無い URL であること、見出しが JS なしの HTML にあること、題と問題文が escape されること、記録の画面だけが noindex で、sitemap が検索に載せる全ページを持つこと。後半は build のあとの `dist` を見る (CI は build のあとに `npm test`) |
 
 ## 使い方
 
@@ -125,7 +147,7 @@ npm ci
 npm run dev     # 手元で開く
 npm test        # vitest
 npm run check:content  # 問題データの検査
-npm run build   # dist に書き出す
+npm run build   # dist に書き出す (ページごとの HTML と sitemap.xml まで)
 npm run e2e     # 書き出してから、Playwright の Chromium で通しの操作を確かめる
 ```
 
@@ -134,7 +156,7 @@ npm run e2e     # 書き出してから、Playwright の Chromium で通しの�
 `main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
 ## まだ無いもの
 
-本物の問題、コースのレッスンの一覧、進捗・用語集の画面、画面ごとの HTML の書き出しは、これから作ります。メニューには「準備中」と出しています。
+本物の問題、コースのレッスンの一覧、進捗・用語集の画面は、これから作ります。メニューには「準備中」と出しています。
 
 ## ライセンス
 
