@@ -1,0 +1,1138 @@
+{
+  "lessons": [
+    {
+      "id": "security-l1",
+      "title": "暗号の基本 (1) 共通鍵・公開鍵・ハッシュ",
+      "course": "security",
+      "questions": [
+        {
+          "id": "security-l1-q1",
+          "kind": "choice",
+          "prompt": "(このコースの約束) 試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。\nAES のような共通鍵暗号の説明として正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "暗号化と復号に同じ鍵を使う。速いが、その鍵を相手と秘密のまま共有する手間と危険がある"
+            },
+            {
+              "id": "b",
+              "text": "暗号化と復号に別々の鍵を使うので、鍵を公開してよい",
+              "why": "それは公開鍵暗号 (非対称暗号) の説明です。"
+            },
+            {
+              "id": "c",
+              "text": "元に戻せない固定長の値を作るので、復号はできない",
+              "why": "それはハッシュ関数の説明です。共通鍵暗号は同じ鍵で復号できます。"
+            },
+            {
+              "id": "d",
+              "text": "鍵の長さが 128 ビットに決まっていて、選べない",
+              "why": "AES には AES-128・AES-192・AES-256 があり、数字が鍵の長さを表します。128 ビットなのはブロックの大きさです。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "RFC 4949 は共通鍵暗号 (symmetric cryptography) を、暗号化と復号のような対になる操作に同じ鍵を使う暗号と定め、例に AES を挙げています。同じ鍵を両者に配って秘密に保つ費用と危険が、公開鍵暗号に比べた弱点だとも書いています。AES はデータを 128 ビットのブロックで変換し、鍵の長さは 128・192・256 ビットの 3 種類です (FIPS 197 の概要)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc4949#section-4",
+            "https://csrc.nist.gov/pubs/fips/197/final"
+          ]
+        },
+        {
+          "id": "security-l1-q2",
+          "kind": "choice",
+          "prompt": "Alice が Bob にだけ読める形でデータを送りたい。RSA のような公開鍵暗号で暗号化するとき、使う鍵はどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "Bob の公開鍵で暗号化する (復号できるのは Bob の秘密鍵だけ)"
+            },
+            {
+              "id": "b",
+              "text": "Alice の秘密鍵で暗号化する",
+              "why": "秘密鍵で作るのは署名です。Alice の公開鍵はだれでも持てるので、だれでも戻せてしまい秘密になりません。"
+            },
+            {
+              "id": "c",
+              "text": "Bob の秘密鍵を送ってもらい、それで暗号化する",
+              "why": "秘密鍵は持ち主の外に出しません。出した時点で鍵の受け渡しの利点が無くなります。"
+            },
+            {
+              "id": "d",
+              "text": "Alice の公開鍵で暗号化する",
+              "why": "Alice の公開鍵で暗号化したものは Alice の秘密鍵でしか戻せず、Bob が読めません。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "公開鍵暗号は鍵の組 (公開鍵と秘密鍵) の別々の方を、暗号化と復号に使います。秘密にしたいデータは受け手の公開鍵で暗号化し、受け手だけが持つ秘密鍵で戻します (RFC 4949 の asymmetric cryptography)。RSA の暗号化の手順 RSAES-OAEP-ENCRYPT も、入力に受け手の公開鍵 (n, e) を取ります (RFC 8017 7.1.1)。公開鍵は秘密にしなくてよいので、鍵の配布が楽になります。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc4949#section-4",
+            "https://www.rfc-editor.org/rfc/rfc8017#section-7.1.1"
+          ]
+        },
+        {
+          "id": "security-l1-q3",
+          "kind": "command",
+          "tool": "openssl",
+          "prompt": "文字列 hello の SHA-256 のハッシュ値を出したい。openssl dgst に渡すハッシュ関数のオプションを埋めてください。",
+          "code": "printf 'hello' | openssl dgst {{blank}}",
+          "blanks": [
+            {
+              "answers": [
+                "-sha256"
+              ]
+            }
+          ],
+          "output": "SHA2-256(stdin)= 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
+          "explanation": "openssl dgst は、オプションで選んだハッシュ関数でダイジェストを出します (-sha256 など。openssl-dgst の SYNOPSIS の -digest)。SHA-256 のダイジェストは 256 ビットで、16 進では 64 文字になります (FIPS 180-4 の 1 章の表)。printf を使うのは、echo だと末尾の改行までハッシュに入るためです。",
+          "sources": [
+            "https://docs.openssl.org/3.5/man1/openssl-dgst/",
+            "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf"
+          ]
+        },
+        {
+          "id": "security-l1-q4",
+          "kind": "choice",
+          "prompt": "SHA-256 のような暗号学的ハッシュ関数の性質として正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "ダイジェストから元のデータを求めることも、同じダイジェストになる別の 2 つのデータを見つけることも、計算の上で現実的でない"
+            },
+            {
+              "id": "b",
+              "text": "鍵があればダイジェストから元のデータに戻せる",
+              "why": "ハッシュ関数に鍵はなく、元に戻すことはできません。戻せるのは暗号です。"
+            },
+            {
+              "id": "c",
+              "text": "入力が長いほどダイジェストも長くなる",
+              "why": "ダイジェストの長さはアルゴリズムで決まり (SHA-256 は 256 ビット)、入力の長さによりません。"
+            },
+            {
+              "id": "d",
+              "text": "1 文字だけ違う入力なら、ダイジェストも 1 文字だけ違う",
+              "why": "どこか 1 か所でも変わると、非常に高い確率でまったく別のダイジェストになります。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "FIPS 180-4 の 1 章は、これらのハッシュ関数を「安全」と呼ぶ理由を、与えられたダイジェストに対応するデータを見つけることと、同じダイジェストになる 2 つの異なるデータを見つけることが計算の上で現実的でないこと、としています。データが少しでも変わればダイジェストは非常に高い確率で変わるので、改ざんの検知に使えます。",
+          "sources": [
+            "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf",
+            "https://www.rfc-editor.org/rfc/rfc6234#section-1"
+          ]
+        },
+        {
+          "id": "security-l1-q5",
+          "kind": "order",
+          "prompt": "TLS 1.3 のハンドシェイクは 3 つの段階に分けて考えられます (RFC 8446 の 2 章)。暗号の部品がどの順に働くか、起きる順に並べてください。",
+          "items": [
+            {
+              "id": "kx",
+              "text": "鍵交換 ((EC)DHE) で、共通の鍵の材料を決める"
+            },
+            {
+              "id": "params",
+              "text": "ほかの取り決め (使うアプリケーションの規約など) を、もう暗号化された中で伝える"
+            },
+            {
+              "id": "auth",
+              "text": "証明書と、秘密鍵で作った署名 (CertificateVerify) でサーバーを確かめる"
+            },
+            {
+              "id": "data",
+              "text": "本体のデータを、決めた鍵の共通鍵暗号 (AEAD) で守って送る"
+            }
+          ],
+          "answer": [
+            "kx",
+            "params",
+            "auth",
+            "data"
+          ],
+          "explanation": "RFC 8446 の 2 章は、ハンドシェイクを Key Exchange (鍵の材料と暗号の取り決めを決める。これより後は暗号化される)・Server Parameters・Authentication (証明書でサーバーを確かめる) の 3 段階に分けています。CertificateVerify は、証明書に対応する秘密鍵を持っていることを示す署名です (4.4.3)。その後の本体のデータは AEAD という共通鍵暗号で守られます (5.2)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc8446#section-2",
+            "https://www.rfc-editor.org/rfc/rfc8446#section-4.4.3",
+            "https://www.rfc-editor.org/rfc/rfc8446#section-5.2"
+          ]
+        },
+        {
+          "id": "security-l1-q6",
+          "kind": "choice",
+          "prompt": "TLS 1.3 で、クライアントとサーバーが共通の鍵を決める仕組みとして正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "(EC)DHE などの鍵交換で決める。静的な RSA の鍵交換は外され、どの方式も前方秘匿性を持つ"
+            },
+            {
+              "id": "b",
+              "text": "クライアントが共通鍵を作り、サーバー証明書の RSA 公開鍵で暗号化して送る",
+              "why": "これは TLS 1.2 までの静的 RSA の鍵交換で、TLS 1.3 では外されました。"
+            },
+            {
+              "id": "c",
+              "text": "証明書の中に共通鍵が書かれていて、それを取り出して使う",
+              "why": "証明書に入っているのはサーバーの公開鍵です。共通鍵は接続ごとに決めます。"
+            },
+            {
+              "id": "d",
+              "text": "共通鍵は使わず、本体のデータもすべて公開鍵暗号で暗号化する",
+              "why": "本体のデータは速い共通鍵暗号 (AEAD) で守ります (RFC 8446 5.2)。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8446 の 1.2 節は TLS 1.2 からの大きな違いとして、静的な RSA と Diffie-Hellman の暗号スイートが外され、公開鍵による鍵交換はすべて前方秘匿性を持つようになったと書いています。「公開鍵暗号で共通鍵を決める」の中身は、TLS 1.3 では (EC)DHE の鍵交換です。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc8446#section-1.2",
+            "https://www.rfc-editor.org/rfc/rfc8446#section-2"
+          ]
+        },
+        {
+          "id": "security-l1-q7",
+          "kind": "lab",
+          "prompt": "1 文字だけ違う 2 つの文字列のハッシュ値を手元で比べてください。試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。 (この実習は自分の端末の中だけで完結します)",
+          "steps": [
+            {
+              "text": "端末で次を打つ",
+              "command": "printf 'hello' | openssl dgst -sha256"
+            },
+            {
+              "text": "最後の 1 文字だけ変えて、もう一度打つ",
+              "command": "printf 'hellp' | openssl dgst -sha256"
+            },
+            {
+              "text": "2 つの値の長さと、どれくらい違うかを見比べる"
+            }
+          ],
+          "expected": "どちらも 16 進で 64 文字 (256 ビット) の値が出ます。入力は 1 文字しか違わないのに、値はほぼ全体が別物になります (hello は 2cf24dba… で始まり、hellp は fdd7585e… で始まります)。",
+          "explanation": "ダイジェストの長さはアルゴリズムで決まり、入力が少しでも変われば非常に高い確率で別の値になります (FIPS 180-4 の 1 章)。この性質があるので、配布物のハッシュ値を比べると改ざんに気づけます。",
+          "sources": [
+            "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf",
+            "https://docs.openssl.org/3.5/man1/openssl-dgst/"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "security-l2",
+      "title": "暗号の基本 (2) パスワード保存・署名・証明書",
+      "course": "security",
+      "questions": [
+        {
+          "id": "security-l2-q1",
+          "kind": "choice",
+          "prompt": "(このコースの約束) 試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。\n自分のアプリで利用者のパスワードを保存します。保存のしかたとしていちばん適切なものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "Argon2id や bcrypt のような、わざと遅いパスワード用のハッシュで、利用者ごとに違うソルトを加えて保存する"
+            },
+            {
+              "id": "b",
+              "text": "SHA-256 で 1 回ハッシュして保存する",
+              "why": "SHA-256 は速すぎて、盗まれたときに大量の推測を短時間で試されます。パスワードの保存には向きません。"
+            },
+            {
+              "id": "c",
+              "text": "AES で暗号化して保存し、鍵はアプリの設定に置く",
+              "why": "暗号化は鍵があれば元に戻せます。アプリと鍵が一緒に盗まれれば、パスワードがそのまま漏れます。"
+            },
+            {
+              "id": "d",
+              "text": "全員に同じソルトを付けて bcrypt でハッシュする",
+              "why": "ソルトは利用者ごとに変えます。同じだと、同じパスワードの人が同じ値になり、まとめて解かれます。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "OWASP の Password Storage Cheat Sheet は、パスワードを平文で保存せず、Argon2id・bcrypt・PBKDF2 のような強く遅いハッシュで守り、パスワードごとに一意のソルトを加えるよう勧めています。SHA-256 のような速いハッシュは向かず、暗号化は元に戻せるので、ほぼすべての場面でハッシュを使うべきだとしています (Introduction と Hashing vs Encryption)。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#introduction",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#hashing-vs-encryption"
+          ]
+        },
+        {
+          "id": "security-l2-q2",
+          "kind": "choice",
+          "prompt": "パスワードのハッシュに、利用者ごとに違うソルトを加える理由として正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "同じパスワードでも利用者ごとに違うハッシュ値になり、前もって計算した表で一度にまとめて解くことができなくなる"
+            },
+            {
+              "id": "b",
+              "text": "ソルトを秘密にしておけば、ハッシュ値から元のパスワードに戻せるようになる",
+              "why": "ソルトは秘密の鍵ではなく、ハッシュ値と一緒に保存してよい値です。ハッシュは元に戻せません。"
+            },
+            {
+              "id": "c",
+              "text": "ソルトを加えると、短いパスワードでも推測されなくなる",
+              "why": "ソルトは 1 件ずつ解かせるための工夫で、弱いパスワードを強くはしません。"
+            },
+            {
+              "id": "d",
+              "text": "ソルトを加えるとハッシュの計算が速くなる",
+              "why": "速さは変わりません。遅くするのはワークファクター (繰り返しの回数やメモリの量) の役目です。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "OWASP の Password Storage Cheat Sheet の Salting は、ソルトを利用者ごとに一意の乱数とし、そのため攻撃者は 1 件ずつそのソルトで解くしかなく、レインボーテーブルのような事前計算も効かなくなる、と説明しています。同じパスワードの利用者がいるかどうかも、ハッシュ値からは分からなくなります。RFC 4949 もソルトを、ある計算結果を別の場面で使い回させないための値と定めています。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#salting",
+            "https://www.rfc-editor.org/rfc/rfc4949#section-4"
+          ]
+        },
+        {
+          "id": "security-l2-q3",
+          "kind": "choice",
+          "prompt": "Spring Security の DelegatingPasswordEncoder で保存されたパスワードの値です。先頭の {bcrypt} は何を表していますか。",
+          "code": {
+            "format": "text",
+            "text": "{bcrypt}$2a$10$dXJ3SW6G7P50lGmMkkmwe.20cQQubK3.HZWzG3YB1tlRy.fqvM/BG"
+          },
+          "choices": [
+            {
+              "id": "a",
+              "text": "どの PasswordEncoder (どの方式) で作った値か。照合のときに、この id で使う方式を選ぶ"
+            },
+            {
+              "id": "b",
+              "text": "bcrypt で暗号化してあり、復号の鍵の名前が bcrypt である",
+              "why": "bcrypt はハッシュで、復号はしません。{bcrypt} は鍵の名前ではありません。"
+            },
+            {
+              "id": "c",
+              "text": "ソルトの値そのもの",
+              "why": "ソルトは後ろの $2a$10$ に続く部分に入っています。{bcrypt} は方式の id です。"
+            },
+            {
+              "id": "d",
+              "text": "利用者がログインに失敗した回数",
+              "why": "保存形式の中に失敗回数は入りません。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "Spring Security の文書 (Password Storage の DelegatingPasswordEncoder) は、保存形式を {id}encodedPassword とし、id でどの PasswordEncoder を使うかを決めると説明しています。照合 (matches) も {id} とその対応で行うので、古い方式の値と新しい方式の値を混ぜて持て、新しく保存する値だけを強い方式に移していけます。",
+          "sources": [
+            "https://docs.spring.io/spring-security/reference/features/authentication/password-storage.html",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#bcrypt"
+          ]
+        },
+        {
+          "id": "security-l2-q4",
+          "kind": "order",
+          "prompt": "RSA や ECDSA のデジタル署名で、データに署名して相手が確かめるまでを、起きる順に並べてください。",
+          "items": [
+            {
+              "id": "hash",
+              "text": "署名する人が、データをハッシュ関数で固定長のダイジェストにする"
+            },
+            {
+              "id": "sign",
+              "text": "署名する人が、自分の秘密鍵でダイジェストから署名を作る"
+            },
+            {
+              "id": "send",
+              "text": "データと署名を相手に渡す"
+            },
+            {
+              "id": "verify",
+              "text": "受け取った人が、署名した人の公開鍵と同じハッシュ関数で署名を検証する"
+            }
+          ],
+          "answer": [
+            "hash",
+            "sign",
+            "send",
+            "verify"
+          ],
+          "explanation": "FIPS 186-5 の 3 章は、署名の生成に秘密鍵を、検証に公開鍵を使い、RSA と ECDSA では生成と検証の両方でデータを承認済みのハッシュ関数で固定長にしてから使う、と説明しています。検証する側は、署名した人の公開鍵と、署名のときと同じハッシュ関数を使います。なお EdDSA は、データをハッシュしてから署名する形ではありません (同じ章の脚注)。",
+          "sources": [
+            "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf",
+            "https://www.rfc-editor.org/rfc/rfc8017#section-8.1"
+          ]
+        },
+        {
+          "id": "security-l2-q5",
+          "kind": "choice",
+          "prompt": "デジタル署名で検証に成功したとき、受け取った人に分かることとして正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "署名のあとデータが書き換えられていないことと、その公開鍵に対応する秘密鍵の持ち主が署名したこと"
+            },
+            {
+              "id": "b",
+              "text": "データの中身がだれにも読まれていないこと",
+              "why": "署名は中身を隠しません。読まれないようにするのは暗号化の役目です。"
+            },
+            {
+              "id": "c",
+              "text": "署名した人が、その公開鍵の本当の持ち主の会社であること",
+              "why": "公開鍵がだれのものかは署名だけでは分かりません。それを保証するのが証明書 (PKI) です。"
+            },
+            {
+              "id": "d",
+              "text": "データが送られた時刻",
+              "why": "署名そのものは時刻を保証しません。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "FIPS 186-5 の概要と 3 章は、デジタル署名がデータの無断の改変を検出し、署名した人を確かめるために使われると説明しています。どの公開鍵がどの相手のものかは、別に確かめる必要があります。RFC 5280 の 3.1 節は、その結び付きを認証局 (CA) の署名付きの証明書で示すとしています。",
+          "sources": [
+            "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf",
+            "https://www.rfc-editor.org/rfc/rfc5280#section-3.1"
+          ]
+        },
+        {
+          "id": "security-l2-q6",
+          "kind": "choice",
+          "prompt": "HTTPS で使う X.509 のサーバー証明書が保証していることとして正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "信頼された認証局 (CA) が署名して、この公開鍵がこの名前 (サイト) のものだと結び付けている"
+            },
+            {
+              "id": "b",
+              "text": "証明書そのものが、通信の本体を暗号化する鍵になっている",
+              "why": "本体のデータは接続ごとに決めた共通鍵で暗号化します。証明書は相手を確かめるためのものです。"
+            },
+            {
+              "id": "c",
+              "text": "そのサイトの運営者が悪いことをしないこと",
+              "why": "証明書が結び付けるのは公開鍵と名前です。運営者の振る舞いまでは保証しません。"
+            },
+            {
+              "id": "d",
+              "text": "一度発行されれば、期限なくずっと使える",
+              "why": "証明書には有効期間があり、その間だけ使えます (RFC 5280 3.1)。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "RFC 5280 の 3.1 節は、公開鍵の証明書を公開鍵の値と持ち主 (subject) を結び付けるデータとし、その結び付きを信頼された CA が証明書に署名して示すと説明しています。証明書には限られた有効期間があります。ブラウザは CA の証明書からサーバー証明書までの鎖をたどって確かめます (6.1 節の path validation)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc5280#section-3.1",
+            "https://www.rfc-editor.org/rfc/rfc5280#section-6.1"
+          ]
+        },
+        {
+          "id": "security-l2-q7",
+          "kind": "command",
+          "tool": "openssl",
+          "prompt": "自分のラボで作った CA の証明書 ca.crt で、サーバー証明書 server.crt を検証したい。信頼する CA の証明書のファイルを渡すオプションを埋めてください。",
+          "code": "openssl verify {{blank}} ca.crt server.crt",
+          "blanks": [
+            {
+              "answers": [
+                "-CAfile"
+              ]
+            }
+          ],
+          "output": "server.crt: OK",
+          "explanation": "openssl verify は、信頼する CA の証明書を -CAfile で受け取り、そこから対象の証明書までの鎖を検証します。成功すると「ファイル名: OK」と出ます。CA の証明書を渡さないと、自分で作った CA は信頼されていないので検証に失敗します (RFC 5280 6.1 の path validation は、信頼の起点から鎖をたどります)。",
+          "sources": [
+            "https://docs.openssl.org/3.5/man1/openssl-verify/",
+            "https://www.rfc-editor.org/rfc/rfc5280#section-6.1"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "security-l3",
+      "title": "Web の攻撃と対策 (1) SQL インジェクション・XSS・CSRF",
+      "course": "security",
+      "questions": [
+        {
+          "id": "security-l3-q1",
+          "kind": "choice",
+          "prompt": "(このコースの約束) 試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。\n自分のアプリの検索のコードです。この SQL インジェクションの原因 (どの入力が、どこで、何として解釈されたか) と対策の組として正しいものはどれですか。",
+          "code": {
+            "format": "java",
+            "text": "// 注文の検索 (自分のアプリの一部)\nString sql = \"SELECT * FROM orders WHERE customer = '\"\n    + request.getParameter(\"name\") + \"'\";\nResultSet rs = connection.createStatement().executeQuery(sql);"
+          },
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: 引数 name の値が、データベースで SQL 文の構文の一部として解釈される。対策: PreparedStatement の ? の位置に setString でバインドする"
+            },
+            {
+              "id": "b",
+              "text": "原因: 引数 name の値が、ブラウザで HTML として解釈される。対策: 出力時に HTML エスケープする",
+              "why": "これは XSS の原因と対策です。ここで値が解釈されるのはデータベースの中です。"
+            },
+            {
+              "id": "c",
+              "text": "原因: 引数 name の値が SQL 文の一部になる。対策: 値から ' などの記号を手で取り除いてから連結する",
+              "why": "手で記号を消したりエスケープしたりする方法は、方言ごとの規則の違いなどで漏れやすく、OWASP は強く勧めていません。"
+            },
+            {
+              "id": "d",
+              "text": "原因: 通信が暗号化されていない。対策: HTTPS にする",
+              "why": "HTTPS は通り道を守るだけで、届いた値が SQL 文として解釈されることは防ぎません。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "OWASP の SQL Injection Prevention Cheat Sheet は、信頼できないデータが問い合わせの SQL の構文の一部になることを SQL インジェクションとし、SQL の構造と値を分けて、値をデータベースの API でバインドする (パラメータ化した問い合わせ) ことを主な対策にしています。手で値をエスケープする方法は強く勧めていません。IPA の「安全なウェブサイトの作り方」1.1 も、根本的解決として SQL 文の組み立てをすべてプレースホルダで実装するよう求めています。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html#primary-defenses",
+            "https://www.ipa.go.jp/security/vuln/websecurity/sql.html"
+          ]
+        },
+        {
+          "id": "security-l3-q2",
+          "kind": "choice",
+          "prompt": "並べ替えの列を利用者が選べる一覧画面です。原因と対策の組として正しいものはどれですか。",
+          "code": {
+            "format": "java",
+            "text": "// 並べ替えの列を利用者が選べる一覧画面\nString sort = request.getParameter(\"sort\");  // 例: price\nString sql = \"SELECT * FROM products ORDER BY \" + sort;"
+          },
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: 引数 sort の値が、データベースで ORDER BY の後ろの SQL の構文 (列の名前) として解釈される。対策: 受け付ける値をアプリが決めた少数の列名に対応付け、それ以外は拒む"
+            },
+            {
+              "id": "b",
+              "text": "原因は同じ。対策: sort を PreparedStatement の ? にバインドする",
+              "why": "プレースホルダが表すのは値で、列名・表名・ASC や DESC のような構文の部分はバインドできません。"
+            },
+            {
+              "id": "c",
+              "text": "原因: 引数 sort の値が、ブラウザでスクリプトとして解釈される。対策: CSP を付ける",
+              "why": "値が解釈されるのはデータベースの中です。CSP はブラウザでの読み込みを絞る仕組みです。"
+            },
+            {
+              "id": "d",
+              "text": "原因: 並べ替えに時間がかかる。対策: 索引を張る",
+              "why": "速さの問題ではなく、入力が SQL の構文として解釈される問題です。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "OWASP の SQL Injection Prevention Cheat Sheet の Allow-List Input Validation は、パラメータの記号が表すのは値であって、表名・列名・ASC や DESC のような SQL の語ではないとし、こうした構造の部分は利用者の選択をアプリが持つ決まった値に対応付け、それ以外を拒むよう勧めています。並べ替えの向きも、渡された文字列を足さずに ASC か DESC の文字列に対応付けます。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html#allow-list-input-validation",
+            "https://www.ipa.go.jp/security/vuln/websecurity/sql.html"
+          ]
+        },
+        {
+          "id": "security-l3-q3",
+          "kind": "choice",
+          "prompt": "掲示板のコメントを出すテンプレートです。利用者が書いたコメントにタグが含まれていると、ほかの人のブラウザでスクリプトが動きます。原因と対策の組として正しいものはどれですか。",
+          "code": {
+            "format": "html",
+            "text": "<!-- 掲示板のコメント一覧 (Thymeleaf) -->\n<p th:utext=\"${comment.body}\">コメント</p>"
+          },
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: コメントの値が、閲覧する人のブラウザで文字ではなく HTML (タグ) として解釈される。対策: th:text で出力し、出力するときにエスケープする"
+            },
+            {
+              "id": "b",
+              "text": "原因は同じ。対策: Content-Security-Policy ヘッダーだけを付ける",
+              "why": "CSP は被害を減らす追加の層です。設定を誤りやすく、主な対策にはしないよう OWASP は書いています。"
+            },
+            {
+              "id": "c",
+              "text": "原因は同じ。対策: セッションの Cookie に HttpOnly を付ける",
+              "why": "HttpOnly はスクリプトから Cookie を読ませないだけで、スクリプトが動くこと自体は止めません。"
+            },
+            {
+              "id": "d",
+              "text": "原因: コメントの値が、データベースで SQL 文として解釈される。対策: PreparedStatement にする",
+              "why": "これは SQL インジェクションの原因と対策です。XSS の値が解釈されるのはブラウザの中です。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "OWASP の XSS Prevention Cheat Sheet は、XSS を、信頼できないデータをブラウザがコードとして扱う形でページに入れてしまうことと説明し、文字として表示したい値には出力時の符号化 (エスケープ) を、まずフレームワークの既定のものを使うよう勧めています。Thymeleaf の th:text は既定でエスケープし、th:utext は「エスケープしない」属性です (Thymeleaf の文書)。IPA の「安全なウェブサイトの作り方」1.5 も、ページに出す全ての要素にエスケープを施すことを根本的解決にしています。CSP と Cookie の属性は、被害を減らす追加の対策の扱いです (OWASP の Other Controls)。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#output-encoding-for-html-contexts",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#other-controls",
+            "https://www.ipa.go.jp/security/vuln/websecurity/cross-site-scripting.html",
+            "https://www.thymeleaf.org/doc/tutorials/3.1/usingthymeleaf.html"
+          ]
+        },
+        {
+          "id": "security-l3-q4",
+          "kind": "order",
+          "prompt": "自分のラボで見つけた XSS を、原因 (どの入力が、どこで、何として解釈されたか) と対策の組で書き残します。調べて直すまでを、進める順に並べてください。",
+          "items": [
+            {
+              "id": "input",
+              "text": "どの入力か: 問題を起こした値 (コメント欄の本文) を、要求の中で特定する"
+            },
+            {
+              "id": "where",
+              "text": "どこで・何として: サーバーが返した HTML の中で、その値が文字ではなくタグとして入っていることを確かめる"
+            },
+            {
+              "id": "fix",
+              "text": "対策: その値を出力するところを、出力時にエスケープする形 (th:text など) に直す"
+            },
+            {
+              "id": "check",
+              "text": "確かめる: 同じ値を入れても、画面に文字として表示されることを見る"
+            }
+          ],
+          "answer": [
+            "input",
+            "where",
+            "fix",
+            "check"
+          ],
+          "explanation": "まず入力を特定し、それが応答のどの場所 (HTML の本文・属性・JavaScript など) に、何として入ったかを見ます。OWASP の XSS Prevention Cheat Sheet は、入る場所ごとに必要な符号化が違い、値をページに入れるすべての場所を守ることが大事だとしています。直したら、同じ入力が文字として扱われることを確かめて閉じます。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#xss-defense-philosophy",
+            "https://www.ipa.go.jp/security/vuln/websecurity/cross-site-scripting.html"
+          ]
+        },
+        {
+          "id": "security-l3-q5",
+          "kind": "choice",
+          "prompt": "ログイン中の利用者が別のサイトを開いただけで、自分のアプリの送金の処理が実行されてしまいました (CSRF)。原因と対策の組として正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: ブラウザが自動で付けたセッションの Cookie を、サーバーが本人が自分の画面から送った要求の印として解釈している。対策: 状態を変える要求に CSRF トークンを付けてサーバーで確かめ、SameSite の Cookie を重ねる"
+            },
+            {
+              "id": "b",
+              "text": "原因は同じ。対策: 送金の要求を GET に変える",
+              "why": "状態を変える処理に GET を使わないよう OWASP は書いています。GET にしても防げません。"
+            },
+            {
+              "id": "c",
+              "text": "原因は同じ。対策: セッションの Cookie に HttpOnly を付ける",
+              "why": "HttpOnly はスクリプトから読ませないだけで、ブラウザが要求に Cookie を付けることは止めません。"
+            },
+            {
+              "id": "d",
+              "text": "原因: 送金の金額が SQL 文として解釈される。対策: PreparedStatement にする",
+              "why": "これは SQL インジェクションです。CSRF では、要求そのものは正しい形のまま本人の意図なく送られます。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "OWASP の CSRF Prevention Cheat Sheet は、ブラウザの要求にはセッションの Cookie を含むすべての Cookie が自動で付くので、守られていないサイトは正規の要求と偽の要求を区別できないと説明しています。対策は、まずフレームワークの組み込みの保護を使い、無ければ状態を変える要求に CSRF トークンを付けてサーバー側で確かめること、SameSite は多層の防御として使うこと、状態を変える処理に GET を使わないことです。Spring Security は POST のような安全でないメソッドに既定で CSRF の保護をかけます。IPA の「安全なウェブサイトの作り方」1.6 も、秘密情報を hidden パラメータに入れて実行ページで確かめる方法を根本的解決に挙げています。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#introduction",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#samesite-cookie-attribute",
+            "https://www.ipa.go.jp/security/vuln/websecurity/csrf.html",
+            "https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html"
+          ]
+        },
+        {
+          "id": "security-l3-q6",
+          "kind": "http",
+          "format": "http",
+          "prompt": "自分の Spring Boot のアプリの、正規の送金画面から送られた要求です。空欄 1 は、ブラウザがどのサイトから送られた要求にも自動で付けるので、それだけでは正規の画面からの送信と判別できない見出し (原因)。空欄 2 は、Spring Security が既定で読む CSRF トークンの引数の名前 (対策) です。埋めてください。",
+          "code": "POST /transfer HTTP/1.1\nHost: localhost:8080\n{{blank}}: SESSION=4f1c9e2a\nContent-Type: application/x-www-form-urlencoded\n\namount=1000&to=savings&{{blank}}=9b0e7c41-6d2f",
+          "blanks": [
+            {
+              "answers": [
+                "Cookie"
+              ],
+              "match": "header-name"
+            },
+            {
+              "answers": [
+                "_csrf"
+              ]
+            }
+          ],
+          "explanation": "ブラウザは要求に Cookie を自動で付けるので、Cookie のセッションだけを見るサーバーは、偽のサイトから送らされた要求も本人のものとして解釈します (OWASP の CSRF Prevention Cheat Sheet の Introduction)。対策のトークンは、サーバーが発行して画面に埋め、要求で送り返された値を確かめます。Spring Security は既定で、トークンを要求の引数 _csrf か見出し X-CSRF-TOKEN から読みます (Spring Security の CSRF の文書)。偽のサイトはこのトークンの値を知らないので、要求が拒まれます。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#synchronizer-token-pattern",
+            "https://docs.spring.io/spring-security/reference/servlet/exploits/csrf.html"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "security-l4",
+      "title": "Web の攻撃と対策 (2) 認証とセッション・IDOR・既知の脆弱性",
+      "course": "security",
+      "questions": [
+        {
+          "id": "security-l4-q1",
+          "kind": "choice",
+          "prompt": "(このコースの約束) 試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。\n自分のアプリは、サイトを開いた時点で発行したセッション ID を、ログインに成功した後もそのまま使い続けています。この不備 (セッション ID の固定化) の原因と対策の組として正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: ログイン前に発行された Cookie のセッション ID が、ログイン後もサーバーで認証済みの本人の印として解釈され続ける。対策: ログインに成功したら新しいセッション ID を発行し、古い ID を無効にする"
+            },
+            {
+              "id": "b",
+              "text": "原因は同じ。対策: セッション ID を URL の引数で受け渡す",
+              "why": "URL の引数のセッション ID は Referer などで外へ漏れます。IPA も Cookie で受け渡すよう求めています。"
+            },
+            {
+              "id": "c",
+              "text": "原因は同じ。対策: ログイン画面にだけ HTTPS を使う",
+              "why": "HTTP と HTTPS の間で同じセッションを切り替えると ID が平文で漏れます。ID の作り直しの代わりにもなりません。"
+            },
+            {
+              "id": "d",
+              "text": "原因: パスワードが SQL 文として解釈される。対策: PreparedStatement にする",
+              "why": "これは SQL インジェクションです。ここでの問題は、ログインの前後で同じセッション ID を使うことです。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "IPA の「安全なウェブサイトの作り方」1.4 は、ログイン前に始めたセッションをログイン後も使い続ける実装はセッション ID の固定化に弱い場合があるとし、ログイン成功の時点で新しいセッションを始め、既存のセッション ID を無効にするよう求めています。OWASP の Session Management Cheat Sheet も、権限が変わるたび (特にログイン時) にセッション ID を作り直すことを必須としています。OWASP Top 10:2025 の A07 も、ログイン成功後に同じセッション ID を使い回すことを弱点に挙げています。",
+          "sources": [
+            "https://www.ipa.go.jp/security/vuln/websecurity/session-management.html",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#renew-the-session-id-after-any-privilege-level-change",
+            "https://owasp.org/Top10/2025/A07_2025-Authentication_Failures/"
+          ]
+        },
+        {
+          "id": "security-l4-q2",
+          "kind": "choice",
+          "prompt": "自分のアプリのログイン後の応答です。この Set-Cookie の弱いところ (原因) と、足す属性 (対策) の組として正しいものはどれですか。",
+          "code": {
+            "format": "http",
+            "text": "HTTP/1.1 302 Found\nLocation: /home\nSet-Cookie: SESSION=8d2f0a71c3; Path=/"
+          },
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: ページのスクリプトから document.cookie でセッション ID を読めるうえ、暗号化されていない HTTP の要求にも Cookie が付く。対策: HttpOnly と Secure を付け、SameSite も明示する"
+            },
+            {
+              "id": "b",
+              "text": "原因: Path=/ でサイト全体に送られる。対策: Path を細かく分ければ、ほかの属性は要らない",
+              "why": "Path は安全のための仕組みとしては頼れないと RFC 6265 は書いています。HttpOnly と Secure の代わりになりません。"
+            },
+            {
+              "id": "c",
+              "text": "原因: セッション ID が短い。対策: Max-Age を長くする",
+              "why": "有効期間を長くすると、盗まれたときに使われる時間が延びるだけです。"
+            },
+            {
+              "id": "d",
+              "text": "原因: 302 で移動している。対策: 200 で返す",
+              "why": "ステータスコードは Cookie の守りと関係ありません。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "RFC 6265 の 4.1.2.6 節は、HttpOnly がスクリプトなど HTTP 以外の API から Cookie を見えなくすること、4.1.2.5 節は Secure が安全な通り道 (HTTPS) の要求にだけ Cookie を付けさせることを定めています。OWASP の Session Management Cheat Sheet は、セッションの Cookie に Secure と HttpOnly を付けることを必須とし、SameSite も Strict か Lax を明示するよう勧めています。IPA の「安全なウェブサイトの作り方」1.4 も、HTTPS で使う Cookie に secure 属性を加えるよう求めています。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html#cookies",
+            "https://www.rfc-editor.org/rfc/rfc6265#section-4.1.2.6",
+            "https://www.rfc-editor.org/rfc/rfc6265#section-4.1.2.5",
+            "https://www.ipa.go.jp/security/vuln/websecurity/session-management.html"
+          ]
+        },
+        {
+          "id": "security-l4-q3",
+          "kind": "choice",
+          "prompt": "自分のアプリのログインは、何回間違えても同じ速さで受け付けます。総当たりでパスワードを当てられる不備の原因と対策の組として正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: 推測で送られたログインの要求が、回数に関係なく毎回正規の試行として判定される。対策: アカウントごとに失敗回数を数えて一定期間ロックするなどの回数制限を入れ、多要素認証も使えるようにする"
+            },
+            {
+              "id": "b",
+              "text": "原因は同じ。対策: 失敗の回数を送信元の IP アドレスごとにだけ数える",
+              "why": "IP を変えながら試されると数えられません。OWASP は失敗の回数をアカウントに結び付けるよう書いています。"
+            },
+            {
+              "id": "c",
+              "text": "原因は同じ。対策: 「このメールアドレスは登録されていません」と詳しく返す",
+              "why": "どの値が正しいかを教えると、推測を助けてしまいます。"
+            },
+            {
+              "id": "d",
+              "text": "原因: パスワードが平文で通信される。対策: HTTPS にする",
+              "why": "HTTPS は盗み見を防ぎますが、何回でも試せることは変わりません。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "OWASP の Authentication Cheat Sheet の Account Lockout は、一定回数の失敗の後しばらくログインを受け付けないようにし、その失敗の回数は送信元の IP ではなくアカウントに結び付けるよう書いています。OWASP Top 10:2025 の A07 も、総当たりなどの自動化された攻撃をすぐに止めないことを弱点に挙げ、多要素認証を勧めています。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#account-lockout",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html#protect-against-automated-attacks",
+            "https://owasp.org/Top10/2025/A07_2025-Authentication_Failures/"
+          ]
+        },
+        {
+          "id": "security-l4-q4",
+          "kind": "choice",
+          "prompt": "自分のアプリの注文を返す API です。URL の id を書き換えると、ほかの利用者の注文が見えてしまいます (IDOR)。原因と対策の組として正しいものはどれですか。",
+          "code": {
+            "format": "java",
+            "text": "@GetMapping(\"/orders/{id}\")\npublic Order getOrder(@PathVariable Long id) {\n    return orderRepository.findById(id).orElseThrow();\n}"
+          },
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: URL の id が、サーバーでそのまま「この利用者が見てよい注文」として解釈され、持ち主の確認が無い。対策: サーバー側で、ログイン中の利用者の注文に絞って探す (findByIdAndOwnerId など) か、持ち主を確かめてから返す"
+            },
+            {
+              "id": "b",
+              "text": "原因は同じ。対策: id を推測しにくい UUID にするだけでよい",
+              "why": "推測しにくい id は多層の防御にはなりますが、URL を手に入れられれば見えてしまいます。権限の確認は必ず要ります。"
+            },
+            {
+              "id": "c",
+              "text": "原因は同じ。対策: 画面に、ほかの人の注文へのリンクを出さない",
+              "why": "画面 (クライアント側) で隠しても、要求は直接送れます。確認はサーバー側で行います。"
+            },
+            {
+              "id": "d",
+              "text": "原因: id が SQL 文として解釈される。対策: PreparedStatement にする",
+              "why": "findById は値をバインドしています。問題は、だれの注文かを確かめていないことです。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "OWASP の IDOR Prevention Cheat Sheet は、URL や引数の識別子を書き換えて他人のものに触れられる不備を IDOR とし、原因をオブジェクトごとの権限の確認の欠落としています。Spring Boot の例でも、利用者が決められる {id} がそのまま findById に渡ることを問題にし、利用者の持ち物に絞った検索か、取り出した後の持ち主の確認で直しています。推測しにくい id は多層の防御で、権限の確認の代わりにはなりません。OWASP の Authorization Cheat Sheet は、確認をクライアント側に頼らずサーバー側で行うよう書いています。IPA の「安全なウェブサイトの作り方」1.11 も、注文番号がログイン中の利用者に許された番号かを常に確かめるよう求めています。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html#java-and-spring-boot-example",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html#verify-that-authorization-checks-are-performed-in-the-right-location",
+            "https://www.ipa.go.jp/security/vuln/websecurity/access-control.html",
+            "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/"
+          ]
+        },
+        {
+          "id": "security-l4-q5",
+          "kind": "order",
+          "prompt": "自分のラボのアプリで、IDOR の原因 (サーバー側の持ち主の確認の漏れ) が残っていないか、対策が効いているかを確かめます。進める順に並べてください。",
+          "items": [
+            {
+              "id": "users",
+              "text": "利用者 A と利用者 B の 2 つのアカウントを作る"
+            },
+            {
+              "id": "objects",
+              "text": "A と B のそれぞれで、注文などの持ち物を作る"
+            },
+            {
+              "id": "tamper",
+              "text": "A でログインし、要求の中の識別子を B の持ち物のものに書き換えて送る"
+            },
+            {
+              "id": "deny",
+              "text": "識別子が推測しやすいかどうかに関係なく、サーバーが拒むことを確かめる"
+            }
+          ],
+          "answer": [
+            "users",
+            "objects",
+            "tamper",
+            "deny"
+          ],
+          "explanation": "OWASP の IDOR Prevention Cheat Sheet の Verifying access controls は、権限の違う複数のアカウントを作り、それぞれの持ち物を作ってから、A として B の持ち物の参照を書き換えて要求し、識別子が推測しやすいかどうかに関係なく拒まれることを確かめる手順を示しています。読むだけでなく、作る・直す・消す・書き出すなど、識別子を使うすべての操作で確かめます。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Insecure_Direct_Object_Reference_Prevention_Cheat_Sheet.html#verifying-access-controls"
+          ]
+        },
+        {
+          "id": "security-l4-q6",
+          "kind": "choice",
+          "prompt": "2021 年の Log4Shell (CVE-2021-44228) は、Java のログの部品 Log4j の既知の脆弱性です。原因と対策の組として正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: 攻撃者が決められるログの文字列が、log4j-core の中で JNDI の lookup の指示として解釈された。対策: 直った版に上げ、使っている部品と版 (推移的な依存も含む) を一覧にして継続的に検査する"
+            },
+            {
+              "id": "b",
+              "text": "原因は同じ。対策: 自分のコードに直接書いた依存だけを確かめればよい",
+              "why": "Log4j は別のライブラリ経由 (推移的な依存) で入っていることも多く、それも追う必要があります。"
+            },
+            {
+              "id": "c",
+              "text": "原因: ログの文字列がブラウザで HTML として解釈された。対策: ログを画面に出すときにエスケープする",
+              "why": "解釈が起きたのはサーバーのログの部品の中で、ブラウザではありません。"
+            },
+            {
+              "id": "d",
+              "text": "原因: ログのファイルが大きすぎた。対策: ログを毎日消す",
+              "why": "ログの量の問題ではなく、部品が入力を指示として解釈したことが原因です。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "Apache Log4j の Security の文書は、CVE-2021-44228 について、設定・ログのメッセージ・引数で使われる JNDI の機能が攻撃者の用意した先から守られておらず、ログのメッセージや引数を操作できる攻撃者が任意のコードを実行できた、と説明し、直った版を示しています。OWASP Top 10:2025 の A03 は、推移的な依存も含めて使う部品の版を把握し、脆弱性を継続的に調べ、直った版へ上げるよう勧め、例に Log4Shell を挙げています。",
+          "sources": [
+            "https://logging.apache.org/log4j/2.x/security.html",
+            "https://owasp.org/Top10/2025/A03_2025-Software_Supply_Chain_Failures/",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Vulnerable_Dependency_Management_Cheat_Sheet.html#case-1"
+          ]
+        },
+        {
+          "id": "security-l4-q7",
+          "kind": "choice",
+          "prompt": "依存の検査で、使っている部品に既知の脆弱性が見つかり、提供元から直った版が出ていました。原因と対策の組として正しいものはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "原因: 脆弱な版の部品を使い続けている。対策: テスト用の環境で直った版に上げ、自動テストで動くことを確かめてから本番に出す"
+            },
+            {
+              "id": "b",
+              "text": "原因は同じ。対策: 動いているので、次の大きな改修まで上げずに待つ",
+              "why": "OWASP Top 10:2025 の A03 は、更新を月や四半期ごとにまとめて待つと、その間ずっと危険にさらされると書いています。"
+            },
+            {
+              "id": "c",
+              "text": "原因は同じ。対策: テストをせずに本番で直接上げる",
+              "why": "OWASP の文書は、テスト用の環境で上げてテストを走らせる手順を示しています。"
+            },
+            {
+              "id": "d",
+              "text": "原因: 検査の道具が古い。対策: 検査の道具を止める",
+              "why": "検査を止めると、脆弱性に気づけなくなるだけです。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "OWASP の Vulnerable Dependency Management Cheat Sheet の Case 1 (直った版が出ている場合) は、テスト用の環境で依存の版を上げ、テストが通れば本番に出し、失敗したら呼び出し方の変化に合わせてコードを直す、という手順を示しています。自動テストがあることがこの手順の前提です。",
+          "sources": [
+            "https://cheatsheetseries.owasp.org/cheatsheets/Vulnerable_Dependency_Management_Cheat_Sheet.html#case-1",
+            "https://owasp.org/Top10/2025/A03_2025-Software_Supply_Chain_Failures/"
+          ]
+        },
+        {
+          "id": "security-l4-q8",
+          "kind": "lab",
+          "prompt": "自分のプロジェクト (この gantlo の作業コピーなど) で、依存の部品の既知の脆弱性を調べ、原因 (どの部品のどの版が、どの依存の経路で入っているか) と対策 (直った版) を書き出してください。試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。",
+          "steps": [
+            {
+              "text": "自分のプロジェクトのフォルダで次を打つ (依存の一覧が npm の registry に送られ、既知の脆弱性の報告が返ります)",
+              "command": "npm audit"
+            },
+            {
+              "text": "報告があれば、部品の名前・影響する版・直った版・どの依存の下に入っているかを読み取る"
+            },
+            {
+              "text": "直すときは、テストのある状態で版を上げ、テストを走らせてから確かめる",
+              "command": "npm audit fix --dry-run"
+            }
+          ],
+          "expected": "脆弱性が無ければ found 0 vulnerabilities と出て、終了コードは 0 です。あれば、部品ごとに深刻度・影響する版・直し方が出て、終了コードは 0 以外になります。--dry-run では、実際には変えずに何が変わるかだけが出ます。",
+          "explanation": "npm audit は、プロジェクトの依存の一覧を既定の registry に送り、既知の脆弱性の報告を受け取ります。見つかれば終了コードが 0 以外になるので CI にも組み込めます (npm の文書)。OWASP の Vulnerable Dependency Management Cheat Sheet も、検出の道具の例に NPM Audit と OWASP Dependency Check を挙げています。",
+          "sources": [
+            "https://docs.npmjs.com/cli/v10/commands/npm-audit",
+            "https://cheatsheetseries.owasp.org/cheatsheets/Vulnerable_Dependency_Management_Cheat_Sheet.html#tools"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "security-l5",
+      "title": "練習用ラボを手元に作る",
+      "course": "security",
+      "questions": [
+        {
+          "id": "security-l5-q1",
+          "kind": "choice",
+          "prompt": "(このコースの約束) 試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。\nわざと脆弱に作られた練習用アプリ (OWASP Juice Shop) を docker で動かします。自分の PC からだけ見える形で起動するコマンドはどれですか。",
+          "choices": [
+            {
+              "id": "a",
+              "text": "docker run --rm -p 127.0.0.1:3000:3000 bkimminich/juice-shop"
+            },
+            {
+              "id": "b",
+              "text": "docker run --rm -p 3000:3000 bkimminich/juice-shop",
+              "why": "ホストの IP を書かないと、ホストのどのアドレスでも受け付け、外からも届きます。docker の文書は、公開は既定で安全でないと書いています。"
+            },
+            {
+              "id": "c",
+              "text": "docker run --rm -p 0.0.0.0:3000:3000 bkimminich/juice-shop",
+              "why": "0.0.0.0 はすべてのアドレスで受け付ける指定で、外からも届きます。"
+            },
+            {
+              "id": "d",
+              "text": "docker run --rm --network host bkimminich/juice-shop",
+              "why": "ホストのネットワークをそのまま使うと -p の指定は無視されます。アプリが受け付けるアドレスによっては外からも届きます。"
+            }
+          ],
+          "answer": "a",
+          "explanation": "docker の文書 (Port publishing and mapping) は、コンテナのポートの公開は既定で安全でなく、-p にホストの IP を書かなければ外からも届くこと、127.0.0.1 (や ::1) を書けばその docker のホストからだけ届くことを説明しています。Juice Shop の README も、docker run --rm -p 127.0.0.1:3000:3000 bkimminich/juice-shop で起動して http://localhost:3000 を開く手順を載せています。",
+          "sources": [
+            "https://docs.docker.com/engine/network/port-publishing/",
+            "https://docs.docker.com/engine/network/drivers/host/",
+            "https://github.com/juice-shop/juice-shop"
+          ]
+        },
+        {
+          "id": "security-l5-q2",
+          "kind": "lab",
+          "prompt": "OWASP Juice Shop を 127.0.0.1 にだけ bind して起動し、自分の PC からだけ届いていることを確かめてください。試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。",
+          "steps": [
+            {
+              "text": "端末で次を打って起動する (止めるときは Ctrl+C。--rm なので止めるとコンテナは消えます)",
+              "command": "docker run --rm -p 127.0.0.1:3000:3000 bkimminich/juice-shop"
+            },
+            {
+              "text": "別の端末で、待ち受けているアドレスを見る",
+              "command": "ss -ltn 'sport = :3000'"
+            },
+            {
+              "text": "curl -v で、要求と応答を見る",
+              "command": "curl -v http://127.0.0.1:3000/ -o /dev/null"
+            }
+          ],
+          "expected": "ss の Local Address に 127.0.0.1:3000 が出て、0.0.0.0:3000 や *:3000 は出ません。curl の > の行に GET / と Host: 127.0.0.1:3000 が、< の行に 200 のステータスとヘッダーが出ます。",
+          "explanation": "-p に 127.0.0.1 を書くと、docker のホストからだけ届く形で公開されます (docker の Port publishing and mapping)。待ち受けのアドレスが 127.0.0.1 なら、同じネットワークのほかの機械からは届きません。練習用アプリは中身がわざと脆弱なので、外から届く形で動かさないことが前提です。",
+          "sources": [
+            "https://docs.docker.com/engine/network/port-publishing/",
+            "https://github.com/juice-shop/juice-shop",
+            "https://curl.se/docs/manpage.html"
+          ]
+        },
+        {
+          "id": "security-l5-q3",
+          "kind": "lab",
+          "prompt": "Java 製の OWASP WebGoat を手元で動かし、1 つのレッスンについて、原因 (どの入力が、どこで、何として解釈されたか) と対策を組にして書き残してください。試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。",
+          "steps": [
+            {
+              "text": "端末で次を打って起動する (WebGoat の README の形。2 つのポートとも 127.0.0.1 にだけ bind します)",
+              "command": "docker run -it -p 127.0.0.1:8080:8080 -p 127.0.0.1:9090:9090 webgoat/webgoat"
+            },
+            {
+              "text": "ブラウザで http://127.0.0.1:8080/WebGoat を開き、自分用のアカウントを作ってレッスンを 1 つ選ぶ"
+            },
+            {
+              "text": "ブラウザの開発者ツールの Network タブで、自分が送った要求の中の入力の値を探す"
+            },
+            {
+              "text": "その値が、サーバーのどこで (SQL・HTML・コマンドなど) 何として解釈されたかと、効く対策を 1 行ずつ書く"
+            }
+          ],
+          "expected": "WebGoat の画面が開き、レッスンごとの説明と課題が出ます。書き残した 1 件ぶんの記録が「入力: …/どこで: …/何として: …/対策: …」の 4 行で埋まります。",
+          "explanation": "WebGoat は、Web アプリの弱点を学ぶために OWASP が保守している、わざと安全でないアプリです。README は、動かしている間は機械が非常に攻撃されやすくなるので注意するよう警告し、許可なくこれらの手法を試さないよう書いています。原因と対策を組で書き残すと、自分のアプリで同じ形を見つけたときに直し方まで思い出せます。",
+          "sources": [
+            "https://github.com/WebGoat/WebGoat",
+            "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html#introduction"
+          ]
+        },
+        {
+          "id": "security-l5-q4",
+          "kind": "command",
+          "tool": "openssl",
+          "prompt": "ラボ用の自分の認証局 (CA) を作ります。CSR ではなく自己署名の証明書をそのまま出すオプションを埋めてください。",
+          "code": "openssl req {{blank}} -newkey ec -pkeyopt ec_paramgen_curve:P-256 -noenc -keyout ca.key -out ca.crt -days 30 -subj \"/CN=My Lab CA\"",
+          "blanks": [
+            {
+              "answers": [
+                "-x509"
+              ]
+            }
+          ],
+          "explanation": "openssl req は、ふつうは証明書の署名要求 (CSR) を作ります。-x509 を付けると、CSR の代わりに自己署名の証明書を出します。-newkey で新しい鍵を作り、-noenc で鍵を暗号化せずに保存します (ラボの中だけで使う前提です)。CA の証明書は自分で自分に署名した証明書で、これを信頼の起点として渡した相手だけが、この CA の発行した証明書を信頼します (RFC 5280 6.1)。",
+          "sources": [
+            "https://docs.openssl.org/3.5/man1/openssl-req/",
+            "https://www.rfc-editor.org/rfc/rfc5280#section-6.1"
+          ]
+        },
+        {
+          "id": "security-l5-q5",
+          "kind": "order",
+          "prompt": "自分の CA でサーバー証明書を発行し、手元の HTTPS のサーバーで使うまでを、進める順に並べてください。",
+          "items": [
+            {
+              "id": "ca",
+              "text": "CA の鍵と、自己署名の CA 証明書を作る (openssl req -x509)"
+            },
+            {
+              "id": "csr",
+              "text": "サーバーの鍵と、名前 (localhost) を書いた署名要求 CSR を作る (openssl req -newkey)"
+            },
+            {
+              "id": "issue",
+              "text": "CA の鍵で CSR に署名し、サーバー証明書を発行する (openssl x509 -req -CA)"
+            },
+            {
+              "id": "serve",
+              "text": "サーバー証明書と鍵で、127.0.0.1 だけで待ち受ける HTTPS のサーバーを起動する (openssl s_server)"
+            },
+            {
+              "id": "trust",
+              "text": "クライアントに CA 証明書を渡して接続し、検証が通ることを見る (openssl s_client -CAfile)"
+            }
+          ],
+          "answer": [
+            "ca",
+            "csr",
+            "issue",
+            "serve",
+            "trust"
+          ],
+          "explanation": "証明書は、CA が公開鍵と名前の結び付きに署名したものです (RFC 5280 3.1)。だから先に CA の鍵が要り、次にサーバーの公開鍵と名前を CSR にまとめ、CA の鍵で署名して発行します (openssl-x509 の -req と -CA)。最後に、検証する側に信頼の起点として CA 証明書を渡すと、鎖がたどれて検証が通ります。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc5280#section-3.1",
+            "https://docs.openssl.org/3.5/man1/openssl-x509/",
+            "https://docs.openssl.org/3.5/man1/openssl-s_server/"
+          ]
+        },
+        {
+          "id": "security-l5-q6",
+          "kind": "lab",
+          "prompt": "自分の CA で発行した証明書で、127.0.0.1 だけで待ち受ける HTTPS のサーバーを立て、openssl s_client と curl で検証の結果を観察してください。試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。",
+          "steps": [
+            {
+              "text": "作業用の空のフォルダで、CA を作る",
+              "command": "openssl req -x509 -newkey ec -pkeyopt ec_paramgen_curve:P-256 -noenc -keyout ca.key -out ca.crt -days 30 -subj \"/CN=My Lab CA\""
+            },
+            {
+              "text": "サーバーの鍵と CSR を作る",
+              "command": "openssl req -newkey ec -pkeyopt ec_paramgen_curve:P-256 -noenc -keyout server.key -out server.csr -subj \"/CN=localhost\""
+            },
+            {
+              "text": "CA の鍵で署名してサーバー証明書を発行する (名前を subjectAltName に入れる)",
+              "command": "printf 'subjectAltName=DNS:localhost,IP:127.0.0.1' > san.ext && openssl x509 -req -in server.csr -CA ca.crt -CAkey ca.key -CAcreateserial -out server.crt -days 7 -extfile san.ext"
+            },
+            {
+              "text": "127.0.0.1 の 8443 番だけで待ち受けるサーバーを起動する (止めるときは Ctrl+C)",
+              "command": "openssl s_server -accept 127.0.0.1:8443 -cert server.crt -key server.key -www"
+            },
+            {
+              "text": "別の端末で、CA を渡して接続する",
+              "command": "openssl s_client -connect 127.0.0.1:8443 -servername localhost -CAfile ca.crt < /dev/null"
+            },
+            {
+              "text": "CA を渡さずに接続して、違いを見る",
+              "command": "openssl s_client -connect 127.0.0.1:8443 -servername localhost < /dev/null"
+            },
+            {
+              "text": "curl でも、CA を渡す場合と渡さない場合を比べる",
+              "command": "curl -v --cacert ca.crt https://localhost:8443/ -o /dev/null"
+            }
+          ],
+          "expected": "CA を渡すと、s_client の出力に subject=CN=localhost と issuer=CN=My Lab CA、Protocol: TLSv1.3、Verify return code: 0 (ok) が出ます。CA を渡さないと Verify return code: 21 (unable to verify the first certificate) になります。curl は --cacert ありなら 200 が返り、無しなら証明書を検証できないエラー (60) で止まります。",
+          "explanation": "s_client はハンドシェイクで受け取った証明書と検証の結果を出します。自分で作った CA は信頼の起点に入っていないので、-CAfile (curl では --cacert) で渡したときだけ鎖がたどれて検証が通ります (RFC 5280 6.1)。s_server の -accept に 127.0.0.1 を付けたので、ほかの機械からは届きません。",
+          "sources": [
+            "https://docs.openssl.org/3.5/man1/openssl-s_client/",
+            "https://docs.openssl.org/3.5/man1/openssl-s_server/",
+            "https://curl.se/docs/manpage.html",
+            "https://www.rfc-editor.org/rfc/rfc5280#section-6.1"
+          ]
+        },
+        {
+          "id": "security-l5-q7",
+          "kind": "command",
+          "tool": "openssl",
+          "prompt": "手元のサーバー (127.0.0.1:8443) に openssl s_client で接続し、自分の CA の証明書 ca.crt で検証したい。検証に使う CA のファイルを渡すオプションを埋めてください。",
+          "code": "openssl s_client -connect 127.0.0.1:8443 -servername localhost {{blank}} ca.crt",
+          "blanks": [
+            {
+              "answers": [
+                "-CAfile"
+              ]
+            }
+          ],
+          "output": "subject=CN=localhost\nissuer=CN=My Lab CA\n...\nVerify return code: 0 (ok)",
+          "explanation": "s_client の -CAfile は、サーバーの証明書を検証するときに信頼する CA の証明書を渡すオプションです (openssl-s_client と openssl-verification-options)。-servername は、接続先の名前を TLS の SNI で伝えます。Verify return code: 0 (ok) は、渡した CA からサーバー証明書までの鎖をたどれたことを表します。",
+          "sources": [
+            "https://docs.openssl.org/3.5/man1/openssl-s_client/",
+            "https://docs.openssl.org/3.5/man1/openssl-verification-options/"
+          ]
+        }
+      ]
+    }
+  ]
+}
