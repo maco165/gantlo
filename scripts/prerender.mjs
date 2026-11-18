@@ -33,9 +33,9 @@ try {
     await mkdir(dir, { recursive: true });
     await writeFile(path.join(dir, 'index.html'), renderPage(template, page));
   }
-  await writeFile(path.join(DIST, '404.html'), renderPage(template, NOT_FOUND_PAGE, { noindex: true }));
+  await writeFile(path.join(DIST, '404.html'), renderPage(template, NOT_FOUND_PAGE));
   await writeFile(path.join(DIST, 'sitemap.xml'), sitemapXml(pages));
-  console.log(`prerender: ${pages.length} ページと 404.html・sitemap.xml を書きました`);
+  console.log(`prerender: ${pages.length} ページと 404.html・sitemap.xml (${pages.filter((p) => !p.noindex).length} 件) を書きました`);
 } finally {
   await server.close();
 }

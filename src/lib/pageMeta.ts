@@ -17,6 +17,10 @@ export function titleOf(route: Route): string | null {
 
 /** タブ・履歴・検索の結果に出る題 (サイト名つき) */
 export function documentTitle(route: Route): string {
-  const title = titleOf(route);
+  return withSite(titleOf(route));
+}
+
+/** 画面の題にサイト名を付ける。null はホーム */
+export function withSite(title: string | null): string {
   return title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | ガントチャートで計画する ${SITE_TAGLINE}`;
 }

@@ -5,11 +5,15 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LESSONS } from '../src/content/index';
-import { PAGE_TITLES, titleOf } from '../src/lib/pageMeta';
+import type { Lesson } from '../src/content/types';
+import { documentTitle, PAGE_TITLES, titleOf } from '../src/lib/pageMeta';
 import { BASE, COURSES, parseRoute } from '../src/lib/route';
 import { SITE_NAME, SITE_TAGLINE } from '../src/lib/site';
 import { renderPage, sitemapXml } from '../src/prerender/html';
 import { NOT_FOUND_PAGE, ORIGIN, sitePages, type SitePage } from '../src/prerender/pages';
+
+/** 検索に載せない、一人ひとりの記録の画面 (R-7 の「全ページ」は検索に載せる全ページと読む) */
+const PERSONAL = ['plan/', 'review/', 'progress/', 'settings/'];
 
 const SITE_URL = `${ORIGIN}${BASE}`;
 const template = readFileSync(join(__dirname, '../index.html'), 'utf8');
@@ -30,7 +34,7 @@ function readHead(html: string): Head {
   };
 }
 
-/** 画面の見出しと同じ文 (ホームは「gantlo — API と HTTP の基礎」、ほかは画面の題) */
+/** 本文の見出し。ホームは画面と同じ「gantlo — API と HTTP の基礎」、ほかは画面の題 (レッスンは題。画面の h1 は 1 問目の問題文) */
 const expectedH1 = (p: SitePage) => (p.path === '' ? `${SITE_NAME} — ${SITE_TAGLINE}` : titleOf(parseRoute(`${BASE}${p.path}`)));
 
 const expectUnique = (values: string[], label: string) => {
@@ -62,17 +66,21 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
     }
   });
 
-  it('title は画面のタブと同じで、description は 50〜120 字', () => {
+  it('title は画面のタブ (documentTitle) と同じで、description は 50〜120 字', () => {
     for (const { page, head } of heads) {
       expect(head.title).toBe(page.title);
-      expect(head.title.includes(SITE_NAME)).toBe(true);
+      expect(head.title, page.path).toBe(documentTitle(parseRoute(`${BASE}${page.path}`)));
       expect(head.description.length, page.path).toBeGreaterThanOrEqual(50);
       expect(head.description.length, page.path).toBeLessThanOrEqual(120);
-      expect(head.robots).toBeNull();
     }
   });
 
-  it('本文の見出し (h1) が JS なしの HTML にあり、画面の見出しと同じ', () => {
+  it('一人ひとりの記録の画面 (plan・review・progress・settings) だけ noindex で、ほかは検索に載せる', () => {
+    for (const { page, head } of heads) expect(head.robots, page.path).toBe(PERSONAL.includes(page.path) ? 'noindex' : null);
+    expect(heads.filter((h) => h.head.robots === 'noindex').map((h) => h.page.path).sort()).toEqual([...PERSONAL].sort());
+  });
+
+  it('本文の見出し (h1) が JS なしの HTML にあり、画面の見出しと同じ (レッスンは題)', () => {
     for (const { page, head } of heads) expect(head.h1, page.path).toBe(expectedH1(page));
   });
 
@@ -86,8 +94,23 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
     }
   });
 
+  it('レッスンの題と問題文の < > & を、本文 (h1・コースの一覧・問題の一覧) でも文字として書く', () => {
+    const odd = { id: 'x-l1', title: '<b>A & B</b>', course: 'main', questions: [{ id: 'x-q1', kind: 'choice', prompt: '<img src=x onerror=alert(1)> & 1 < 2', explanation: 'e', sources: [], choices: [], answer: '' }] } as unknown as Lesson;
+    const all = sitePages([odd]);
+    const lessonHtml = renderPage(template, all.find((p) => p.path === 'lesson/x-l1/')!);
+    const courseHtml = renderPage(template, all.find((p) => p.path === 'course/main/')!);
+    expect(lessonHtml).toContain('<h1>&lt;b&gt;A &amp; B&lt;/b&gt;</h1>');
+    expect(lessonHtml).toContain('<li>&lt;img src=x onerror=alert(1)&gt; &amp; 1 &lt; 2</li>');
+    expect(courseHtml).toContain('>&lt;b&gt;A &amp; B&lt;/b&gt;</a>');
+    for (const html of [lessonHtml, courseHtml]) {
+      expect(html).not.toContain('<b>A');
+      expect(html).not.toContain('<img src=x');
+    }
+    expect(readHead(lessonHtml).h1).toBe('<b>A & B</b>');
+  });
+
   it('404.html は検索に載せず、canonical を持たない', () => {
-    const head = readHead(renderPage(template, NOT_FOUND_PAGE, { noindex: true }));
+    const head = readHead(renderPage(template, NOT_FOUND_PAGE));
     expect(head.robots).toBe('noindex');
     expect(head.canonical).toBeNull();
     expect(head.ogUrl).toBeNull();
@@ -115,8 +138,9 @@ describe('sitemap.xml', () => {
   const xml = sitemapXml(pages);
   const locs = [...xml.matchAll(/<loc>([^<]+)<\/loc>/g)].map((m) => m[1]);
 
-  it('全ページの # の無い URL を 1 回ずつ持ち、lastmod を付けない', () => {
-    expect(locs).toEqual(pages.map((p) => `${SITE_URL}${p.path}`));
+  it('検索に載せる全ページの # の無い URL を 1 回ずつ持ち、lastmod を付けない', () => {
+    expect(locs).toEqual(pages.filter((p) => !PERSONAL.includes(p.path)).map((p) => `${SITE_URL}${p.path}`));
+    for (const p of PERSONAL) expect(locs).not.toContain(`${SITE_URL}${p}`);
     expectUnique(locs, 'sitemap の URL');
     for (const loc of locs) expect(loc).not.toContain('#');
     expect(xml).not.toContain('lastmod');
@@ -128,7 +152,7 @@ const DIST = join(__dirname, '../dist');
 describe.skipIf(!existsSync(join(DIST, 'sitemap.xml')))('npm run build のあとの dist', () => {
   const read = (p: string) => readFileSync(join(DIST, p), 'utf8');
 
-  it('ページごとに dist/<道>/index.html があり、題・説明・canonical・見出しがそのページのもの', () => {
+  it('ページごとに dist/<道>/index.html があり、題・説明・canonical・見出し・noindex がそのページのもの', () => {
     for (const page of pages) {
       const file = join(page.path, 'index.html');
       expect(existsSync(join(DIST, file)), file).toBe(true);
@@ -137,12 +161,13 @@ describe.skipIf(!existsSync(join(DIST, 'sitemap.xml')))('npm run build のあと
       expect(head.description, file).toBe(page.description);
       expect(head.canonical, file).toBe(`${SITE_URL}${page.path}`);
       expect(head.h1, file).toBe(expectedH1(page));
+      expect(head.robots, file).toBe(PERSONAL.includes(page.path) ? 'noindex' : null);
       // 画面の JS を読む (書き出した HTML から SPA が立ち上がる)
       expect(read(file), file).toMatch(/<script type="module" crossorigin src="\/gantlo\/assets\/index-[^"]+\.js"><\/script>/);
     }
   });
 
-  it('sitemap.xml は全ページを持ち、robots.txt が sitemap を指し、404.html は検索に載せない', () => {
+  it('sitemap.xml は検索に載せる全ページを持ち、robots.txt が sitemap を指し、404.html は検索に載せない', () => {
     expect(read('sitemap.xml')).toBe(sitemapXml(pages));
     expect(read('robots.txt')).toContain(`Sitemap: ${SITE_URL}sitemap.xml`);
     const nf = readHead(read('404.html'));

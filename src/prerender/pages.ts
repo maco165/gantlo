@@ -1,8 +1,9 @@
 // 書き出すページの一覧 (道・題・説明・本文)。画面と同じデータ (経路・コース・レッスン・題の正本) から作る。
 // scripts/prerender.mjs が npm run build のあとに読み、dist/<道>/index.html を書く。tests/meta.test.ts も同じものを見る。
 // 画面の JS には入らない (src/main.tsx からは読まない)。
-import { LESSONS, lessonsOf } from '../content/index';
-import { documentTitle, PAGE_TITLES } from '../lib/pageMeta';
+import { LESSONS } from '../content/index';
+import type { Lesson } from '../content/types';
+import { documentTitle, PAGE_TITLES, withSite } from '../lib/pageMeta';
 import { BASE, COURSES, courseHref, homeHref, lessonHref, pageHref, parseRoute, type CourseId, type PageName } from '../lib/route';
 import { REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
 
@@ -18,7 +19,17 @@ export type SitePage = {
   description: string;
   /** JS を動かさない読み手向けの本文 (#root の中身)。画面を描くと React が置き換える */
   body: string;
+  /** 検索に載せない (meta robots noindex を付け、sitemap から外す) */
+  noindex?: boolean;
+  /** false なら canonical と og:url を外す (404.html。どの URL の写しでもないため) */
+  canonical?: false;
 };
+
+/**
+ * 一人ひとりの記録を見る・変える画面。中身はブラウザごとに違い、書き出す HTML は見出しと説明だけになるので、
+ * 直接開けるようにだけして検索には載せない (kcna-dojo の復習・進捗・設定と同じ扱い)
+ */
+export const PERSONAL_PAGES: readonly PageName[] = ['plan', 'review', 'progress', 'settings'];
 
 /** 画面ごとの説明。画面ができる前の名前の約束を書かない (準備中と書くと、できたあとに古くなる) */
 const PAGE_DESCRIPTIONS: Record<PageName, string> = {
@@ -50,8 +61,8 @@ const back = `<p>${a(homeHref, `${SITE_NAME} のホーム`)}</p>`;
 const rel = (href: string) => href.slice(BASE.length);
 const titleOfPath = (href: string) => documentTitle(parseRoute(href));
 
-/** すべてのページ。順は sitemap の順 (ホーム → メニューの画面 → コース → レッスン) */
-export function sitePages(): SitePage[] {
+/** すべてのページ。順は sitemap の順 (ホーム → メニューの画面 → コース → レッスン)。lessons はテストで差し替える */
+export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
   const pages: SitePage[] = [];
   pages.push({
     path: '',
@@ -76,11 +87,12 @@ export function sitePages(): SitePage[] {
       title: titleOfPath(pageHref(p)),
       description: PAGE_DESCRIPTIONS[p],
       body: [`<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, back].join('\n'),
+      noindex: PERSONAL_PAGES.includes(p),
     });
   }
 
   for (const c of COURSES) {
-    const ls = lessonsOf(c.id);
+    const ls = lessons.filter((l) => l.course === c.id);
     pages.push({
       path: rel(courseHref(c.id)),
       title: titleOfPath(courseHref(c.id)),
@@ -95,16 +107,18 @@ export function sitePages(): SitePage[] {
     });
   }
 
-  for (const l of LESSONS) {
+  for (const l of lessons) {
     const course = COURSES.find((c) => c.id === l.course);
     const courseTitle = course?.title ?? l.course;
     pages.push({
       path: rel(lessonHref(l.id)),
-      title: titleOfPath(lessonHref(l.id)),
+      // 画面の題 (titleOf) と同じくレッスンの題。差し替えたレッスンでも引けるよう、ここで直に付ける
+      title: withSite(l.title),
       // 問題文を続けて入れる (1 問目が短いレッスンでも、説明が短くなりすぎないように)。120 字で切る
       description: clip(`${courseTitle}のレッスン「${l.title}」(${l.questions.length} 問)。${l.questions.map((q) => q.prompt).join(' ')}`),
       body: [
         `<p>${a(courseHref(l.course), courseTitle)}</p>`,
+        // 見出しはレッスンの題 (画面の h1 は 1 問目の問題文だが、ページの見出しとしては題のほうが合う)
         `<h1>${esc(l.title)}</h1>`,
         // 問題文までを書き、答えと解説は書かない (画面でも答えるまで出さないため)
         '<h2>問題</h2>',
@@ -122,6 +136,8 @@ export const NOT_FOUND_PAGE: SitePage = {
   title: titleOfPath(`${BASE}__not-found__/`),
   description: 'このページは見つかりません。',
   body: ['<h1>ページが見つかりません</h1>', back].join('\n'),
+  noindex: true,
+  canonical: false,
 };
 
 /** canonical・og:url・sitemap の URL (末尾 /) */
