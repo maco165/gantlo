@@ -192,3 +192,148 @@ code {
   margin: 0;
   min-width: 0;
 }
+
+/* レッスンの画面 (上の帯・問題・穴埋めのコードの枠) */
+.lesson {
+  min-width: 0;
+}
+.lesson-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-1) max(var(--spacing-4), env(safe-area-inset-right)) var(--spacing-1) var(--spacing-1);
+  border-bottom: 1px solid var(--color-border);
+}
+.lesson-bar__progress {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.lesson__main {
+  max-width: 48rem;
+  box-sizing: border-box;
+  padding: var(--spacing-5) max(var(--spacing-4), env(safe-area-inset-right)) var(--spacing-8) max(var(--spacing-4), env(safe-area-inset-left));
+}
+.q-title {
+  margin: 0;
+  font-size: var(--text-heading-3-size);
+  font-weight: var(--text-heading-3-weight);
+  line-height: 1.5;
+  color: var(--color-text-primary);
+}
+.q-actions {
+  border-top: 1px solid var(--color-border);
+  padding-top: var(--spacing-3);
+}
+@media (min-width: 768px) {
+  .q-title {
+    font-size: var(--text-heading-2-size);
+    font-weight: var(--text-heading-2-weight);
+    line-height: var(--text-heading-2-leading);
+  }
+  .lesson__main {
+    padding-top: var(--spacing-8);
+  }
+}
+
+.fill-code {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: var(--color-background-muted);
+  overflow: hidden;
+}
+.fill-code__header {
+  padding: var(--spacing-1-5) var(--spacing-3);
+  border-bottom: 1px solid var(--color-border);
+}
+.fill-code__body {
+  padding: var(--spacing-3);
+  font-family: var(--font-family-code);
+  font-size: var(--text-code-size);
+  line-height: 2.2;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  color: var(--color-text-primary);
+}
+.fill-code__line {
+  min-height: 1lh;
+}
+.fill-code__prompt {
+  color: var(--color-text-secondary);
+}
+.fill-code__blank {
+  display: inline-block;
+  vertical-align: middle;
+  max-width: 100%;
+  white-space: normal;
+  line-height: normal;
+}
+.fill-code__blank input {
+  font-family: var(--font-family-code);
+}
+
+/* 答えの応答 (ステータス行・ヘッダー・本文) */
+.response {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+.response__value {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-0-5);
+}
+.response__code {
+  font-family: var(--font-family-code);
+  overflow-wrap: anywhere;
+}
+.response__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+/* レッスン完了 */
+.stats {
+  margin: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
+}
+.stats__item {
+  padding: var(--spacing-3) var(--spacing-2);
+  border-right: 1px solid var(--color-border);
+}
+.stats__item:last-child {
+  border-right: 0;
+}
+.stats dd {
+  margin: 0;
+  font-family: var(--font-family-code);
+  font-size: var(--text-heading-3-size);
+  font-weight: var(--text-heading-3-weight);
+  color: var(--color-text-primary);
+}
+.result__sub {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--text-heading-4-size);
+  font-weight: var(--text-heading-4-weight);
+}
+.result__code {
+  font-weight: 600;
+}
+.result__code--right,
+.result__code--done {
+  color: var(--color-text-success);
+}
+.result__code--wrong {
+  color: var(--color-text-error);
+}
+.result__code--skipped {
+  color: var(--color-text-secondary);
+}
