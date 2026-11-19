@@ -13,6 +13,9 @@ import { STORAGE_KEY, completeLesson, emptyProgress, loadProgress, type Progress
 import { useProgress } from '../src/lib/useProgress';
 import Home from '../src/screens/Home';
 import Plan from '../src/screens/Plan';
+import CourseScreen from '../src/screens/CourseScreen';
+import { COURSES } from '../src/lib/route';
+import { sitePages } from '../src/prerender/pages';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -194,5 +197,50 @@ describe('計画の画面 (R-17・R-18)', () => {
     await act(async () => button('本編 4 週 を下へ').click());
     await act(async () => button('PUT この順で学ぶ').click());
     expect(loadProgress().lessons[first.id]?.done).toBe(true);
+  });
+});
+
+describe('コースの画面 (B-024)', () => {
+  const pages = sitePages();
+  /** 書き出す HTML のコースのページの本文を、同じ jsdom で読む */
+  const prerendered = (id: string) => {
+    const doc = new DOMParser().parseFromString(pages.find((p) => p.path === `course/${id}/`)!.body, 'text/html');
+    return { h1: doc.querySelector('h1')?.textContent, h2: [...doc.querySelectorAll('h2')].map((h) => h.textContent), links: [...doc.querySelectorAll('ol a')].map((a) => a.getAttribute('href')) };
+  };
+
+  it('5 コースとも、見出し (h1・h2) とレッスンの並びが書き出す HTML と同じで、空の記録では 202 と 1 つ目が次', async () => {
+    for (const c of COURSES) {
+      await act(async () => root.render(createElement(CourseScreen, { course: c.id, progress: emptyProgress() })));
+      const pre = prerendered(c.id);
+      expect(text('h1'), c.id).toBe(pre.h1);
+      expect([...host.querySelectorAll('h2')].map((h) => h.textContent), c.id).toEqual(pre.h2);
+      expect([...host.querySelectorAll('.net__name a')].map((a) => a.getAttribute('href')), c.id).toEqual(pre.links);
+      const own = LESSONS.filter((l) => l.course === c.id);
+      expect(text('.status__code'), c.id).toBe(own.length > 0 ? '202' : '204');
+      if (own.length > 0) expect(host.querySelector('.home__next a')?.getAttribute('href'), c.id).toBe(`/gantlo/lesson/${own[0].id}/`);
+    }
+  });
+
+  it('1 つ済ませると 206 と次のレッスン、全部済ませると 200 で次のレッスンのボタンは無い', async () => {
+    const c = COURSES.find((x) => LESSONS.filter((l) => l.course === x.id).length >= 2)!;
+    const own = LESSONS.filter((l) => l.course === c.id);
+    const one = completeLesson(emptyProgress(), own[0].id, { correct: 1, total: 1 }, 3, now);
+    await act(async () => root.render(createElement(CourseScreen, { course: c.id, progress: one })));
+    expect(text('.status__code')).toBe('206');
+    expect(host.querySelector(`.net__row[data-lesson="${own[0].id}"]`)?.getAttribute('data-state')).toBe('done');
+    expect(host.querySelector('.home__next a')?.getAttribute('href')).toBe(`/gantlo/lesson/${own[1].id}/`);
+    const all = own.reduce((p, l) => completeLesson(p, l.id, { correct: 1, total: 1 }, 3, now), emptyProgress());
+    await act(async () => root.render(createElement(CourseScreen, { course: c.id, progress: all })));
+    expect(text('.status__code')).toBe('200');
+    expect(host.querySelector('.home__next a')).toBeNull();
+  });
+
+  it('レッスンの無いコースは 204 で、書き出しと同じ空の文を出す', async () => {
+    await act(async () => root.render(createElement(CourseScreen, { course: 'security', progress: emptyProgress(), lessons: [] })));
+    expect(text('.status__code')).toBe('204');
+    const empty = sitePages([]).find((p) => p.path === 'course/security/')!.body;
+    const sentence = new DOMParser().parseFromString(empty, 'text/html').querySelectorAll('p')[1]?.textContent ?? '';
+    expect(sentence).not.toBe('');
+    expect(host.textContent).toContain(sentence);
   });
 });

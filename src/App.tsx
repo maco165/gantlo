@@ -14,6 +14,7 @@ import { NOT_FOUND, NOT_IMPLEMENTED } from './lib/status';
 import { useMobileNav } from './lib/useMobileNav';
 import { useProgress } from './lib/useProgress';
 import About from './screens/About';
+import CourseScreen from './screens/CourseScreen';
 import Home from './screens/Home';
 import LessonScreen from './screens/LessonScreen';
 import Plan from './screens/Plan';
@@ -54,7 +55,7 @@ export default function App() {
   else if (route.name === 'page' && route.page === 'settings') screen = <Settings key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'about') screen = <About />;
   else if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
-  else if (route.name === 'course') screen = <StatusPage title={title ?? ''} request={`GET /course/${route.course}`} status={NOT_IMPLEMENTED} />;
+  else if (route.name === 'course') screen = <CourseScreen key={route.course} course={route.course} progress={progress} />;
   else if (route.name === 'lesson') {
     const lesson = findLesson(route.lessonId);
     // nav を key にして、同じレッスンのリンクを押し直したときも 1 問目から始める

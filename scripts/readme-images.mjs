@@ -190,6 +190,8 @@ try {
       document.getElementById('astryx-app-shell-main')?.scrollBy(0, -(document.querySelector('.mobile-bar')?.getBoundingClientRect().height ?? 0) - 120);
     });
   });
+  // コースの画面: 見本の進捗 (本編の 2 レッスン完了) で 206 と次のレッスン・Network の表
+  await shoot('course-phone', phone, 'course/main/', (page) => page.locator('.net__row').first().waitFor());
   await shoot('review-phone', phone, 'review/');
   await shoot('progress-phone', phone, 'progress/', (page) => page.locator('.prog__table tbody tr').first().waitFor());
   await shoot('glossary-phone', phone, 'glossary/', (page) => page.locator('article.gloss').first().waitFor());

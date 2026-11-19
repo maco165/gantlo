@@ -1,5 +1,5 @@
 // テーマと文字のコントラストの、ブラウザでの検査。scripts/e2e.mjs (npm run e2e) から呼ぶ。
-// 390 幅と 1280 幅で、主な画面 (ホーム・計画・復習・レッスンの問題と応答 400 / 200 / 409・完了 201・404・設定と記録を消す確かめ) を開き、次を確かめる:
+// 390 幅と 1280 幅で、主な画面 (ホーム・計画・復習・レッスンの問題と応答 400 / 200 / 409・完了 201・404・コース・設定と記録を消す確かめ) を開き、次を確かめる:
 //   - テーマが Gothic で読み込まれている (地の token --color-background-body が #101314 で、body の地がその色)
 //   - 文字を持つ見える要素 (本文・補助の文字・ボタン・リンク・ステータスのコード・入力欄) のどれも、文字の色と実際の地の色
 //     (根から要素まで地を塗り重ね、opacity の祖先は字と地の両方を奥の地に重ねる) のコントラスト比が 4.5:1 以上。大きな文字の 3:1 の例外は使わない
@@ -267,6 +267,10 @@ export async function runContrast(browser, { base, check }) {
     await page.goto(`${base}progress/`);
     await page.locator('.prog__table tbody tr').first().waitFor();
     await measure('進捗', ['正答率', '7 日の XP', 'コースごとの進み具合', '今日']);
+    // コースの画面 (レッスンを解いたあとの記録で。済み・次・まだの行と、次のレッスンのボタン)
+    await page.goto(`${base}course/${lessonsToMeasure[0].course}/`);
+    await page.locator('.net__row').first().waitFor();
+    await measure('コース', ['Network', `GET /course/${lessonsToMeasure[0].course}`]);
     await page.goto(`${base}glossary/`);
     await page.locator('article.gloss').first().waitFor();
     await measure('用語集', ['HTTP', '11 の規格 (12 語)', '用語・別名・説明から探す']);

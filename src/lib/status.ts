@@ -11,6 +11,17 @@ export function progressStatus(done: number, total: number): Status {
   return { code: 206, reason: 'Partial Content', ja: `まだ途中です。${total} 段のうち ${done} 段を学びました` };
 }
 
+/**
+ * コースの画面 (GET /course/<id>) のステータス。ホームと同じ決まり (まだ 202・途中 206・全部済み 200) で、数えるのはそのコースのレッスン。
+ * レッスンがまだ無いコースは、返す本文が無いので 204
+ */
+export function courseStatus(done: number, total: number): Status {
+  if (total <= 0) return { code: 204, reason: 'No Content', ja: 'このコースのレッスンは、これから足します' };
+  if (done <= 0) return { code: 202, reason: 'Accepted', ja: `受け付けました。まだ始めていません。${total} レッスンあります` };
+  if (done >= total) return { code: 200, reason: 'OK', ja: `${total} レッスンを全部済ませました` };
+  return { code: 206, reason: 'Partial Content', ja: `まだ途中です。${total} レッスンのうち ${done} を済ませました` };
+}
+
 /** まだ作っていない画面 */
 export const NOT_IMPLEMENTED: Status = { code: 501, reason: 'Not Implemented', ja: 'この画面はまだ作っていません' };
 

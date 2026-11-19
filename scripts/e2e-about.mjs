@@ -7,7 +7,7 @@
 //   2. 上の帯の右端 (右の端から 24px 以内) に GitHub のボタンがあり、リポジトリを新しいタブで開く。スマホでは 44px 以上
 //   3. メニューの「このサイトについて」を押すと /gantlo/about/ が開き、200 OK・題・ソースコードと Issue のボタンが出て、
 //      メニューの項目が選ばれた印 (aria-current) になる。直に開いても同じ
-//   4. メニューのコースには「準備中」が付く (コースの画面はまだ 501。コースの画面を作る PR で、付かない検査に変える)
+//   4. メニューのコースには「準備中」が付かない (コースの画面がある)
 //   5. 横にはみ出さず、文が切れない。ページのエラーが無い
 //   6. 390x500 (メニューがスクロールする高さ) で、メニューを Tab で進むと、手元の行が下端に留めた 2 つの下に隠れない
 import { loadLessons } from './e2e-lessons.mjs';
@@ -92,9 +92,9 @@ export async function runAbout(browser, { base, check, noHorizontalOverflow }) {
       await target(about, `${label} のメニューの「このサイトについて」`);
       await target(gh, `${label} のメニューの「GitHub のリポジトリ」`);
       if (label === 'ホーム') {
-        // 4. コースの画面はまだ 501 なので、コースに「準備中」が付く
+        // 4. コースの画面があるので、コースに「準備中」が付かない
         const courses = await menu.getByRole('link', { name: /本編 4 週|Spring Boot の流れ|技術の歴史|管理の歴史|セキュリティ/ }).allInnerTexts();
-        check(courses.length === 5 && courses.every((t) => t.includes('準備中')), `${where}: メニューのコースに「準備中」が付く (${courses.map((t) => t.replace(/\s+/g, ' ')).join(' / ')})`);
+        check(courses.length === 5 && courses.every((t) => !t.includes('準備中')), `${where}: メニューのコースに「準備中」が付かない (${courses.map((t) => t.replace(/\s+/g, ' ')).join(' / ')})`);
       }
       await closeMenu();
       await noHorizontalOverflow(page, width, where);
