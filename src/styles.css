@@ -27,6 +27,13 @@
   .astryx-segmented-control-item {
     min-height: var(--size-element-lg);
   }
+  /* Network の表のレッスンのリンク (ホームとコースの画面) も、押せる高さを 44px にする */
+  .net__name a {
+    display: inline-flex;
+    align-items: center;
+    min-height: var(--size-element-lg);
+    min-width: var(--size-element-lg);
+  }
   /* 入力欄の中の「消す」ボタン (Astryx は小さく作る) も 44px にする */
   .astryx-input-clear-button {
     min-height: var(--size-element-lg);

@@ -7,6 +7,7 @@ import {
   NOT_FOUND,
   NOT_IMPLEMENTED,
   choiceStatus,
+  courseStatus,
   fillStatus,
   lessonCreated,
   orderStatus,
@@ -24,6 +25,18 @@ describe('進み具合のステータス', () => {
   });
   it('全部済めば 200 OK', () => {
     expect(progressStatus(8, 8).code).toBe(200);
+  });
+});
+
+describe('コースのステータス (GET /course/<id>)', () => {
+  it('何も済んでいなければ 202、途中は 206 で済んだ数、全部済めば 200', () => {
+    expect(courseStatus(0, 5).code).toBe(202);
+    expect(courseStatus(2, 5)).toMatchObject({ code: 206, reason: 'Partial Content' });
+    expect(courseStatus(2, 5).ja).toContain('5 レッスンのうち 2');
+    expect(courseStatus(5, 5)).toMatchObject({ code: 200, reason: 'OK' });
+  });
+  it('レッスンがまだ無いコースは 204 No Content', () => {
+    expect(courseStatus(0, 0)).toMatchObject({ code: 204, reason: 'No Content' });
   });
 });
 

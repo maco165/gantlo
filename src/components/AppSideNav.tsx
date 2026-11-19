@@ -1,6 +1,5 @@
 import { MobileNav } from '@astryxdesign/core/MobileNav';
 import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from '@astryxdesign/core/SideNav';
-import { Text } from '@astryxdesign/core/Text';
 import { AdjustmentsHorizontalIcon, ArrowPathIcon, BookOpenIcon, ChartBarIcon, InformationCircleIcon, QueueListIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 import { useLayoutEffect, useRef } from 'react';
 import { COURSES, courseHref, homeHref, pageHref, type Route } from '../lib/route';
@@ -8,8 +7,6 @@ import { REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
 import { GitHubMark } from './RepoLink';
 
 const Logo = () => <img src={`${import.meta.env.BASE_URL}favicon.svg`} width={24} height={24} alt="" aria-hidden="true" />;
-/** コースの画面はまだ 501 なので、コースの行に付ける (コースの画面を作ったら外す) */
-const soon = <Text type="supporting">準備中</Text>;
 const heading = <SideNavHeading heading={SITE_NAME} subheading={SITE_TAGLINE} icon={<Logo />} headingHref={homeHref} />;
 
 /** メニューの項目。PC の SideNav とスマホの MobileNav で同じものを使う (下端の「このサイト」は SiteItems) */
@@ -27,7 +24,7 @@ function NavItems({ route }: { route: Route }) {
       </SideNavSection>
       <SideNavSection title="コース">
         {COURSES.map((c) => (
-          <SideNavItem key={c.id} label={c.title} href={courseHref(c.id)} isSelected={route.name === 'course' && route.course === c.id} endContent={soon} />
+          <SideNavItem key={c.id} label={c.title} href={courseHref(c.id)} isSelected={route.name === 'course' && route.course === c.id} />
         ))}
       </SideNavSection>
     </>

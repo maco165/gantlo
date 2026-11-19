@@ -21,6 +21,7 @@
 // 復習と設定の画面 (R-13) は scripts/e2e-review-settings.mjs が確かめる。
 // 進捗の画面と用語集 (R-14) は scripts/e2e-progress-glossary.mjs が確かめる。
 // メニューの下端の「このサイト」の 2 つ・上の帯の GitHub のボタン・このサイトについての画面 (B-023) は scripts/e2e-about.mjs が確かめる。
+// コースの画面 (B-024) は scripts/e2e-course.mjs が確かめる。
 // 390 幅の崩れ (出典の外部リンクの印・用語集の区切り。B-025) は scripts/e2e-narrow.mjs が確かめる。
 // テーマが Gothic であることと、文字と地のコントラスト (4.5:1 以上) は scripts/e2e-contrast.mjs が確かめる。
 import { spawn } from 'node:child_process';
@@ -28,6 +29,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runAbout } from './e2e-about.mjs';
 import { runContrast } from './e2e-contrast.mjs';
+import { runCourse } from './e2e-course.mjs';
 import { runHomeAndPlan } from './e2e-home-plan.mjs';
 import {
   XP_PER_CORRECT,
@@ -659,6 +661,8 @@ try {
   await runProgressAndGlossary(browser, { base: BASE, check, noHorizontalOverflow });
   // メニューの下端の 2 つ・上の帯の GitHub のボタン・このサイトについて (B-023)
   await runAbout(browser, { base: BASE, check, noHorizontalOverflow });
+  // コースの画面 (B-024)
+  await runCourse(browser, { base: BASE, check, noHorizontalOverflow });
   // 390 幅の崩れ (B-025)
   await runNarrow(browser, { base: BASE, check, noHorizontalOverflow });
   // テーマと文字のコントラスト (R-16)

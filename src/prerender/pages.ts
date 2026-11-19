@@ -6,7 +6,8 @@ import { LESSONS } from '../content/index';
 import type { Lesson } from '../content/types';
 import type { GlossaryTerm } from '../lib/glossary';
 import { documentTitle, PAGE_TITLES, withSite } from '../lib/pageMeta';
-import { BASE, COURSES, courseHref, homeHref, lessonHref, pageHref, parseRoute, type CourseId, type PageName } from '../lib/route';
+import { BASE, COURSES, courseHref, homeHref, lessonHref, pageHref, parseRoute, type PageName } from '../lib/route';
+import { COURSE_EMPTY, COURSE_LEADS, LESSON_LIST_HEADING } from '../lib/courses';
 import { ABOUT_ISSUE, ABOUT_LEAD, ABOUT_NOTES, ABOUT_SOURCE, LICENSE_NAME } from '../lib/about';
 import { NEW_ISSUE_URL, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
 
@@ -42,15 +43,6 @@ const PAGE_DESCRIPTIONS: Record<PageName, string> = {
   glossary: 'HTTP・URI・JSON・DNS・TLS・REST・OAuth など API の基礎の 11 の規格と、gantlo の問題に出る用語を、RFC などの一次情報の出典付きで短くまとめた用語集。',
   settings: 'gantlo の学び方の設定の画面。設定はブラウザの localStorage にだけ残り、サーバーには送りません。',
   about: 'gantlo がどんなサイトかと、ソースコードの置き場所・問題の誤りの知らせ方・記録の置き場所・AI に聞くリンク・問題の出典・ライセンスをまとめたページ。',
-};
-
-/** コースごとの紹介 (説明と本文の頭に使う) */
-export const COURSE_LEADS: Record<CourseId, string> = {
-  main: 'ブラウザに URL を打ってから画面が出るまでの「リクエストの旅」に沿って、第 1 週 HTTP・URI・JSON・MIME・UTF-8、第 2 週 DNS・TCP/IP・TLS、第 3 週 REST と OpenAPI、第 4 週 OAuth 2.0 と JWT を学ぶ本編。',
-  spring: 'Spring Boot のアプリが起動する流れと、リクエストを受けて応答を返す流れを、Spring の公式文書に沿って学ぶ追加のコース。',
-  'tech-history': 'インターネットと Web の技術が、どんな困りごとに答えて生まれ、今どう使われているかを「困りごと → 答え → 今」の型でたどる追加のコース。',
-  'mgmt-history': 'ガントチャートを軸に、それより前と後の計画と管理の方法を「困りごと → 答え → 今」の型でたどる追加のコース。',
-  security: '暗号の基本と、Web の攻撃と対策を学ぶ追加のコース。試すのは自分で用意したラボの中だけにします。',
 };
 
 const HOME_DESCRIPTION =
@@ -130,8 +122,9 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
       body: [
         `<h1>${esc(c.title)}</h1>`,
         `<p>${esc(COURSE_LEADS[c.id])}</p>`,
-        '<h2>レッスン</h2>',
-        ls.length > 0 ? `<ol>${ls.map((l) => `<li>${a(lessonHref(l.id), l.title)} (${l.questions.length} 問)</li>`).join('')}</ol>` : '<p>このコースのレッスンは、これから足します。</p>',
+        // 見出しと空のときの文は画面 (CourseScreen・LessonNetwork) と同じ。一覧は画面の表と同じ順 (コースのレッスンの順)
+        `<h2>${esc(LESSON_LIST_HEADING)}</h2>`,
+        ls.length > 0 ? `<ol>${ls.map((l) => `<li>${a(lessonHref(l.id), l.title)} (${l.questions.length} 問)</li>`).join('')}</ol>` : `<p>${esc(COURSE_EMPTY)}</p>`,
         back,
       ].join('\n'),
     });

@@ -7,7 +7,8 @@ import { describe, expect, it } from 'vitest';
 import { LESSONS } from '../src/content/index';
 import type { Lesson } from '../src/content/types';
 import { documentTitle, PAGE_TITLES, titleOf } from '../src/lib/pageMeta';
-import { BASE, COURSES, parseRoute } from '../src/lib/route';
+import { BASE, COURSES, lessonHref, parseRoute } from '../src/lib/route';
+import { LESSON_LIST_HEADING } from '../src/lib/courses';
 import { SITE_NAME, SITE_TAGLINE } from '../src/lib/site';
 import { renderPage, sitemapXml } from '../src/prerender/html';
 import { NOT_FOUND_PAGE, ORIGIN, sitePages, type SitePage } from '../src/prerender/pages';
@@ -33,6 +34,11 @@ function readHead(html: string): Head {
     rootText: doc.querySelector('#root')?.textContent ?? '',
   };
 }
+
+/** コースのページの一覧 (#root の ol) のリンクの順 */
+const courseLessonLinks = (html: string) => [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('#root ol a')].map((a) => a.getAttribute('href'));
+/** 本文の h2 の文字 */
+const courseHeadings = (html: string) => [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('#root h2')].map((h) => h.textContent);
 
 /** 本文の見出し。ホームは画面と同じ「gantlo — API と HTTP の基礎」、ほかは画面の題 (レッスンは題。画面の h1 は 1 問目の問題文) */
 const expectedH1 = (p: SitePage) => (p.path === '' ? `${SITE_NAME} — ${SITE_TAGLINE}` : titleOf(parseRoute(`${BASE}${p.path}`)));
@@ -82,6 +88,14 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
 
   it('本文の見出し (h1) が JS なしの HTML にあり、画面の見出しと同じ (レッスンは題)', () => {
     for (const { page, head } of heads) expect(head.h1, page.path).toBe(expectedH1(page));
+  });
+
+  it('コースのページは、画面と同じ一覧の見出し (Network) の下に、そのコースのレッスンへのリンクを画面と同じ順に持つ', () => {
+    for (const c of COURSES) {
+      const page = pages.find((p) => p.path === `course/${c.id}/`)!;
+      expect(courseLessonLinks(renderPage(template, page)), c.id).toEqual(LESSONS.filter((l) => l.course === c.id).map((l) => lessonHref(l.id)));
+      expect(courseHeadings(renderPage(template, page)), c.id).toEqual([LESSON_LIST_HEADING]);
+    }
   });
 
   it('レッスンのページは問題文を持ち、答えの解説は持たない (画面でも答えるまで出さない)', () => {
@@ -166,6 +180,14 @@ describe.skipIf(!existsSync(join(DIST, 'sitemap.xml')))('npm run build のあと
       expect(head.robots, file).toBe(PERSONAL.includes(page.path) ? 'noindex' : null);
       // 画面の JS を読む (書き出した HTML から SPA が立ち上がる)
       expect(read(file), file).toMatch(/<script type="module" crossorigin src="\/gantlo\/assets\/index-[^"]+\.js"><\/script>/);
+    }
+  });
+
+  it('コースのページ (dist/course/<id>/index.html) にも、そのコースのレッスンの一覧が順に入る', () => {
+    for (const c of COURSES) {
+      const want = LESSONS.filter((l) => l.course === c.id).map((l) => lessonHref(l.id));
+      expect(want.length, c.id).toBeGreaterThan(0);
+      expect(courseLessonLinks(read(`course/${c.id}/index.html`)), c.id).toEqual(want);
     }
   });
 

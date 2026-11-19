@@ -2,6 +2,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { LESSONS } from '../content/index';
 import { STAGES } from '../content/stages';
 import type { Lesson } from '../content/types';
+import { LESSON_LIST_HEADING } from '../lib/courses';
 import { currentLesson, isDone, planLessons } from '../lib/plan';
 import type { Progress } from '../lib/progress';
 import { COURSES, lessonHref, type CourseId } from '../lib/route';
@@ -14,10 +15,13 @@ export default function LessonNetwork({
   courses,
   progress,
   lessons = LESSONS,
+  empty = '学ぶ順のコースに、まだレッスンがありません。',
 }: {
   courses: readonly CourseId[];
   progress: Progress;
   lessons?: readonly Lesson[];
+  /** レッスンが 1 つも無いときの文 */
+  empty?: string;
 }) {
   const rows = planLessons(courses, lessons);
   const here = currentLesson(courses, progress, lessons);
@@ -26,14 +30,14 @@ export default function LessonNetwork({
     <section className="net" aria-labelledby="net-title">
       <header className="wf__head">
         <h2 id="net-title" className="display">
-          Network
+          {LESSON_LIST_HEADING}
         </h2>
         <Text type="supporting">
           {rows.length} レッスンのうち {doneCount} 済み
         </Text>
       </header>
       {rows.length === 0 ? (
-        <Text type="supporting">学ぶ順のコースに、まだレッスンがありません。</Text>
+        <Text type="supporting">{empty}</Text>
       ) : (
         <table className="net__table">
           <thead>
