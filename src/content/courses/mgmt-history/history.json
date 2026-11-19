@@ -1,0 +1,695 @@
+{
+  "lessons": [
+    {
+      "id": "mgmt-history-l1",
+      "title": "ハーモノグラム (Karol Adamiecki)",
+      "course": "mgmt-history",
+      "questions": [
+        {
+          "id": "mgmt-history-l1-q1",
+          "kind": "choice",
+          "prompt": "Karol Adamiecki が、共同作業を図で組み立てる方法を考えたのは、どんな現場の仕事からですか。",
+          "choices": [
+            { "id": "a", "text": "製鉄所の圧延工場 (walcownia) の仕事" },
+            { "id": "b", "text": "自動車の組み立てライン", "why": "組み立てラインの流れ作業は、トヨタでは豊田喜一郎の話です。Adamiecki が若いころ働いたのは製鉄所の圧延工場でした。" },
+            { "id": "c", "text": "ソフトウェアの開発", "why": "Adamiecki は 1933 年に亡くなっており、ソフトウェアの開発の話はまだありません。" },
+            { "id": "d", "text": "戦時の造船", "why": "造船 (Emergency Fleet) で図が使われたのは Gantt の図の話で、1918 年のことです。" }
+          ],
+          "answer": "a",
+          "explanation": "Warsaw 工科大学の図書館の紹介によると、Adamiecki は 1891 年に技師の免状を得たあと Huta Bankowa の圧延工場で働き、のちの記事の題も「圧延工場 (walcownie) での共同作業を図で組み立てる方法」でした。",
+          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download", "https://archive.org/details/cu31924004570853"]
+        },
+        {
+          "id": "mgmt-history-l1-q2",
+          "kind": "choice",
+          "prompt": "Adamiecki の図による方法「ハーモノグラム (harmonogram)」は、何のための道具でしたか。",
+          "choices": [
+            { "id": "a", "text": "多くの人が関わる共同作業を計画し、管理する" },
+            { "id": "b", "text": "工員 1 人ずつの出来高の賃金を計算する", "why": "賃金の仕組みは同じ時代の別の論点です。紹介文はハーモノグラムを共同作業 (praca zbiorowa) の計画と管理の方法としています。" },
+            { "id": "c", "text": "機械の故障を前もって見つける", "why": "機械の故障を検知して止めるのはトヨタの自働化の話です。" },
+            { "id": "d", "text": "会社の決算を図にする", "why": "お金の報告の図ではなく、仕事の段取りの図です。" }
+          ],
+          "answer": "a",
+          "explanation": "紹介文は、Adamiecki が共同作業の計画と管理 (planowanie i kontrola pracy zbiorowej) に使う図の方法「harmonogram」を作ったと書いています。",
+          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download"]
+        },
+        {
+          "id": "mgmt-history-l1-q3",
+          "kind": "order",
+          "prompt": "Adamiecki の歩みを、起きた順に並べてください。",
+          "items": [
+            { "id": "diploma", "text": "Petersburg の工科大学で技師の免状を得る" },
+            { "id": "lecture", "text": "講演「共同作業の組織の原則について」を行う" },
+            { "id": "present", "text": "Warsaw の技術者協会で研究の結果を発表する" },
+            { "id": "article", "text": "Przegląd Techniczny に図による方法の記事を載せる" },
+            { "id": "professor", "text": "Warsaw 工科大学の教授になる" }
+          ],
+          "answer": ["diploma", "lecture", "present", "article", "professor"],
+          "explanation": "紹介文によると、免状は 1891 年、講演は 1903 年 2 月、協会での発表は 1908 年、Przegląd Techniczny の記事は 1909 年 (17〜20 号)、教授 (profesor nadzwyczajny) の任命は 1922 年 8 月 16 日です。",
+          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download"]
+        },
+        {
+          "id": "mgmt-history-l1-q4",
+          "kind": "choice",
+          "prompt": "Adamiecki の 1903 年 2 月の講演は、あるアメリカの技師の著作が出る 1 か月足らず前でした。その技師は誰ですか。",
+          "choices": [
+            { "id": "a", "text": "F. W. Taylor" },
+            { "id": "b", "text": "Henry Gantt", "why": "紹介文が名前を挙げているのは F. W. Taylor の著作です。Gantt の図が兵器局で使われるのは 1917 年からです。" },
+            { "id": "c", "text": "Henry Ford", "why": "紹介文に Ford の名は出てきません。" },
+            { "id": "d", "text": "Winston Royce", "why": "Royce の論文は 1970 年で、時代がまったく違います。" }
+          ],
+          "answer": "a",
+          "explanation": "紹介文は、この講演が F. W. Taylor の著作 (ポーランド語の題「Zarządzanie warsztatem wytwórczym」) の刊行より 1 か月足らず早く、Adamiecki を組織と管理の学の先駆けの 1 人にした、と書いています。",
+          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download", "https://archive.org/details/cu31924004570853", "https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
+        },
+        {
+          "id": "mgmt-history-l1-q5",
+          "kind": "choice",
+          "prompt": "Adamiecki が国際的にいちばん知られた考えは、紹介文で何と呼ばれていますか。",
+          "choices": [
+            { "id": "a", "text": "仕事の調和 (harmonizacja) の理論" },
+            { "id": "b", "text": "クリティカルパス", "why": "クリティカルパスは 1950 年代の DuPont と Remington Rand の仕事から出た言葉です。" },
+            { "id": "c", "text": "ジャスト・イン・タイム", "why": "ジャスト・イン・タイムは豊田喜一郎が唱えた考えです。" },
+            { "id": "d", "text": "経験主義", "why": "経験主義はスクラムの土台として Scrum Guide が挙げる考えです。" }
+          ],
+          "answer": "a",
+          "explanation": "紹介文は、Adamiecki が最も広く知られたのは「仕事の調和の理論 (teoria harmonizacji pracy)」の作者としてだ、と書いています。",
+          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download"]
+        },
+        {
+          "id": "mgmt-history-l1-q6",
+          "kind": "lab",
+          "prompt": "出典を自分の目で確かめます。Warsaw 工科大学の図書館の紹介 (ポーランド語、1 ページ) を開き、図による方法の記事がどの雑誌の何号に載ったかを探してください。",
+          "steps": [
+            { "text": "ブラウザーで紹介の PDF (https://bcpw.bg.pw.edu.pl/Content/815/download) を開く。1 回開くだけでよい" },
+            { "text": "「Przeglądu Technicznego」の語を探し、その後ろの年と号の数字を読む" }
+          ],
+          "expected": "「Przeglądu Technicznego (1909 nr 17—20)」とあり、1909 年の 17〜20 号に分けて記事が載ったことが分かります。同じ文の前半に、結果を 1908 年に Warsaw の技術者協会で発表したこともあります。",
+          "explanation": "年号は、人が書いた紹介を孫引きせず、出典の文で確かめる癖をつけます。この紹介文は Warsaw 工科大学の図書館の「教授の横顔」の 1 枚です。",
+          "sources": ["https://bcpw.bg.pw.edu.pl/Content/815/download"]
+        }
+      ]
+    },
+    {
+      "id": "mgmt-history-l2",
+      "title": "ガントチャート (Henry Gantt)",
+      "course": "mgmt-history",
+      "questions": [
+        {
+          "id": "mgmt-history-l2-q1",
+          "kind": "choice",
+          "prompt": "1917 年、Gantt は米陸軍の兵器局 (Ordnance Department) の相談役になりました。そこで困っていたことは何ですか。",
+          "choices": [
+            { "id": "a", "text": "注文の数が数百から数百万に跳ね上がり、タイプした表では量と作るのにかかる時間が伝わらなかった" },
+            { "id": "b", "text": "計算機が遅く、日程の計算が間に合わなかった", "why": "1917 年の話です。計算機で日程を組む話は、1950 年代の CPM で出てきます。" },
+            { "id": "c", "text": "部品が 1 つ欠けると車が組めなかった", "why": "これは豊田喜一郎がジャスト・イン・タイムを唱えたときの言葉です。" },
+            { "id": "d", "text": "ソフトウェアのテストで初めて性能の問題が分かった", "why": "これは Royce の 1970 年の論文の困りごとです。" }
+          ],
+          "answer": "a",
+          "explanation": "Wallace Clark の『The Gantt Chart』(1922) の序文によると、量が急に増えてタイプした表では意味が伝わらず、ふつうの図は時間を強く見せられず 1 枚に 1 項目しか載らなかったため、Gantt は計画と実績を比べる図を作り込みました。",
+          "sources": ["https://archive.org/details/cu31924004570853"]
+        },
+        {
+          "id": "mgmt-history-l2-q2",
+          "kind": "choice",
+          "prompt": "Clark の本が「ほかのどの図とも違う」とした、ガントチャートの特徴はどれですか。",
+          "choices": [
+            { "id": "a", "text": "計画した仕事とやった仕事を、同じ場所に、時間との関係で並べて見せる" },
+            { "id": "b", "text": "作業どうしのつながりを矢印の図で表す", "why": "矢印の図 (arrow diagram) は 1950 年代の CPM の道具です。" },
+            { "id": "c", "text": "楽観・最可能・悲観の 3 つの見積もりを書く", "why": "3 つの見積もりは 1958 年の PERT の方法です。" },
+            { "id": "d", "text": "後の工程がカードを持って部品を引き取りに行く", "why": "これはトヨタのかんばんの仕組みです。" }
+          ],
+          "answer": "a",
+          "explanation": "Clark は序文と第 1 章で、ガントチャートを他の図と分けるのは「計画した仕事とやった仕事が、互いの関係と時間との関係の中で、同じ場所に示される」ことだと書いています。",
+          "sources": ["https://archive.org/details/cu31924004570853"]
+        },
+        {
+          "id": "mgmt-history-l2-q3",
+          "kind": "choice",
+          "prompt": "ガントチャートの 1 本の横の線の上で、等しい幅の区切りは何を表しますか (Clark の説明)。",
+          "choices": [
+            { "id": "a", "text": "等しい長さの時間" },
+            { "id": "b", "text": "等しい量の仕事", "why": "逆です。同じ幅でも、予定した仕事の量とやった仕事の量はそれぞれ違ってよい、と Clark は書いています。" },
+            { "id": "c", "text": "等しい額の費用", "why": "Clark の説明に費用の区切りは出てきません。" },
+            { "id": "d", "text": "1 人の作業者", "why": "行が人や機械を表すことはあっても、横の区切りが表すのは時間です。" }
+          ],
+          "answer": "a",
+          "explanation": "Clark は、1 本の横の線の上の等しい区切りが、同時に「等しい時間」「さまざまな量の予定の仕事」「さまざまな量のやった仕事」を表すと書いています。時間を等しく刻むので、遅れが目で見えます。",
+          "sources": ["https://archive.org/details/cu31924004570853"]
+        },
+        {
+          "id": "mgmt-history-l2-q4",
+          "kind": "choice",
+          "prompt": "Gantt は自分の図をどう扱いましたか。",
+          "choices": [
+            { "id": "a", "text": "特許も著作権も取らず、求める人に見本を渡し、雑誌の記事や本でも見せた" },
+            { "id": "b", "text": "特許を取り、使う会社から使用料を取った", "why": "Clark は、Gantt が図の特許や著作権を取ろうとしなかったと書いています。" },
+            { "id": "c", "text": "陸軍の秘密として外に出さなかった", "why": "Gantt は図を雑誌の記事と著書『Organizing for Work』の挿絵で公開しています。" },
+            { "id": "d", "text": "自分の会社の顧客にだけ使わせた", "why": "見本は求める人には誰にでも渡した、と Clark は書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "Clark の序文によると、Gantt は図の特許も著作権も取らず、見本を誰にでも渡し、いくつかの雑誌の記事と著書『Organizing for Work』の挿絵で公開しました。Gantt は 1919 年 11 月 23 日に亡くなっています。",
+          "sources": ["https://archive.org/details/cu31924004570853"]
+        },
+        {
+          "id": "mgmt-history-l2-q5",
+          "kind": "order",
+          "prompt": "計画を図にする方法の出来事を、起きた順に並べてください。",
+          "items": [
+            { "id": "adamiecki", "text": "Adamiecki が図による方法の記事を Przegląd Techniczny に載せる" },
+            { "id": "ordnance", "text": "Gantt が米陸軍の兵器局の相談役になり、進み具合の図を作り込む" },
+            { "id": "clark", "text": "Wallace Clark が本『The Gantt Chart』を出す" },
+            { "id": "pert", "text": "米海軍の特別計画局で PERT の計画が始まる" }
+          ],
+          "answer": ["adamiecki", "ordnance", "clark", "pert"],
+          "explanation": "Adamiecki の記事は 1909 年 (Warsaw 工科大学の紹介)、Gantt の兵器局は 1917 年、Clark の本は 1922 年 (同書の序文と奥付)、PERT は 1958 年 1 月 27 日に始まりました (PERT の第 1 段の報告書)。",
+          "sources": [
+            "https://bcpw.bg.pw.edu.pl/Content/815/download",
+            "https://archive.org/details/cu31924004570853",
+            "https://archive.org/details/DTIC_AD0735902"
+          ]
+        },
+        {
+          "id": "mgmt-history-l2-q6",
+          "kind": "choice",
+          "prompt": "今のガントチャートは、作業のつながりも書けます。Mermaid の gantt で、次の Future task2 はいつ始まりますか。",
+          "code": {
+            "format": "text",
+            "text": "gantt\n    dateFormat YYYY-MM-DD\n    Active task  :des2, 2014-01-09, 3d\n    Future task  :des3, after des2, 5d\n    Future task2 :des4, after des3, 5d"
+          },
+          "choices": [
+            { "id": "a", "text": "Future task (des3) が終わったとき" },
+            { "id": "b", "text": "Future task (des3) と同じ日", "why": "after は参照した作業の「終わり」に合わせます。始まりに合わせるのではありません。" },
+            { "id": "c", "text": "des3 が終わってから 5 日後", "why": "5d は Future task2 自身の長さで、待つ日数ではありません。" },
+            { "id": "d", "text": "最初の作業 (des2) と同じ 2014-01-09", "why": "after を書くと、日付ではなく前の作業の終わりから始まります。" }
+          ],
+          "answer": "a",
+          "explanation": "Mermaid の文書によると、after <taskID> と書くと、その作業の始まりは参照した作業の終わりの日になります (複数あれば、いちばん遅い終わり)。1917 年の Gantt の図が計画と実績の比べに力を入れたのに対し、今の道具は作業のつながりも一緒に書けます。",
+          "sources": ["https://mermaid.js.org/syntax/gantt.html"]
+        },
+        {
+          "id": "mgmt-history-l2-q7",
+          "kind": "lab",
+          "prompt": "Mermaid の gantt で、作業のつながりが日程に効くことを見ます。",
+          "steps": [
+            { "text": "Mermaid の編集画面 (https://mermaid.live/) か、Mermaid を表示できる手元の Markdown のプレビューを開く" },
+            { "text": "q6 のコードを貼り、表示された横棒を見る" },
+            { "text": "Active task の長さを 3d から 6d に変えて、表示を見比べる" }
+          ],
+          "expected": "Active task が 3 日延びると、after でつないだ Future task と Future task2 も 3 日ずつ右へずれます。",
+          "explanation": "つながり (after) を書いておくと、前の作業の遅れが後ろの作業へどう伝わるかが図で見えます。これは 1950 年代の CPM と PERT が計算で扱った問題です。",
+          "sources": ["https://mermaid.js.org/syntax/gantt.html"]
+        }
+      ]
+    },
+    {
+      "id": "mgmt-history-l3",
+      "title": "PERT と CPM",
+      "course": "mgmt-history",
+      "questions": [
+        {
+          "id": "mgmt-history-l3-q1",
+          "kind": "choice",
+          "prompt": "Kelley と Walker の 1959 年の論文は、それまでの大きな工事の計画の何を問題にしましたか。",
+          "choices": [
+            { "id": "a", "text": "部署ごとにばらばらに細かい計画を立て、日程を過去の経験からの大まかな見積もりで作っていた" },
+            { "id": "b", "text": "図を描かず、表だけで管理していた", "why": "論文が挙げる欠点は、部署どうしの調整が無いことと、大まかな見積もりから日程を作ることです。" },
+            { "id": "c", "text": "顧客が途中で関わらなかった", "why": "顧客を巻き込めという主張は Royce の 1970 年の論文の手当ての 1 つです。" },
+            { "id": "d", "text": "後工程の要らない部品まで運んでいた", "why": "これはトヨタの機械工場の、スーパーマーケット方式より前のやり方です。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の序 (Introduction and Summary) は、関わる部署が互いにほぼ独立して計画を立てるため調整が欠け、日程は経験からの大まかな見積もりで作られる、と書いています。人の頭だけでは複雑さを扱いきれないのが根です。",
+          "sources": ["https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf"]
+        },
+        {
+          "id": "mgmt-history-l3-q2",
+          "kind": "choice",
+          "prompt": "CPM を作るとき、最初の一歩として分けたものは何ですか。",
+          "choices": [
+            { "id": "a", "text": "計画 (何をどの順でするか) と日程 (いつするか)" },
+            { "id": "b", "text": "設計とコーディング", "why": "設計とコーディングを分ける話は Royce の論文の段です。" },
+            { "id": "c", "text": "前工程と後工程の部品の置き場", "why": "これはかんばんのスーパーマーケット方式の話です。" },
+            { "id": "d", "text": "楽観の見積もりと悲観の見積もり", "why": "3 つの見積もりは PERT の方法です。" }
+          ],
+          "answer": "a",
+          "explanation": "論文は、従来は計画と日程を同時に考えて頭の中で無理をしていたので、まず計画 (作業と順序だけ) と日程 (計画と費用から時刻表を作ること) を分けた、と書いています。",
+          "sources": ["https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf"]
+        },
+        {
+          "id": "mgmt-history-l3-q3",
+          "kind": "choice",
+          "prompt": "CPM を作った 2 人の所属の組み合わせはどれですか。",
+          "choices": [
+            { "id": "a", "text": "Remington Rand UNIVAC と DuPont" },
+            { "id": "b", "text": "Booz, Allen & Hamilton と Lockheed", "why": "この 2 社は米海軍の特別計画局と組んで PERT を作った側です。" },
+            { "id": "c", "text": "米陸軍の兵器局と TRW", "why": "兵器局は Gantt、TRW は Royce の論文の出どころです。" },
+            { "id": "d", "text": "トヨタとフォード", "why": "生産方式の話で、CPM とは関係しません。" }
+          ],
+          "answer": "a",
+          "explanation": "論文によると、DuPont の Integrated Engineering Control Group が 1956 年の終わりに計算機で工事を管理する調査を始め、Remington Rand UNIVAC が Kelley を助けに出し、Walker が DuPont の側を代表しました。計算は DuPont の UNIVAC I で行いました。",
+          "sources": ["https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf", "https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
+        },
+        {
+          "id": "mgmt-history-l3-q4",
+          "kind": "choice",
+          "prompt": "次の作業の一覧で、全体がいちばん早く終わるのは何日目で、どの道筋がクリティカルパスですか。",
+          "code": {
+            "format": "text",
+            "text": "作業  日数  前に終わっている必要がある作業\nA     3     なし\nB     4     なし\nC     4     A と B\nD     2     A"
+          },
+          "choices": [
+            { "id": "a", "text": "8 日目。B → C" },
+            { "id": "b", "text": "5 日目。A → D", "why": "いちばん短い道筋を選んでいます。全体の長さを決めるのはいちばん長い道筋です。" },
+            { "id": "c", "text": "7 日目。A → C", "why": "C は B も待つので、A が終わる 3 日目ではなく B が終わる 4 日目からしか始められません。" },
+            { "id": "d", "text": "13 日目。全部を順に", "why": "A と B は並行してできます。全作業の日数の合計は全体の長さではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "C は A (3 日) と B (4 日) の両方を待つので 4 日目から始まり 8 日目に終わります。D は 3 日目から 5 日目です。全体は 8 日で、遅れがそのまま全体の遅れになる作業の道筋 B → C がクリティカルパスです。論文は、遅れの余裕が無い作業を critical、つながった critical な作業の道を critical-path と定義しています。",
+          "sources": ["https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf"]
+        },
+        {
+          "id": "mgmt-history-l3-q5",
+          "kind": "choice",
+          "prompt": "前の問題の作業 D は、全体の終わり (8 日目) を遅らせずに最大で何日遅らせられますか (D の総余裕、total float)。",
+          "code": {
+            "format": "text",
+            "text": "作業  日数  前に終わっている必要がある作業\nA     3     なし\nB     4     なし\nC     4     A と B\nD     2     A"
+          },
+          "choices": [
+            { "id": "a", "text": "3 日" },
+            { "id": "b", "text": "0 日", "why": "余裕が 0 なのはクリティカルパスの上の作業 (B と C) です。D はその上にありません。" },
+            { "id": "c", "text": "1 日", "why": "1 日は A の余裕です (C が始まる 4 日目までに A が終わればよい)。" },
+            { "id": "d", "text": "5 日", "why": "5 は D がいちばん早く終わる日で、余裕ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "D はいちばん早くて 3 日目に始まり 5 日目に終わります。全体の終わりは 8 日目なので、遅くとも 8 日目に終わればよく、余裕は 8 − 5 = 3 日です。論文はこの余裕を float と呼び、Total Float などの測り方を挙げています。",
+          "sources": ["https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf"]
+        },
+        {
+          "id": "mgmt-history-l3-q6",
+          "kind": "http",
+          "format": "json",
+          "prompt": "PERT の第 1 段の報告書の式で、作業の日数の期待値と標準偏差を出します。楽観 a = 2、最可能 m = 5、悲観 b = 14 (日) のとき、空欄を埋めてください。",
+          "code": "{\n  \"optimistic\": 2,\n  \"mostLikely\": 5,\n  \"pessimistic\": 14,\n  \"expected\": {{blank}},\n  \"standardDeviation\": {{blank}}\n}",
+          "blanks": [
+            { "answers": ["6", "6.0"] },
+            { "answers": ["2", "2.0"] }
+          ],
+          "explanation": "報告書は期待値を (a + 4m + b) / 6、ばらつきを幅の 6 分の 1 ((b − a) / 6) として求めます。(2 + 20 + 14) / 6 = 6、(14 − 2) / 6 = 2 です。1 つの数で見積もらず 3 つ聞くのは、研究開発のように前例の無い仕事の不確かさを数で扱うためです。",
+          "sources": ["https://archive.org/details/DTIC_AD0735902"]
+        },
+        {
+          "id": "mgmt-history-l3-q7",
+          "kind": "choice",
+          "prompt": "1958 年 7 月の第 1 段の報告書の表紙で、PERT は何の略として書かれていますか。",
+          "choices": [
+            { "id": "a", "text": "Program Evaluation Research Task" },
+            { "id": "b", "text": "Project Estimation and Resource Tracking", "why": "それらしく作った名前で、報告書には出てきません。" },
+            { "id": "c", "text": "Polaris Engineering Review Team", "why": "PERT は Polaris (艦隊弾道ミサイル) の計画のために作られましたが、略の中身は違います。" },
+            { "id": "d", "text": "Planned Execution and Reporting Technique", "why": "それらしく作った名前で、報告書には出てきません。" }
+          ],
+          "answer": "a",
+          "explanation": "米海軍の特別計画局の第 1 段の報告書は「Program Evaluation Research Task」と書いています。始まりは 1958 年 1 月 27 日で、特別計画局・Booz, Allen & Hamilton・Lockheed が組みました。翌 1959 年の Kelley と Walker の論文では「Program Evaluation and Review Technique」と書かれています。",
+          "sources": [
+            "https://archive.org/details/DTIC_AD0735902",
+            "https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf"
+          ]
+        },
+        {
+          "id": "mgmt-history-l3-q8",
+          "kind": "order",
+          "prompt": "CPM と PERT が生まれるまでの出来事を、起きた順に並べてください。",
+          "items": [
+            { "id": "survey", "text": "DuPont が計算機で工事を管理する調査を始める" },
+            { "id": "demo", "text": "CPM の結果が公式に実演される" },
+            { "id": "pert", "text": "米海軍の特別計画局で PERT の計画が始まる" },
+            { "id": "paper", "text": "Kelley と Walker が東部合同計算機会議 (Eastern Joint Computer Conference) の論文集に CPM を書く" }
+          ],
+          "answer": ["survey", "demo", "pert", "paper"],
+          "explanation": "Kelley と Walker の論文によると、調査は 1956 年の終わりに始まり、実演は 1957 年 9 月でした。PERT は 1958 年 1 月 27 日に始まり (第 1 段の報告書)、論文は 1959 年の論文集に載りました。2 つはほぼ同じ時期に別々に生まれ、論文は PERT を「並行した取り組み」として紹介しています。",
+          "sources": [
+            "https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf",
+            "https://archive.org/details/DTIC_AD0735902"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mgmt-history-l4",
+      "title": "ウォーターフォール (Winston Royce)",
+      "course": "mgmt-history",
+      "questions": [
+        {
+          "id": "mgmt-history-l4-q1",
+          "kind": "choice",
+          "prompt": "Royce の 1970 年の論文は、小さく、作った人が自分で使うプログラムなら、何の 2 段で足りるとしましたか。",
+          "choices": [
+            { "id": "a", "text": "分析 (analysis) とコーディング (coding)" },
+            { "id": "b", "text": "要求とテスト", "why": "要求とテストは、大きなプログラムで足される段です。" },
+            { "id": "c", "text": "設計と文書", "why": "設計を先にすることと文書は、大きなプログラムのための手当てです。" },
+            { "id": "d", "text": "計画と日程", "why": "計画と日程を分けたのは 1950 年代の CPM の話です。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の「Computer Program Development Functions」は、規模がどうであれ共通の段は分析とコーディングの 2 つで、小さく内部で使うものならそれで足りるが、大きなシステムをこの 2 段だけで作る計画は失敗する、と書いています。",
+          "sources": ["https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
+        },
+        {
+          "id": "mgmt-history-l4-q2",
+          "kind": "order",
+          "prompt": "Royce の論文の Figure 2 (顧客に渡す大きなプログラムの段) を、上から順に並べてください。",
+          "items": [
+            { "id": "sysreq", "text": "システムの要求 (system requirements)" },
+            { "id": "swreq", "text": "ソフトウェアの要求 (software requirements)" },
+            { "id": "analysis", "text": "分析 (analysis)" },
+            { "id": "design", "text": "プログラムの設計 (program design)" },
+            { "id": "coding", "text": "コーディング (coding)" },
+            { "id": "testing", "text": "テスト (testing)" },
+            { "id": "operations", "text": "運用 (operations)" }
+          ],
+          "answer": ["sysreq", "swreq", "analysis", "design", "coding", "testing", "operations"],
+          "explanation": "論文は、分析とコーディングの前に 2 段の要求の分析を置き、その間をプログラムの設計で分け、後ろにテストを置く、と説明しています。",
+          "sources": ["https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
+        },
+        {
+          "id": "mgmt-history-l4-q3",
+          "kind": "choice",
+          "prompt": "Royce は、段を順に進めるだけのやり方の何が危ないと書きましたか。",
+          "choices": [
+            { "id": "a", "text": "時間・記憶容量・入出力の問題を、最後のテストで初めて実際に体験する。そこで外れると大きな作り直しになる" },
+            { "id": "b", "text": "コーディングの段がいちばん難しく、遅れやすい", "why": "Royce は逆に、分析とコーディングは比較的楽に管理でき、要求・設計・テストへの影響は小さいと書いています。" },
+            { "id": "c", "text": "文書が多すぎて開発が遅くなる", "why": "Royce はむしろ文書を徹底せよと主張しています。" },
+            { "id": "d", "text": "部品が後工程に溜まり、置き場が足りなくなる", "why": "これはトヨタの機械工場の困りごとです。" }
+          ],
+          "answer": "a",
+          "explanation": "論文は、最後のテストが、時間や記憶容量などを分析ではなく実際に体験する最初の場であり、そこで制約を満たさないと大きな設計のやり直しになって、日程や費用が最大で 100% 超過しうる、と書いています。",
+          "sources": ["https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
+        },
+        {
+          "id": "mgmt-history-l4-q4",
+          "kind": "choice",
+          "prompt": "Royce の論文の主張にいちばん近いのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "段を順に進める考え方は信じるが、そのままでは危うく失敗を招く。だから 5 つの手当てを足す" },
+            { "id": "b", "text": "段を一方通行で守れば大きなシステムも成功する", "why": "よくある誤解です。Royce はその単純な形を「risky and invites failure」と書いています。" },
+            { "id": "c", "text": "段を捨てて、反復だけで作るべきだ", "why": "言い過ぎです。Royce は「I believe in this concept」と書き、段の考え方を土台に手当てを足しています。" },
+            { "id": "d", "text": "文書は最小限にして、動くものを先に作るべきだ", "why": "Royce は文書の徹底を最も大事な規則の 1 つとしています。" }
+          ],
+          "answer": "a",
+          "explanation": "論文は、Figure 2 の形を「信じるが、危うく失敗を招く」と書き、基本は健全だとしたうえで、(1) プログラムの設計を先に (2) 設計を文書にする (3) 2 回作る (4) テストを計画し管理する (5) 顧客を巻き込む、の 5 つを足すよう勧めています。段と段の間を行き来する反復も図で示しています。",
+          "sources": ["https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
+        },
+        {
+          "id": "mgmt-history-l4-q5",
+          "kind": "choice",
+          "prompt": "Royce の手当ての 1 つ「Do it twice (2 回作る)」の中身はどれですか。",
+          "choices": [
+            { "id": "a", "text": "初めて作るものなら、全体の工程を小さく先に 1 回通して、顧客に渡すものを重要な部分については 2 版目にする" },
+            { "id": "b", "text": "同じプログラムを 2 つのチームに別々に作らせ、よい方を選ぶ", "why": "論文が描くのは、本番の前に小さな規模で工程を通す試作 (シミュレーション) です。" },
+            { "id": "c", "text": "テストを 2 回くり返す", "why": "テストの計画は別の手当て (Step 4) です。" },
+            { "id": "d", "text": "要求の文書を 2 回書き直す", "why": "文書の手当ては Step 2 で、Step 3 は試作の話です。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の STEP 3 は、初めて作るなら重要な設計と運用の部分については渡す版を実は 2 版目にするよう勧め、全体の工程を小さな時間の規模で先に通す (30 か月の仕事なら試作に 10 か月など) 例を挙げています。小さく作って確かめるこの考えは、のちの反復型の開発に通じるところがあります。",
+          "sources": ["https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
+        },
+        {
+          "id": "mgmt-history-l4-q6",
+          "kind": "choice",
+          "prompt": "Royce の論文の 5 つ目の手当て「顧客を巻き込む」とよく似た価値を掲げる、のちの文書はどれですか。",
+          "choices": [
+            { "id": "a", "text": "アジャイルソフトウェア開発宣言の「契約交渉よりも顧客との協調を」" },
+            { "id": "b", "text": "Scrum Guide の「Daily Scrum は 15 分」", "why": "Daily Scrum は開発者どうしの点検の場で、顧客を巻き込む話ではありません。" },
+            { "id": "c", "text": "PERT の 3 つの見積もり", "why": "見積もりの方法で、顧客との関わりの話ではありません。" },
+            { "id": "d", "text": "トヨタの自働化", "why": "異常で止まる機械の考えで、顧客との関わりの話ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "Royce は STEP 5 で、要求を決めてから運用までの間を開発者に任せきりにするのは問題を招くとして、顧客を正式に途中の節目に関わらせるよう勧めました。2001 年の宣言は「契約交渉よりも顧客との協調を」価値とします。",
+          "sources": [
+            "https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf",
+            "https://agilemanifesto.org/"
+          ]
+        },
+        {
+          "id": "mgmt-history-l4-q7",
+          "kind": "lab",
+          "prompt": "Royce の論文 (IEEE WESCON 1970 の再録) を開き、自分の目で確かめます。",
+          "steps": [
+            { "text": "ブラウザーで出典の論文の PDF (Web Archive の写し) を開く。1 回開くだけでよい" },
+            { "text": "1 ページ目の下の「Reprinted from」の行を読む" },
+            { "text": "ページ内検索で「waterfall」と「STEP 3」を探す" }
+          ],
+          "expected": "「Reprinted from Proceedings, IEEE WESCON, August 1970」とあります。STEP 3 は「DO IT TWICE」の見出しで見つかりますが、waterfall の語は本文に見当たりません (読み取った文字の誤りで検索が外れることはあります)。",
+          "explanation": "「ウォーターフォールの原典」と呼ばれる論文が、その名を使っておらず、2 回作ることや顧客を巻き込むことまで勧めていることを、原典で確かめます。",
+          "sources": ["https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
+        }
+      ]
+    },
+    {
+      "id": "mgmt-history-l5",
+      "title": "かんばん (トヨタ生産方式)",
+      "course": "mgmt-history",
+      "questions": [
+        {
+          "id": "mgmt-history-l5-q1",
+          "kind": "choice",
+          "prompt": "スーパーマーケット方式より前、トヨタの機械工場ではどう部品を運んでいましたか。",
+          "choices": [
+            { "id": "a", "text": "部品ごとに伝票を 1 枚付け、後の工程が要るかどうかにかかわらず運搬係が運んでいた" },
+            { "id": "b", "text": "後の工程が要る分だけ取りに来ていた", "why": "それはスーパーマーケット方式を入れた後のやり方です。" },
+            { "id": "c", "text": "計算機が日程を組み、その通りに運んでいた", "why": "トヨタの年史が書く以前のやり方は、伝票と運搬係です。" },
+            { "id": "d", "text": "全部を 1 つの倉庫に集めてから配っていた", "why": "年史が書くのは、前の工程から後の工程へ直接運び込むやり方です。" }
+          ],
+          "answer": "a",
+          "explanation": "トヨタの 75 年史によると、機械工場では部品 1 つに伝票 1 枚を付けて運搬係が機械組立工場へ運び、要る要らないにかかわらず届くので、組立工場は作業場というより部品置き場のようになっていました。",
+          "sources": ["https://www.toyota-global.com/company/history_of_toyota/75years/text/taking_on_the_automotive_business/chapter2/section7/item4.html"]
+        },
+        {
+          "id": "mgmt-history-l5-q2",
+          "kind": "choice",
+          "prompt": "スーパーマーケット方式のヒントになったのは何ですか (トヨタの年史による)。",
+          "choices": [
+            { "id": "a", "text": "業界誌に載った、アメリカの Lockheed の航空機工場の報告" },
+            { "id": "b", "text": "日本のスーパーマーケットの見学", "why": "年史は、当時の日本ではスーパーマーケットが一般的でなく、誰も使った経験が無かったと書いています。" },
+            { "id": "c", "text": "Gantt の図の本", "why": "年史が挙げるのは Lockheed の工場の記事です。" },
+            { "id": "d", "text": "DuPont の CPM の論文", "why": "CPM の論文は 1959 年で、方式を入れた 1954 年より後です。" }
+          ],
+          "answer": "a",
+          "explanation": "トヨタの 75 年史は、1954 年春の業界誌に載った Lockheed の航空機工場の報告 (ジェット爆撃機の組み立てにスーパーマーケット方式を使い、費用と置き場を減らした) から着想を得たと書いています。",
+          "sources": ["https://www.toyota-global.com/company/history_of_toyota/75years/text/taking_on_the_automotive_business/chapter2/section7/item4.html"]
+        },
+        {
+          "id": "mgmt-history-l5-q3",
+          "kind": "choice",
+          "prompt": "スーパーマーケット方式で、トヨタは工程をどう見立てましたか。",
+          "choices": [
+            { "id": "a", "text": "後の工程が「お客」、前の工程が「スーパーマーケット」" },
+            { "id": "b", "text": "前の工程が「お客」、後の工程が「スーパーマーケット」", "why": "逆です。お客 (後工程) が棚 (前工程) から要る物を取っていく、と見立てました。" },
+            { "id": "c", "text": "倉庫が「お客」、組立工場が「スーパーマーケット」", "why": "年史の見立ては前工程と後工程の関係です。" },
+            { "id": "d", "text": "部品の会社が「お客」、トヨタが「スーパーマーケット」", "why": "まず社内の工程の間で使った方式です。仕入れ先へ広がったのは後のことです。" }
+          ],
+          "answer": "a",
+          "explanation": "年史は、記事から「後の工程がお客、前の工程がスーパーマーケット」と読み取り、お客が棚から要る物を取るように、後の工程が前の工程から要る部品を取りに行く形にした、と書いています。",
+          "sources": ["https://www.toyota-global.com/company/history_of_toyota/75years/text/taking_on_the_automotive_business/chapter2/section7/item4.html"]
+        },
+        {
+          "id": "mgmt-history-l5-q4",
+          "kind": "choice",
+          "prompt": "スーパーマーケット方式がかんばん方式になったとき、足された「かんばん」には何が書かれていましたか。",
+          "choices": [
+            { "id": "a", "text": "品名・品番・数量" },
+            { "id": "b", "text": "作業者の名前と賃金", "why": "かんばんは作る物と量の指示で、人の賃金は書きません。" },
+            { "id": "c", "text": "楽観・最可能・悲観の日数", "why": "それは PERT の見積もりです。" },
+            { "id": "d", "text": "締め切りの日付と遅れの罰則", "why": "年史が挙げるのは品名・品番・数量です。" }
+          ],
+          "answer": "a",
+          "explanation": "年史は、生産の指示票として「かんばん」(品名・品番・数量を示すカードや板) を足して、スーパーマーケット方式がかんばん方式になったと書いています。",
+          "sources": ["https://www.toyota-global.com/company/history_of_toyota/75years/text/taking_on_the_automotive_business/chapter2/section7/item4.html"]
+        },
+        {
+          "id": "mgmt-history-l5-q5",
+          "kind": "order",
+          "prompt": "トヨタ生産方式につながる出来事を、生まれた順に並べてください。",
+          "items": [
+            { "id": "loom", "text": "豊田佐吉が、緯糸が切れると止まる仕掛けの付いた力織機を作る" },
+            { "id": "typeg", "text": "G 型自動織機ができる" },
+            { "id": "koromo", "text": "喜一郎が、新しくできた挙母工場の車体の組立ラインに流れ作業を入れる" },
+            { "id": "super", "text": "スーパーマーケット方式を入れる" }
+          ],
+          "answer": ["loom", "typeg", "koromo", "super"],
+          "explanation": "トヨタの公式サイトによると、止まる仕掛けの力織機は 1896 年、G 型自動織機は 1924 年、挙母工場 (今の本社工場) は 1938 年の完成です。スーパーマーケット方式は 1954 年に入りました (75 年史)。",
+          "sources": [
+            "https://global.toyota/en/company/vision-and-philosophy/production-system/",
+            "https://www.toyota-global.com/company/history_of_toyota/75years/text/taking_on_the_automotive_business/chapter2/section7/item4.html"
+          ]
+        },
+        {
+          "id": "mgmt-history-l5-q6",
+          "kind": "choice",
+          "prompt": "トヨタは今、トヨタ生産方式 (TPS) の 2 本の柱を何としていますか。",
+          "choices": [
+            { "id": "a", "text": "自働化とジャスト・イン・タイム" },
+            { "id": "b", "text": "かんばんとカイゼン", "why": "よくある取り違えです。かんばんはジャスト・イン・タイムを回す道具で、柱としては挙げられていません。" },
+            { "id": "c", "text": "自動化と大量生産", "why": "トヨタの「自働化」は人の知恵を足した自動化 (異常で止まる) で、ただの自動化ではありません。" },
+            { "id": "d", "text": "クリティカルパスとガントチャート", "why": "計画の道具で、TPS の柱ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "トヨタの公式サイトは、TPS の考え方は 2 本の柱に立つとし、1 本目を異常で止まる「自働化」(佐吉の自動織機に始まる)、2 本目を要る物を要るときに要る量だけ作る「ジャスト・イン・タイム」(喜一郎が唱えた) としています。",
+          "sources": ["https://global.toyota/en/company/vision-and-philosophy/production-system/"]
+        },
+        {
+          "id": "mgmt-history-l5-q7",
+          "kind": "choice",
+          "prompt": "かんばん方式のあと、どこまで広がったとトヨタの年史は書いていますか。",
+          "choices": [
+            { "id": "a", "text": "ジャスト・イン・タイムの仕組みに発展し、仕入れ先の会社にまで広く取り入れられた" },
+            { "id": "b", "text": "機械工場の中だけにとどまった", "why": "年史は、仕入れ先にまで広く取り入れられたと書いています。" },
+            { "id": "c", "text": "かんばんをやめ、計算機の日程に置き換えた", "why": "年史にそのような記述はありません。" },
+            { "id": "d", "text": "ソフトウェアの開発のためにトヨタが作り直した", "why": "年史が書くのは自動車の生産と仕入れ先の話です。" }
+          ],
+          "answer": "a",
+          "explanation": "年史は、かんばん方式がさらにジャスト・イン・タイム (要る物を、要るときに、要る量だけ作る) の仕組みへ発展し、仕入れ先にまで広く取り入れられたと書いています。公式サイトは今も全社で毎日カイゼンを続けているとしています。",
+          "sources": [
+            "https://www.toyota-global.com/company/history_of_toyota/75years/text/taking_on_the_automotive_business/chapter2/section7/item4.html",
+            "https://global.toyota/en/company/vision-and-philosophy/production-system/"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mgmt-history-l6",
+      "title": "スクラムとアジャイル",
+      "course": "mgmt-history",
+      "questions": [
+        {
+          "id": "mgmt-history-l6-q1",
+          "kind": "choice",
+          "prompt": "2001 年にアジャイルソフトウェア開発宣言を書いた人たちは、何に代わるものを求めて集まりましたか (agilemanifesto.org の経緯)。",
+          "choices": [
+            { "id": "a", "text": "文書が主導する、重い開発のやり方" },
+            { "id": "b", "text": "計画を全く立てないやり方", "why": "宣言は計画にも価値があるとしたうえで、変化への対応をより重んじます。" },
+            { "id": "c", "text": "トヨタ生産方式", "why": "経緯の文はトヨタに触れていません。" },
+            { "id": "d", "text": "スクラム", "why": "スクラムの代表者も集まった側の 1 つです。" }
+          ],
+          "answer": "a",
+          "explanation": "経緯のページは、Extreme Programming・SCRUM・DSDM などの代表者が、文書主導で重い開発のやり方に代わるものが要ると考えて集まった、と書いています。",
+          "sources": ["https://agilemanifesto.org/history.html"]
+        },
+        {
+          "id": "mgmt-history-l6-q2",
+          "kind": "choice",
+          "prompt": "宣言はいつ、どこで、何人が集まって生まれましたか。",
+          "choices": [
+            { "id": "a", "text": "2001 年 2 月 11〜13 日、Utah の Snowbird で、17 人" },
+            { "id": "b", "text": "1995 年、OOPSLA の会議で、2 人", "why": "それは Schwaber と Sutherland がスクラムを初めて共同で発表した場です。" },
+            { "id": "c", "text": "1970 年 8 月、IEEE WESCON で、1 人", "why": "それは Royce の論文が載った会議です。" },
+            { "id": "d", "text": "2001 年 2 月、東京で、12 人", "why": "場所は Utah の Snowbird で、12 は宣言の原則の数です。" }
+          ],
+          "answer": "a",
+          "explanation": "経緯のページは、2001 年 2 月 11〜13 日に Utah の Wasatch 山地の Snowbird のスキー場に 17 人が集まったと書いています。署名者 17 人の名はトップのページにあります。",
+          "sources": ["https://agilemanifesto.org/history.html", "https://agilemanifesto.org/", "https://scrumguides.org/scrum-guide.html#scrum-guide-history", "https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"]
+        },
+        {
+          "id": "mgmt-history-l6-q3",
+          "kind": "choice",
+          "prompt": "宣言の 4 つの価値のうち、正しく書かれているものはどれですか (左を右より重んじる)。",
+          "choices": [
+            { "id": "a", "text": "包括的なドキュメントよりも、動くソフトウェアを" },
+            { "id": "b", "text": "変化への対応よりも、計画に従うことを", "why": "逆です。宣言は計画に従うことよりも変化への対応を重んじます。" },
+            { "id": "c", "text": "顧客との協調よりも、契約交渉を", "why": "逆です。宣言は契約交渉よりも顧客との協調を重んじます。" },
+            { "id": "d", "text": "個人と対話よりも、プロセスやツールを", "why": "逆です。宣言はプロセスやツールよりも個人と対話を重んじます。" }
+          ],
+          "answer": "a",
+          "explanation": "宣言は「Working software over comprehensive documentation」など 4 つの価値を、左を右より重んじる形で並べます。",
+          "sources": ["https://agilemanifesto.org/"]
+        },
+        {
+          "id": "mgmt-history-l6-q4",
+          "kind": "choice",
+          "prompt": "宣言は、右に置いた項目 (プロセスやツール、包括的なドキュメント、契約交渉、計画に従うこと) をどう扱っていますか。",
+          "choices": [
+            { "id": "a", "text": "右の項目にも価値があると認めたうえで、左をより重んじる" },
+            { "id": "b", "text": "右の項目は要らないので捨てる", "why": "よくある誤解です。宣言は「右の項目にも価値はあるが」と断っています。" },
+            { "id": "c", "text": "場面に応じて左右を同じ重さで選ぶ", "why": "宣言ははっきり左を「より」重んじると書いています。" },
+            { "id": "d", "text": "右の項目は管理者が、左の項目は開発者が受け持つ", "why": "宣言は役割の分担を決めていません。" }
+          ],
+          "answer": "a",
+          "explanation": "宣言は 4 つの価値の後に「右の項目に価値があることを認めながらも、左の項目をより重んじる (That is, while there is value in the items on the right, we value the items on the left more.)」と書いています。",
+          "sources": ["https://agilemanifesto.org/"]
+        },
+        {
+          "id": "mgmt-history-l6-q5",
+          "kind": "http",
+          "format": "json",
+          "prompt": "2020 年版の Scrum Guide の時間の決まりを JSON にしました。1 か月のスプリントのときの空欄を埋めてください (数だけ)。",
+          "code": "{\n  \"sprint\": \"1 か月以内の決まった長さ\",\n  \"dailyScrumMinutes\": {{blank}},\n  \"sprintPlanningMaxHours\": {{blank}}\n}",
+          "blanks": [
+            { "answers": ["15"] },
+            { "answers": ["8"] }
+          ],
+          "explanation": "Scrum Guide は、Daily Scrum を開発者のための 15 分のイベントとし、Sprint Planning は 1 か月のスプリントで最大 8 時間 (短いスプリントならふつうはもっと短い) としています。スプリント自体は 1 か月以内の決まった長さです。",
+          "sources": [
+            "https://scrumguides.org/scrum-guide.html#daily-scrum",
+            "https://scrumguides.org/scrum-guide.html#sprint-planning",
+            "https://scrumguides.org/scrum-guide.html#the-sprint"
+          ]
+        },
+        {
+          "id": "mgmt-history-l6-q6",
+          "kind": "choice",
+          "prompt": "2020 年版の Scrum Guide が、スクラムチームの中に定める 3 つの責任 (accountabilities) はどれですか。",
+          "choices": [
+            { "id": "a", "text": "開発者 (Developers)、プロダクトオーナー、スクラムマスター" },
+            { "id": "b", "text": "プロジェクトマネージャー、プロダクトオーナー、スクラムマスター", "why": "Scrum Guide にプロジェクトマネージャーという責任はありません。" },
+            { "id": "c", "text": "開発者、テスター、スクラムマスター", "why": "Scrum Guide が定める責任は 3 つで、テスターという責任は別に置かれていません。" },
+            { "id": "d", "text": "開発者、プロダクトオーナーの委員会、顧客", "why": "プロダクトオーナーは 1 人で、委員会ではないと Scrum Guide は書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "Scrum Guide は、スクラムチームの中に開発者・プロダクトオーナー・スクラムマスターの 3 つの責任を定めています。プロダクトオーナーは「1 人であって委員会ではない」とも書いています。",
+          "sources": ["https://scrumguides.org/scrum-guide.html#scrum-team", "https://scrumguides.org/scrum-guide.html#product-owner"]
+        },
+        {
+          "id": "mgmt-history-l6-q7",
+          "kind": "choice",
+          "prompt": "Scrum Guide は、スクラムが何に基づくとしていますか。トヨタ生産方式とのつながりも考えて選んでください。",
+          "choices": [
+            { "id": "a", "text": "経験主義 (empiricism) とリーン思考 (lean thinking)" },
+            { "id": "b", "text": "詳しい事前の計画と承認", "why": "Scrum Guide は、複雑な環境では先のことは分からず、起きたことだけを判断に使えるとしています。" },
+            { "id": "c", "text": "クリティカルパスの計算", "why": "Scrum Guide は CPM に基づくとは書いていません。" },
+            { "id": "d", "text": "包括的なドキュメント", "why": "アジャイルの宣言は、包括的なドキュメントより動くソフトウェアを重んじます。" }
+          ],
+          "answer": "a",
+          "explanation": "Scrum Guide は、スクラムは経験主義 (知識は経験から来て、見たことに基づいて決める) とリーン思考 (ムダを減らし本質に集中する) に基づくと書いています。ムダをなくすことは、トヨタが TPS の目的として挙げることでもあります。",
+          "sources": [
+            "https://scrumguides.org/scrum-guide.html#scrum-theory",
+            "https://global.toyota/en/company/vision-and-philosophy/production-system/"
+          ]
+        },
+        {
+          "id": "mgmt-history-l6-q8",
+          "kind": "order",
+          "prompt": "このコースで見た計画と管理の方法を、生まれた順に並べてください。",
+          "items": [
+            { "id": "harmonogram", "text": "Adamiecki が図による方法 (ハーモノグラム) の記事を載せる" },
+            { "id": "gantt", "text": "Gantt が米陸軍の兵器局で進み具合の図を作り込む" },
+            { "id": "supermarket", "text": "トヨタがスーパーマーケット方式 (のちのかんばん) を入れる" },
+            { "id": "pert", "text": "米海軍の特別計画局で PERT が始まる" },
+            { "id": "royce", "text": "Royce が大きなソフトウェアの開発の管理の論文を出す" },
+            { "id": "scrum", "text": "Schwaber と Sutherland がスクラムを初めて共同で発表する" },
+            { "id": "manifesto", "text": "アジャイルソフトウェア開発宣言が生まれる" }
+          ],
+          "answer": ["harmonogram", "gantt", "supermarket", "pert", "royce", "scrum", "manifesto"],
+          "explanation": "1909 年 (Warsaw 工科大学の紹介)、1917 年 (Clark の本の序文)、1954 年 (トヨタの 75 年史)、1958 年 (PERT の第 1 段の報告書)、1970 年 (Royce の論文)、1995 年 (Scrum Guide の歴史の節、OOPSLA)、2001 年 (agilemanifesto.org) の順です。",
+          "sources": [
+            "https://bcpw.bg.pw.edu.pl/Content/815/download",
+            "https://archive.org/details/cu31924004570853",
+            "https://www.toyota-global.com/company/history_of_toyota/75years/text/taking_on_the_automotive_business/chapter2/section7/item4.html",
+            "https://archive.org/details/DTIC_AD0735902",
+            "https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf",
+            "https://scrumguides.org/scrum-guide.html#scrum-guide-history",
+            "https://agilemanifesto.org/history.html"
+          ]
+        }
+      ]
+    }
+  ]
+}
