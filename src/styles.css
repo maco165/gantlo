@@ -931,3 +931,22 @@ code {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+
+/* このサイトについての画面。カードの中の見出しと文とボタン */
+.about__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+.about__section p {
+  margin: 0;
+}
+.about__title {
+  margin: 0;
+  font-size: var(--text-heading-4-size);
+  font-weight: var(--text-heading-4-weight);
+}
+.about code {
+  overflow-wrap: anywhere;
+}
