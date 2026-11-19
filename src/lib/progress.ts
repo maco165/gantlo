@@ -14,8 +14,19 @@ export type AnswerRecord = { right: number; wrong: number; last: string; stage?:
 /** 復習の間隔 (日)。間違えたら翌日、復習で続けて正解するたびに 3 日後・7 日後 */
 export const REVIEW_INTERVALS = [1, 3, 7] as const;
 
-/** 計画: 学ぶコースを、学ぶ順に並べたもの。期間と期限は持たない */
-export type Plan = { courses: CourseId[] };
+/**
+ * 計画: 学ぶコースを学ぶ順に並べたものと、おおよその予定 (R-20)。期限は持たない。
+ * start は予定の開始日 (端末の日付)。days はコースごとに本人が直した目安の日数で、直していないコースは持たない
+ * (レッスン数から決まる既定の日数は src/lib/schedule.ts で数える。問題が増えれば既定も伸びる)。
+ * どちらも無い古い記録は、schedule.ts が既定で補う
+ */
+export type Plan = { courses: CourseId[]; start?: string; days?: Partial<Record<CourseId, number>> };
+
+/** 直せる目安の日数の範囲 (1 日〜1 年。整数) */
+export const MIN_COURSE_DAYS = 1;
+export const MAX_COURSE_DAYS = 365;
+export const isCourseDays = (v: unknown): v is number =>
+  typeof v === 'number' && Number.isInteger(v) && v >= MIN_COURSE_DAYS && v <= MAX_COURSE_DAYS;
 
 /** 設定。無ければ既定の値を使う */
 export type Profile = { dailyGoalXp: number };
@@ -120,6 +131,13 @@ export function normalizeProgress(raw: unknown): Progress | null {
     // 知らないコースと重なりを落とし、順は残す
     const courses = [...new Set(raw.plan.courses.filter((c): c is CourseId => typeof c === 'string' && COURSE_IDS.includes(c)))];
     out.plan = { courses };
+    // 開始日は実在する日付だけ、目安の日数は知っているコースの範囲内の整数だけ残す。期限や期間など、ほかの欄は落とす
+    if (isValidDay(raw.plan.start)) out.plan.start = raw.plan.start;
+    if (isObject(raw.plan.days)) {
+      const days: Partial<Record<CourseId, number>> = {};
+      for (const [c, n] of Object.entries(raw.plan.days)) if (COURSE_IDS.includes(c) && isCourseDays(n)) days[c as CourseId] = n;
+      if (Object.keys(days).length > 0) out.plan.days = days;
+    }
   }
   return out;
 }
@@ -275,8 +293,16 @@ export function setProfile(p: Progress, change: Partial<Profile>): Progress {
 export function resetProgress(p: Progress): Progress {
   const next = emptyProgress();
   if (p.profile) next.profile = { ...p.profile };
-  if (p.plan) next.plan = { courses: [...p.plan.courses] };
+  if (p.plan) next.plan = copyPlan(p.plan);
   return next;
+}
+
+/** 計画の写し (コースの順・開始日・目安の日数をすべて写す) */
+export function copyPlan(plan: Plan): Plan {
+  const out: Plan = { courses: [...plan.courses] };
+  if (plan.start !== undefined) out.start = plan.start;
+  if (plan.days !== undefined) out.days = { ...plan.days };
+  return out;
 }
 
 /** 書き出すファイルの名前 (gantlo-progress-YYYY-MM-DD.json) */
@@ -327,7 +353,7 @@ export function replaceWithImported(current: Progress, loaded: Progress): Progre
   const profile = loaded.profile ?? current.profile;
   const plan = loaded.plan ?? current.plan;
   if (profile) next.profile = { ...profile };
-  if (plan) next.plan = { courses: [...plan.courses] };
+  if (plan) next.plan = copyPlan(plan);
   return next;
 }
 

@@ -438,6 +438,7 @@ code {
 }
 .plan__item {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--spacing-2);
   padding: var(--spacing-1) 0;
@@ -469,6 +470,32 @@ code {
 .plan__moves {
   display: flex;
   gap: var(--spacing-1);
+}
+/* 開始日と目安の日数の入力欄。高さはボタンと同じ --size-element-lg (狭い画面では 44px) */
+.plan__field {
+  margin: 0;
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.plan__field input {
+  box-sizing: border-box;
+  min-height: var(--size-element-lg);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-border-emphasized);
+  border-radius: var(--radius-element);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-family: var(--font-family-code);
+}
+.plan__field input:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.plan__days input {
+  width: 5.5rem;
 }
 
 /* 計画のガントチャート (横の軸はレッスンの数) */
@@ -513,6 +540,43 @@ code {
 .gantt__done {
   background: var(--color-text-success);
 }
+/* 今日: 帯の上下を貫く縦の線 (今ここより太く、別の色) */
+.gantt__today {
+  position: absolute;
+  top: calc(-1 * var(--spacing-2));
+  bottom: calc(-1 * var(--spacing-2));
+  width: 3px;
+  margin-left: -1.5px;
+  background: var(--color-text-warning);
+}
+.gantt__legend {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-4);
+  font-size: var(--text-supporting-size);
+  color: var(--color-text-secondary);
+}
+.gantt__key::before {
+  content: '';
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  margin-right: var(--spacing-1);
+  vertical-align: middle;
+  border-radius: var(--radius-inner);
+}
+.gantt__key--today::before {
+  width: 3px;
+  background: var(--color-text-warning);
+}
+.gantt__key--here::before {
+  width: 2px;
+  background: var(--color-text-info);
+}
+.gantt__key--done::before {
+  background: var(--color-text-success);
+}
 /* 今ここ: 帯の上下を貫く縦の印 */
 .gantt__here {
   position: absolute;
@@ -536,7 +600,7 @@ code {
 }
 @media (min-width: 768px) {
   .gantt__row {
-    grid-template-columns: 12rem 10rem minmax(0, 1fr);
+    grid-template-columns: 12rem 14rem minmax(0, 1fr);
     grid-template-areas: 'name count track';
   }
 }

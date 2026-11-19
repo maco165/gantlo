@@ -127,12 +127,12 @@ describe('Network の表', () => {
 
 function PlanProbe() {
   const [p, update] = useProgress();
-  return createElement(Plan, { progress: p, updateProgress: update });
+  return createElement(Plan, { progress: p, updateProgress: update, now });
 }
 
 const ganttOrder = () => [...host.querySelectorAll('.gantt__row')].map((r) => r.getAttribute('data-course'));
 const button = (label: string) => [...host.querySelectorAll('button')].find((b) => (b.getAttribute('aria-label') ?? b.textContent) === label) as HTMLButtonElement;
-const checkbox = (course: string) => host.querySelector(`.plan__item[data-course="${course}"] input`) as HTMLInputElement;
+const checkbox = (course: string) => host.querySelector(`.plan__item[data-course="${course}"] input[type="checkbox"]`) as HTMLInputElement;
 
 describe('計画の画面 (R-17・R-18)', () => {
   it('計画が無ければ既定の順で組み始め、上下のボタンで帯の順が入れ替わる', async () => {
@@ -166,7 +166,8 @@ describe('計画の画面 (R-17・R-18)', () => {
     await act(async () => button('PUT この順で学ぶ').click());
     expect(text('.plan__save .status__code')).toBe('200');
     expect(text('.plan__save .status__reason')).toBe('OK');
-    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).plan).toEqual({ courses: ['main', 'spring', 'security', 'mgmt-history'] });
+    // 開始日 (計画を初めて保存した日) も残る。目安の日数は直していないので持たない
+    expect(JSON.parse(localStorage.getItem(STORAGE_KEY)!).plan).toEqual({ courses: ['main', 'spring', 'security', 'mgmt-history'], start: '2026-11-23' });
     await act(async () => root.unmount());
     root = createRoot(host);
     await act(async () => root.render(createElement(PlanProbe)));
