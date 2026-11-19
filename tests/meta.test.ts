@@ -48,6 +48,25 @@ const expectUnique = (values: string[], label: string) => {
   expect(dup, `${label} が重なっている`).toEqual([]);
 };
 
+describe('共有したときのカードの画像 (og:image)', () => {
+  const OG_URL = `${SITE_URL}og.png`;
+  it('全ページの head に、公開の URL の og:image (1200×630・代替文) と summary_large_image がある', () => {
+    for (const p of pages) {
+      const doc = new DOMParser().parseFromString(renderPage(template, p), 'text/html');
+      const og = (k: string) => doc.querySelector(`meta[property="og:${k}"]`)?.getAttribute('content');
+      expect([og('image'), og('image:width'), og('image:height')], p.path).toEqual([OG_URL, '1200', '630']);
+      expect(og('image:alt'), p.path).toBeTruthy();
+      expect(doc.querySelector('meta[name="twitter:card"]')?.getAttribute('content'), p.path).toBe('summary_large_image');
+    }
+  });
+
+  it('画像は public/og.png にあり、PNG で 1200×630 (head に書いた大きさと同じ)', () => {
+    const png = readFileSync(join(__dirname, '../public/og.png'));
+    expect(png.subarray(1, 4).toString('ascii')).toBe('PNG');
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+  });
+});
+
 describe('書き出すページの一覧', () => {
   it('ホーム・メニューの画面・全コース・全レッスンがそろう', () => {
     const expected = ['', ...Object.keys(PAGE_TITLES).map((p) => `${p}/`), ...COURSES.map((c) => `course/${c.id}/`), ...LESSONS.map((l) => `lesson/${l.id}/`)];
