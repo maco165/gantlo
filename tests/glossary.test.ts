@@ -25,9 +25,32 @@ describe('用語集のデータ (src/content/glossary.json)', () => {
     expect(new Set(SORTED.standards.map((t) => t.standard)).size).toBe(STANDARD_COUNT);
   });
 
-  it('main の問題に出る語 (HEAD・Content-Type・201 Created など) は、そのレッスンへのリンクを持つ', () => {
+  it('語のレッスンのリンクは、その語が出てくる問題を持つレッスンを指す (例: HEAD → メソッドとステータスコード)', () => {
     const lessonsOf = (id: string) => TERMS.find((t) => t.id === id)?.lessons;
-    for (const id of ['head', 'content-type', 'json', '201-created', 'dns', 'tls', 'curl']) expect(lessonsOf(id), id).toContain('main-w1-l1');
+    const expected: [string, string][] = [
+      ['head', 'main-w1-l1'],
+      ['uri', 'main-w1-l2'],
+      ['content-type', 'main-w1-l3'],
+      ['media-type', 'main-w1-l3'],
+      ['json', 'main-w1-l4'],
+      ['curl', 'main-w1-l5'],
+      ['dns', 'main-w2-l1'],
+      ['tcp-ip', 'main-w2-l3'],
+      ['tls', 'main-w2-l4'],
+      ['jwt', 'main-w4-l4'],
+    ];
+    for (const [id, lesson] of expected) expect(lessonsOf(id), id).toContain(lesson);
+  });
+
+  it('書いたレッスンには、その語 (名前か別名) が問題文・コード・選択肢・解説などのどこかに出てくる', () => {
+    const textOf = (l: (typeof LESSONS)[number]) =>
+      normalizeText(l.questions.map((q) => JSON.stringify({ ...q, sources: undefined })).join(' '));
+    for (const t of TERMS)
+      for (const id of t.lessons) {
+        const lesson = LESSONS.find((l) => l.id === id)!;
+        const names = [t.term, ...(t.aliases ?? [])].map(normalizeText);
+        expect(names.some((n) => textOf(lesson).includes(n)), `${t.id} → ${id}`).toBe(true);
+      }
   });
 
   it('id と、用語・別名 (検索の形にそろえたもの) が語どうしで重ならない', () => {
@@ -176,9 +199,9 @@ describe('用語集の画面と書き出し', () => {
     const head = host.querySelector('article[data-term="head"]')!;
     expect(head.textContent).toContain(TERMS.find((t) => t.id === 'head')!.description);
     expect(head.querySelector('a[href="https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2"]')).not.toBeNull();
-    expect(head.querySelector('a[href="/gantlo/lesson/main-w1-l1/"]')).not.toBeNull();
+    for (const id of TERMS.find((t) => t.id === 'head')!.lessons) expect(head.querySelector(`a[href="/gantlo/lesson/${id}/"]`), id).not.toBeNull();
     // 出てくるレッスンが無い語は、レッスンの行を出さない
-    expect(host.querySelector('article[data-term="utf-8"]')!.textContent).not.toContain('出てくるレッスン');
+    expect(host.querySelector('article[data-term="202-accepted"]')!.textContent).not.toContain('出てくるレッスン');
   });
 
   it('書き出す用語集の本文は、出典の URL を属性の中で escape する (G-002)', () => {

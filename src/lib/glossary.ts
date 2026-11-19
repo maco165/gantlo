@@ -15,7 +15,7 @@ export type GlossaryTerm = {
   description: string;
   /** 一次情報の出典 (1 つ以上、https)。RFC は節まで指す */
   sources: GlossarySource[];
-  /** 語が出てくるレッスンの id。main にあるレッスンだけを書く (無ければ空) */
+  /** 語が出てくるレッスンの id。問題データに実在し、問題にその語が出てくるレッスンだけを書く (無ければ空) */
   lessons: string[];
 };
 
