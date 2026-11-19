@@ -6,7 +6,7 @@ import { lessonsOf } from '../content/index';
 import { canSavePlan, moveCourse, planOrder, savePlan, toggleCourse } from '../lib/plan';
 import { MAX_COURSE_DAYS, MIN_COURSE_DAYS, isCourseDays, isValidDay, setProfile, type GanttView, type Plan as PlanRecord, type Progress } from '../lib/progress';
 import { COURSES, type CourseId } from '../lib/route';
-import { courseDays, planStart } from '../lib/schedule';
+import { courseDays, planStart, setCourseDays } from '../lib/schedule';
 import { PLAN_SAVED } from '../lib/status';
 
 type Props = { progress: Progress; updateProgress: (fn: (p: Progress) => Progress) => void; now?: Date };
@@ -44,12 +44,18 @@ export default function Plan({ progress, updateProgress, now = new Date() }: Pro
     setStart(v);
     setSaved(false);
   };
+  // 範囲外 (0・400・2.5・-3・空) は予定に入れず、入力欄に aria-invalid と補助の文を出す (直すまで残す)。
+  // 既定と同じ値を打つと直した値から外す (既定に戻る。setCourseDays)
   const changeDays = (course: CourseId, v: string) => {
     setText((t) => ({ ...t, [course]: v }));
     const n = Number(v);
     if (v.trim() === '' || !isCourseDays(n)) return;
-    setDays((d) => ({ ...d, [course]: n }));
+    setDays((d) => setCourseDays(d, course, n, lessonsOf(course).length));
     setSaved(false);
+  };
+  const invalidDays = (course: CourseId) => {
+    const t = text[course];
+    return t !== undefined && (t.trim() === '' || !isCourseDays(Number(t)));
   };
   // 表示する期間は表示の好みなので、選んだらすぐ設定 (profile) に保存する (計画の PUT を待たない)
   const changeView = (view: GanttView) => updateProgress((p) => setProfile(p, { ganttView: view }));
@@ -111,10 +117,16 @@ export default function Plan({ progress, updateProgress, now = new Date() }: Pro
                       step={1}
                       value={text[id] ?? String(courseDays(days, id, lessonsOf(id).length))}
                       onChange={(e) => changeDays(id, e.target.value)}
-                      onBlur={() => setText((t) => ({ ...t, [id]: undefined }))}
                       aria-label={`${titleOf(id)} の目安の日数`}
+                      aria-invalid={invalidDays(id) ? 'true' : undefined}
+                      aria-describedby={invalidDays(id) ? `plan-days-${id}-error` : undefined}
                     />
                     <span aria-hidden="true">日</span>
+                    {invalidDays(id) && (
+                      <span id={`plan-days-${id}-error`} className="plan__error">
+                        1〜365 の整数で入れてください。今は {courseDays(days, id, lessonsOf(id).length)} 日で数えています
+                      </span>
+                    )}
                   </span>
                 )}
                 {chosen && (

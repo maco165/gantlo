@@ -24,7 +24,9 @@ import {
   defaultCourseDays,
   labelTicks,
   planStart,
+  scheduleHeader,
   scheduleStatus,
+  setCourseDays,
   verdictLabel,
   verdictTone,
 } from '../src/lib/schedule';
@@ -410,5 +412,24 @@ describe('表示する期間と日付の目盛り (R-21)', () => {
     expect(verdictTone({ kind: 'behind', days: 1 })).toBe('error');
     expect(verdictTone({ kind: 'notStarted', days: 0 })).toBeNull();
     expect(verdictTone({ kind: 'empty', days: 0 })).toBeNull();
+  });
+});
+
+describe('#33 のレビューの直し (W-002・W-003)', () => {
+  it('W-002: 計画を保存する前のホームは「204 計画なし」。保存すると巻き・遅れを出す', () => {
+    const p = finish(emptyProgress(), 'main-l1');
+    expect(scheduleHeader(p, noon('2026-12-10'), SAMPLE)).toBe('204 計画なし');
+    const saved = savePlan(p, ['main', 'spring'], { start: '2026-11-23' })!;
+    expect(scheduleHeader(saved, noon('2026-11-25'), SAMPLE)).toBe('408 1 日遅れ');
+    expect(scheduleHeader(savePlan(saved, ['main', 'spring'], { days: { main: 20 } })!, noon('2026-11-25'), SAMPLE)).toBe('200 2 日巻き');
+  });
+
+  it('W-003: 既定と同じ日数を打つと直した値から外れ (既定に戻る)、違う値なら残る。範囲外は受け取らない', () => {
+    expect(setCourseDays({ main: 9 }, 'main', 4, 4)).toEqual({});
+    expect(setCourseDays({ spring: 3 }, 'main', 9, 4)).toEqual({ spring: 3, main: 9 });
+    expect(setCourseDays({ main: 9 }, 'main', 0, 4)).toEqual({ main: 9 });
+    expect(setCourseDays(undefined, 'main', 366, 4)).toEqual({});
+    // 外したあとは保存しても days を持たない
+    expect(savePlan(emptyProgress(), ['main'], { start: '2026-11-23', days: setCourseDays({ main: 9 }, 'main', 4, 4) })!.plan).toEqual({ courses: ['main'], start: '2026-11-23' });
   });
 });

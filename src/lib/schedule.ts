@@ -3,7 +3,7 @@
 // 日付は端末の日付 (YYYY-MM-DD) で数え、日の差は暦の日付どうしで数える (時刻の差で数えないので、時差・夏時間でずれない)。
 import { LESSONS } from '../content/index';
 import type { Lesson } from '../content/types';
-import { currentLesson, isDone } from './plan';
+import { currentLesson, isDone, planOrder } from './plan';
 import { addDays, dayKey, isCourseDays, type GanttView, type Plan, type Progress } from './progress';
 import { COURSES, type CourseId } from './route';
 import type { Status } from './status';
@@ -267,6 +267,18 @@ export function buildSchedule(
   };
 }
 
+/**
+ * 既定と同じ日数を打ったら、直した値として残さない (既定に戻す)。範囲外の値は受け取らず、そのままにする。
+ * 直していないコースはレッスン数から数え直すので、問題が増えれば伸びる
+ */
+export function setCourseDays(days: Plan['days'], course: CourseId, value: number, lessonCount: number): NonNullable<Plan['days']> {
+  const next = { ...days };
+  if (!isCourseDays(value)) return next;
+  if (value === defaultCourseDays(lessonCount)) delete next[course];
+  else next[course] = value;
+  return next;
+}
+
 /** 巻き・遅れの短い言い方 (ホームのヘッダーと帯の見出し) */
 export function verdictLabel(v: Verdict): string {
   switch (v.kind) {
@@ -309,4 +321,14 @@ export function verdictTone(v: Verdict): 'success' | 'info' | 'error' | null {
   if (v.kind === 'ahead') return 'info';
   if (v.kind === 'behind') return 'error';
   return null;
+}
+
+/**
+ * ホームの X-Schedule の値。計画を一度も保存していないうちは、巻き・遅れを出さず「204 計画なし」にする
+ * (組んでいない予定に遅れを言わない)。保存したあとは計画の画面と同じ数え方で「408 2 日遅れ」のように出す
+ */
+export function scheduleHeader(p: Progress, now: Date, lessons: readonly Lesson[] = LESSONS): string {
+  if (!p.plan) return '204 計画なし';
+  const s = buildSchedule({ courses: planOrder(p), start: planStart(p, now), days: p.plan.days }, p, now, lessons);
+  return `${scheduleStatus(s).code} ${verdictLabel(s.verdict)}`;
 }
