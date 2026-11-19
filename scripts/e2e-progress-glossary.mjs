@@ -2,7 +2,8 @@
 // スマホ (390 幅) と PC (1280 幅) のそれぞれで次を確かめる:
 //   1. 空の記録の進捗: 正答率 —・7 日の XP 0 (7 日の棒)・コース 5 行・旅の 8 段がすべて未学習・202
 //   2. 記録を入れた進捗: 正答率 (答えた 4 回のうち正解 3 回で 75%)・7 日の XP (今日と 3 日前の合計、8 日前は入れない)・
-//      本編の済み 1 / 1 と正答率・旅の段 http が学習済み・206
+//      コースごとの済みがデータのレッスンの数どおり・本編の正答率・旅の段は選んだレッスンの段だけが学習済み・206
+//      (記録に入れるレッスンは scripts/e2e-lessons.mjs の loadLessons で問題データから選ぶ。中身を決め打ちしない)
 //   3. 用語集: 全部の語が説明・出典 (https・新しいタブ)・出てくるレッスンへのリンク付きで出る。11 の規格が学ぶ順に先に並ぶ
 //   4. 全角で探せる: 「ＨＴＴＰ」で HTTP、半角カナの「ﾘｿｰｽ」でリソースが先頭。当たらなければ 204 で語が出ない。消すと全部に戻る
 //   5. 語の「出てくるレッスン」のリンクで、そのレッスンが開く
@@ -10,13 +11,19 @@
 //   7. 横にはみ出さず、文が切れない。390 幅では押せる所 (探す欄・出典とレッスンのリンク・進捗の下のリンク) が 44px 以上。
 //      外へ何も送らず、ページのエラーが無い
 import { readFileSync } from 'node:fs';
+import { COURSE_ORDER, findLessonWith, loadLessons } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 const KEY = 'gantlo.v1';
 const glossary = JSON.parse(readFileSync(new URL('../src/content/glossary.json', import.meta.url), 'utf8'));
-const week1 = JSON.parse(readFileSync(new URL('../src/content/courses/main/week1.json', import.meta.url), 'utf8'));
-const lesson = week1.lessons.find((l) => l.id === 'main-w1-l1');
-const [q1, q2, , q4] = lesson.questions;
+const LESSONS = loadLessons();
+/** 記録に入れるレッスン: 本編で、採点する問題 (実習でない) を 3 問以上持つ最初のもの */
+const lesson = findLessonWith(LESSONS, (l) => l.course === 'main' && l.questions.filter((q) => q.kind !== 'lab').length >= 3, '採点する問題を 3 問以上持つ本編');
+const [q1, q2, q4] = lesson.questions.filter((q) => q.kind !== 'lab');
+const COURSE_TITLES = { main: '本編 4 週', spring: 'Spring Boot の流れ', 'tech-history': '技術の歴史', 'mgmt-history': '管理の歴史', security: 'セキュリティ' };
+/** 用語集のリンクを試す語: 出てくるレッスンを持つ最初の語と、そのレッスン */
+const linkTerm = glossary.terms.find((t) => t.lessons.length > 0);
+const linkLesson = linkTerm && LESSONS.find((l) => l.id === linkTerm.lessons[0]);
 const TERM_COUNT = glossary.terms.length;
 const STANDARDS = glossary.terms
   .filter((t) => t.standard !== undefined)
@@ -116,10 +123,16 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
     check((await page.locator(`.xp7__col--today`).getAttribute('data-day')) === seeded && (await page.locator('.xp7__col--today').getAttribute('data-xp')) === '15', `${tag} 今日の棒が 15 XP`);
     const main = page.locator('.prog__table tr[data-course="main"]');
     const mainText = await main.innerText();
-    check(mainText.includes('1 / 1') && mainText.includes('75%'), `${tag} 本編は済み 1 / 1 で正答率 75% (${mainText.replace(/\s+/g, ' ')})`);
-    check((await page.locator('.prog__table tr[data-total="0"]').count()) > 0 && (await page.locator('.prog__table tr[data-total="0"]').first().innerText()).includes('準備中'), `${tag} レッスンの無いコースは「準備中」`);
+    const mainTotal = LESSONS.filter((l) => l.course === 'main').length;
+    check(mainText.includes(`1 / ${mainTotal}`) && mainText.includes('75%'), `${tag} 本編は済み 1 / ${mainTotal} で正答率 75% (${mainText.replace(/\s+/g, ' ')})`);
+    for (const c of COURSE_ORDER) {
+      const total = LESSONS.filter((l) => l.course === c).length;
+      const row = (await page.locator(`.prog__table tr[data-course="${c}"]`).innerText()).replace(/\s+/g, ' ');
+      const want = total > 0 ? `${c === 'main' ? 1 : 0} / ${total}` : '準備中';
+      check(row.includes(want), `${tag} ${COURSE_TITLES[c]} の済みが ${want} (${row})`);
+    }
     const learned = await page.locator('.wf__row[data-learned="true"]').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-stage')));
-    check(JSON.stringify(learned) === JSON.stringify(['http']), `${tag} 旅の段は http だけが学習済み (${learned.join(',')})`);
+    check(JSON.stringify(learned) === JSON.stringify([lesson.stage]), `${tag} 旅の段は ${lesson.stage} だけが学習済み (${learned.join(',')})`);
     check((await code()) === '206', `${tag} 8 段のうち 1 段なので 206`);
     await noHorizontalOverflow(page, width, `${tag} 進捗 (記録あり)`);
     await target(page.locator('.prog__note a'), '進捗の下の復習と設定のリンク');
@@ -193,9 +206,12 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
     check((await all.count()) === TERM_COUNT, `${tag} 探す語を消すと全部に戻る`);
 
     // 5. 出てくるレッスンのリンクで、そのレッスンが開く
-    await head.getByRole('link', { name: new RegExp(lesson.title) }).click();
-    await page.getByRole('heading', { name: q1.prompt }).waitFor();
-    check(new URL(page.url()).pathname === `/gantlo/lesson/${lesson.id}/`, `${tag} 「出てくるレッスン」のリンクでレッスンが開く (${new URL(page.url()).pathname})`);
+    check(linkLesson !== undefined, `${tag} 出てくるレッスンを持つ語があり、そのレッスンが問題データにある (${linkTerm?.id} → ${linkTerm?.lessons[0]})`);
+    if (linkLesson) {
+      await page.locator(`article.gloss[data-term="${linkTerm.id}"] a[href="/gantlo/lesson/${linkLesson.id}/"]`).click();
+      await page.getByRole('heading', { name: linkLesson.questions[0].prompt }).waitFor();
+      check(new URL(page.url()).pathname === `/gantlo/lesson/${linkLesson.id}/`, `${tag} 「出てくるレッスン」のリンクでレッスンが開く (${new URL(page.url()).pathname})`);
+    }
 
     // 6. メニューに「準備中」が付かない
     if (phone) {
