@@ -20,16 +20,19 @@
 // おおよその予定と巻き・遅れ (R-20) は scripts/e2e-schedule.mjs が確かめる。
 // 復習と設定の画面 (R-13) は scripts/e2e-review-settings.mjs が確かめる。
 // 進捗の画面と用語集 (R-14) は scripts/e2e-progress-glossary.mjs が確かめる。
+// メニューの下端の「このサイト」の 2 つ・上の帯の GitHub のボタン・このサイトについての画面 (B-023) は scripts/e2e-about.mjs が確かめる。
 // テーマが Gothic であることと、文字と地のコントラスト (4.5:1 以上) は scripts/e2e-contrast.mjs が確かめる。
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
+import { runAbout } from './e2e-about.mjs';
 import { runContrast } from './e2e-contrast.mjs';
 import { runHomeAndPlan } from './e2e-home-plan.mjs';
 import {
   XP_PER_CORRECT,
   XP_PER_LAB,
   answer,
+  arrangeOrder,
   choiceRadio,
   coverLessons,
   expectedOutcome,
@@ -43,6 +46,7 @@ import {
   orderText,
   pickWalkLesson,
   rightInputs,
+  unsortedTarget,
 } from './e2e-lessons.mjs';
 import { runProgressAndGlossary } from './e2e-progress-glossary.mjs';
 import { runReviewAndSettings } from './e2e-review-settings.mjs';
@@ -451,9 +455,8 @@ async function run(browser, name, width, height) {
       if (q === qOrder) {
         const restartOrder = await orderIds(page);
         check(restartOrder.join(',') !== q.answer.join(','), `${tag} もう一度解いても並べ替えは正解と違う並びから始まる (${restartOrder.join(',')})`);
-        // 正しい位置の行と違う位置の行を混ぜるため、正しい順の先頭の項目だけを一番上へ送る (ここは押すだけなのでマウスでよい)
-        const head0 = q.answer[0];
-        while ((await orderIds(page)).indexOf(head0) > 0) await page.getByRole('button', { name: `上へ: ${orderText(q, head0)}` }).click();
+        // 正しい位置の行と違う位置の行を混ぜ、必ず正しい順と違う並びにする (unsortedTarget。ここは押すだけなのでマウスでよい)
+        await arrangeOrder(page, q, unsortedTarget(restartOrder, q.answer));
         mixedOrder = await orderIds(page);
         await send(page);
         return true;
@@ -652,6 +655,8 @@ try {
   await runReviewAndSettings(browser, { base: BASE, check, noHorizontalOverflow });
   // 進捗の画面と用語集 (R-14)
   await runProgressAndGlossary(browser, { base: BASE, check, noHorizontalOverflow });
+  // メニューの下端の 2 つ・上の帯の GitHub のボタン・このサイトについて (B-023)
+  await runAbout(browser, { base: BASE, check, noHorizontalOverflow });
   // テーマと文字のコントラスト (R-16)
   await runContrast(browser, { base: BASE, check });
 } catch (e) {

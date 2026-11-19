@@ -11,7 +11,8 @@
     "preview": "vite preview",
     "test": "vitest run",
     "e2e": "npm run build && node scripts/e2e.mjs",
-    "check:content": "node scripts/check-content.mjs"
+    "check:content": "node scripts/check-content.mjs",
+    "readme:images": "vite build && node scripts/prerender.mjs && node scripts/readme-images.mjs"
   },
   "dependencies": {
     "@astryxdesign/core": "0.7.16",

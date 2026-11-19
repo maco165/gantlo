@@ -285,6 +285,11 @@ export async function runContrast(browser, { base, check }) {
     await measure('設定 (記録を消す確かめ)', ['記録を消しますか?', '消す', 'やめる']);
     await dialog.getByRole('button', { name: 'やめる' }).click();
     await dialog.waitFor({ state: 'hidden' });
+
+    // このサイトについて (ソースコードと Issue のボタン・知っておくこと)
+    await page.goto(`${base}about/`);
+    await page.locator('h1', { hasText: 'このサイトについて' }).waitFor();
+    await measure('このサイトについて', ['このサイトについて', 'GitHub のリポジトリを開く', 'Issue を書く', '記録の置き場所']);
     await context.close();
   }
   return mins;

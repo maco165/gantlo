@@ -141,6 +141,8 @@ describe('sitemap.xml', () => {
   it('検索に載せる全ページの # の無い URL を 1 回ずつ持ち、lastmod を付けない', () => {
     expect(locs).toEqual(pages.filter((p) => !PERSONAL.includes(p.path)).map((p) => `${SITE_URL}${p.path}`));
     for (const p of PERSONAL) expect(locs).not.toContain(`${SITE_URL}${p}`);
+    // このサイトについての画面は検索に載せる
+    expect(locs).toContain(`${SITE_URL}about/`);
     expectUnique(locs, 'sitemap の URL');
     for (const loc of locs) expect(loc).not.toContain('#');
     expect(xml).not.toContain('lastmod');

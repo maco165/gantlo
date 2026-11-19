@@ -16,6 +16,7 @@ describe('経路 (# の無い URL)', () => {
   it('メニューの画面を開ける (末尾の / はあってもなくてもよい)', () => {
     expect(parseRoute('/gantlo/plan/')).toEqual({ name: 'page', page: 'plan' });
     expect(parseRoute('/gantlo/settings')).toEqual({ name: 'page', page: 'settings' });
+    expect(parseRoute('/gantlo/about/')).toEqual({ name: 'page', page: 'about' });
   });
   it('全コースを開ける', () => {
     for (const c of COURSES) expect(parseRoute(courseHref(c.id))).toEqual({ name: 'course', course: c.id });

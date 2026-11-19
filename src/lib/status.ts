@@ -103,3 +103,6 @@ export function glossaryStatus(hits: number, query: string): Status {
   if (hits > 0) return { code: 200, reason: 'OK', ja: query.trim() ? `${hits} 語が見つかりました` : `${hits} 語を載せています` };
   return { code: 204, reason: 'No Content', ja: '見つかりませんでした。英語・略語・別の言い方でも探せます' };
 }
+
+/** このサイトについて (GET /about) */
+export const ABOUT_OK: Status = { code: 200, reason: 'OK', ja: 'このサイトの説明です' };
