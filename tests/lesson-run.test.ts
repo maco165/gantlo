@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
-import { findLesson } from '../src/content/index';
 import { XP_PER_CORRECT, XP_PER_LAB } from '../src/lib/grade';
 import { answerRequest, finishLesson, isGraded, lessonScore, resultCode, resultBody, resultLocation, reviewResultBody } from '../src/lib/lessonRun';
 import { emptyProgress, recordAnswer } from '../src/lib/progress';
+import { sampleLesson } from './fixtures/sample-lesson';
 
-const lesson = findLesson('main-w1-l1')!;
+const lesson = sampleLesson;
 const now = new Date(2026, 10, 19, 10, 0, 0);
 
 describe('レッスンの採点の流れ', () => {

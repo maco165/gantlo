@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { findLesson } from '../src/content/index';
 import type { Question } from '../src/content/types';
 import { MAX_PROMPT_LENGTH, aiLinks, questionText } from '../src/lib/askAi';
+import { sampleLesson } from './fixtures/sample-lesson';
 
-const sample = findLesson('main-w1-l1')!;
+const sample = sampleLesson;
 
 // 正解の文字が問題文やコードに偶然出ないよう、テストの中で作った問題も使う
 const made: Question[] = [

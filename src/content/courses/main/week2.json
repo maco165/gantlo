@@ -1,0 +1,484 @@
+{
+  "lessons": [
+    {
+      "id": "main-w2-l1",
+      "title": "DNS で名前を引く",
+      "course": "main",
+      "stage": "dns",
+      "questions": [
+        {
+          "id": "main-w2-l1-q1",
+          "kind": "command",
+          "tool": "dig",
+          "prompt": "example.com の IPv6 のアドレスを引きたい。問い合わせるレコードの種類を埋めてください。",
+          "code": "dig example.com {{blank}}",
+          "blanks": [{ "answers": ["AAAA", "aaaa", "-t AAAA", "-t aaaa"] }],
+          "output": ";; ANSWER SECTION:\nexample.com.\t300\tIN\tAAAA\t2001:db8::1",
+          "explanation": "dig は名前の後ろに種類を書くと、その種類のレコードを問い合わせます。何も書かないと A (IPv4 のアドレス) を引きます (dig の -t の説明)。IPv6 のアドレスを入れる種類は AAAA で、RFC 3596 の 2.1 が定めています。出力の例のアドレスは文書用のものです。",
+          "sources": [
+            "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility",
+            "https://www.rfc-editor.org/rfc/rfc3596#section-2.1"
+          ]
+        },
+        {
+          "id": "main-w2-l1-q2",
+          "kind": "choice",
+          "prompt": "www.example.com が別名で、正式な名前が別にあることを示すレコードの種類はどれですか。",
+          "choices": [
+            { "id": "a", "text": "CNAME" },
+            { "id": "b", "text": "A", "why": "A はホストの IPv4 のアドレスを入れる種類です。別名の行き先の名前は入りません。" },
+            { "id": "c", "text": "NS", "why": "NS はそのゾーンの権威を持つネームサーバーを示します。" },
+            { "id": "d", "text": "PTR", "why": "PTR は別の名前を指すポインターで、主に IP アドレスからホスト名を引く逆引きで使います。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 1035 の 3.2.2 は、CNAME を「別名に対する正式な名前 (the canonical name for an alias)」と定めています。リゾルバは答えに CNAME があると、正式な名前に置き換えて引き直します (RFC 1034 の 5.3.3 の 4c)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1035#section-3.2.2",
+            "https://www.rfc-editor.org/rfc/rfc1034#section-5.3.3"
+          ]
+        },
+        {
+          "id": "main-w2-l1-q3",
+          "kind": "order",
+          "prompt": "キャッシュが空のフルリゾルバが www.example.com の A を引くとき、起きる順に並べてください。",
+          "items": [
+            { "id": "stub", "text": "端末のスタブリゾルバが、フルリゾルバに再帰的に問い合わせる" },
+            { "id": "root", "text": "フルリゾルバがルートのサーバーに問い合わせ、com のネームサーバーを紹介される" },
+            { "id": "tld", "text": "com のネームサーバーに問い合わせ、example.com のネームサーバーを紹介される" },
+            { "id": "auth", "text": "example.com の権威サーバーが A のレコードを答える" },
+            { "id": "cache", "text": "フルリゾルバが答えをキャッシュし、端末に返す" }
+          ],
+          "answer": ["stub", "root", "tld", "auth", "cache"],
+          "explanation": "端末のスタブリゾルバは自分では辿らず、再帰の問い合わせを受けてくれるサーバーに任せます (RFC 1034 5.3.1)。任されたリゾルバは、手元に何も無ければルートから始め、紹介 (よりよい委任) を受けるたびに次のサーバーへ進み、答えが来たらキャッシュして返します (5.3.3 の手順 2〜4)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1034#section-5.3.1",
+            "https://www.rfc-editor.org/rfc/rfc1034#section-5.3.3"
+          ]
+        },
+        {
+          "id": "main-w2-l1-q4",
+          "kind": "choice",
+          "prompt": "A のレコードの TTL が 3600 でした。この値が表すことはどれですか。",
+          "choices": [
+            { "id": "a", "text": "このレコードを 3600 秒までキャッシュしてよい" },
+            { "id": "b", "text": "3600 秒後にサーバーの IP アドレスが変わる", "why": "TTL はキャッシュしてよい長さで、アドレスが変わる時刻の予告ではありません。" },
+            { "id": "c", "text": "ドメイン名の登録が 3600 秒後に切れる", "why": "ドメインの登録の期限は DNS のレコードの TTL とは関係がありません。" },
+            { "id": "d", "text": "問い合わせの答えを待つ上限 (タイムアウト) が 3600 秒", "why": "待ち時間の上限はリゾルバの設定で、レコードに入る値ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 1035 の 4.1.3 は TTL を、レコードを捨てるまでにキャッシュしてよい時間 (秒) と定めています。0 はその場の処理だけに使い、キャッシュしないことを表します。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc1035#section-4.1.3"]
+        },
+        {
+          "id": "main-w2-l1-q5",
+          "kind": "choice",
+          "prompt": "UDP で問い合わせたら、応答のヘッダーの TC ビットが立っていました。どう受け取るのが正しいですか。",
+          "choices": [
+            { "id": "a", "text": "応答が長さの都合で切り詰められたので、TCP で問い合わせ直す" },
+            { "id": "b", "text": "名前が存在しないので、諦める", "why": "名前が無いことは RCODE の 3 (Name Error) で表します。TC は切り詰めの印です。" },
+            { "id": "c", "text": "権威サーバーの答えなので、そのまま信じてよい", "why": "権威の答えであることは AA ビットで表します。" },
+            { "id": "d", "text": "サーバーが再帰を受け付けないので、別のサーバーを探す", "why": "再帰を受け付けるかどうかは RA ビットで表します。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 1035 の 4.2.1 は、UDP の DNS メッセージを 512 バイトまでとし、長い応答は切り詰めて TC ビットを立てるとしています (EDNS0 を使わないとき)。RFC 7766 の 4 節は、受け取った側が TC を TCP で問い合わせ直す合図として扱うと説明し、5 節はどの DNS の実装も UDP と TCP の両方に対応しなければならない (MUST) としています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1035#section-4.2.1",
+            "https://www.rfc-editor.org/rfc/rfc1035#section-4.1.1",
+            "https://www.rfc-editor.org/rfc/rfc7766#section-4",
+            "https://www.rfc-editor.org/rfc/rfc7766#section-5"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-w2-l2",
+      "title": "dig の出力を読む",
+      "course": "main",
+      "stage": "dns",
+      "questions": [
+        {
+          "id": "main-w2-l2-q1",
+          "kind": "command",
+          "tool": "dig",
+          "prompt": "詳しい出力は要らず、答えのアドレスだけを 1 行ずつ見たい。オプションを埋めてください。",
+          "code": "dig {{blank}} example.com",
+          "blanks": [{ "answers": ["+short"] }],
+          "output": "192.0.2.1",
+          "explanation": "+short は答えを簡潔な形で出すオプションです。何も付けないと、ヘッダーや各セクションを含む詳しい形で出します (dig の +short の説明)。出力の例のアドレスは文書用のものです。",
+          "sources": ["https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility"]
+        },
+        {
+          "id": "main-w2-l2-q2",
+          "kind": "choice",
+          "prompt": "dig の答えの 1 行です。このレコードをキャッシュしてよい残りの秒数を表す欄はどれですか。",
+          "code": {
+            "format": "text",
+            "text": ";; ANSWER SECTION:\nexample.com.\t\t3600\tIN\tA\t192.0.2.1"
+          },
+          "choices": [
+            { "id": "a", "text": "3600" },
+            { "id": "b", "text": "IN", "why": "IN はクラスで、インターネットを表します (RFC 1035 3.2.4)。" },
+            { "id": "c", "text": "A", "why": "A はレコードの種類 (IPv4 のアドレス) です。" },
+            { "id": "d", "text": "192.0.2.1", "why": "これはレコードの中身 (RDATA) で、引いたアドレスそのものです。" }
+          ],
+          "answer": "a",
+          "explanation": "dig の答えの行は、名前・TTL・クラス・種類・中身の順に並びます。レコードの欄は RFC 1035 の 4.1.3 にあり、TTL はキャッシュしてよい秒数です。キャッシュを持つリゾルバに問い合わせると、残りの秒数が減って見えることがあります。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1035#section-4.1.3",
+            "https://www.rfc-editor.org/rfc/rfc1035#section-3.2.4"
+          ]
+        },
+        {
+          "id": "main-w2-l2-q3",
+          "kind": "choice",
+          "prompt": "dig の出力のヘッダーに flags: qr aa rd とありました。aa が表すことはどれですか。",
+          "choices": [
+            { "id": "a", "text": "答えたサーバーが、その名前の権威を持っている" },
+            { "id": "b", "text": "答えが UDP ではなく TCP で返ってきた", "why": "AA は運んだ方式とは関係なく、答えたサーバーが権威かどうかを表します。" },
+            { "id": "c", "text": "問い合わせで再帰を頼んだ", "why": "再帰を頼んだことは rd (Recursion Desired) が表します。" },
+            { "id": "d", "text": "答えが切り詰められている", "why": "切り詰めは tc (TrunCation) が表します。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 1035 の 4.1.1 は AA (Authoritative Answer) を、応答したネームサーバーが問い合わせた名前の権威であることを示すビットと定めています。dig はヘッダーのビットを小文字の qr・aa・rd・ra などで出します。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc1035#section-4.1.1"]
+        },
+        {
+          "id": "main-w2-l2-q4",
+          "kind": "command",
+          "tool": "dig",
+          "prompt": "ルートのサーバーから順に、委任をたどる様子を見たい。オプションを埋めてください。",
+          "code": "dig {{blank}} example.com",
+          "blanks": [{ "answers": ["+trace"] }],
+          "explanation": "+trace を付けると、dig は自分で非再帰の問い合わせを繰り返し、ルートのサーバーからの紹介をたどって、使った各サーバーの答えを出します (dig の +trace の説明)。リゾルバが行う手順 (RFC 1034 5.3.3) を目で見られます。",
+          "sources": [
+            "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility",
+            "https://www.rfc-editor.org/rfc/rfc1034#section-5.3.3"
+          ]
+        },
+        {
+          "id": "main-w2-l2-q5",
+          "kind": "command",
+          "tool": "dig",
+          "prompt": "IP アドレス 192.0.2.1 から名前を引く (逆引き) オプションを埋めてください。",
+          "code": "dig {{blank}} 192.0.2.1",
+          "blanks": [{ "answers": ["-x"] }],
+          "explanation": "-x を付けると、dig は 1.2.0.192.in-addr.arpa のような名前を組み立て、種類を PTR、クラスを IN にして問い合わせます (dig の -x の説明)。IPv4 の逆引きの名前の作り方は RFC 1035 の 3.5 にあります。",
+          "sources": [
+            "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility",
+            "https://www.rfc-editor.org/rfc/rfc1035#section-3.5"
+          ]
+        },
+        {
+          "id": "main-w2-l2-q6",
+          "kind": "choice",
+          "prompt": "dig のヘッダーに status: NXDOMAIN と出ました。表していることはどれですか。",
+          "choices": [
+            { "id": "a", "text": "問い合わせた名前が存在しない" },
+            { "id": "b", "text": "ネームサーバーが故障していて答えられない", "why": "サーバーが処理できないときは RCODE 2 (Server failure、dig では SERVFAIL) です。" },
+            { "id": "c", "text": "名前はあるが、その種類のレコードが無い", "why": "このときは status が NOERROR のまま、答えが 0 件になります。" },
+            { "id": "d", "text": "ネームサーバーが問い合わせを断った", "why": "断ったときは RCODE 5 (Refused、dig では REFUSED) です。" }
+          ],
+          "answer": "a",
+          "explanation": "NXDOMAIN は RFC 1035 の 4.1.1 の RCODE 3 (Name Error) で、権威サーバーが「その名前は存在しない」と答えたことを表します。dig はこの答えも「応答を受け取った」として終了コード 0 で終わります (dig の Return Codes)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1035#section-4.1.1",
+            "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-w2-l3",
+      "title": "TCP で接続する",
+      "course": "main",
+      "stage": "tcp",
+      "questions": [
+        {
+          "id": "main-w2-l3-q1",
+          "kind": "order",
+          "prompt": "A が B に TCP で接続し、データを送り始めるまでのセグメントを、送る順に並べてください。",
+          "items": [
+            { "id": "syn", "text": "A → B: SYN (SEQ=100)" },
+            { "id": "synack", "text": "B → A: SYN と ACK (SEQ=300, ACK=101)" },
+            { "id": "ack", "text": "A → B: ACK (SEQ=101, ACK=301)" },
+            { "id": "data", "text": "A → B: データ (SEQ=101, ACK=301)" }
+          ],
+          "answer": ["syn", "synack", "ack", "data"],
+          "explanation": "RFC 9293 の 3.5 の図 6 の三者間ハンドシェイク (3-way handshake) です。A が SYN で始めの番号を伝え、B が自分の SYN と A の SYN への ACK を同時に送り、A が B の SYN に ACK します。ACK は番号を使わないので、続くデータも SEQ=101 のままです。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9293#section-3.5"]
+        },
+        {
+          "id": "main-w2-l3-q2",
+          "kind": "choice",
+          "prompt": "A が SEQ=100 の SYN を送り、B が ACK=101 を返しました。ACK=101 が表すことはどれですか。",
+          "choices": [
+            { "id": "a", "text": "100 番 (SYN) までを受け取り、次は 101 番を待っている" },
+            { "id": "b", "text": "101 個目のセグメントを受け取った", "why": "番号はセグメントの数ではなく、データの 1 オクテットごと (と SYN・FIN) に振られます。" },
+            { "id": "c", "text": "101 番まで受け取った", "why": "ACK の値 X は「X の手前まで受け取った」の意味で、X そのものは含みません。" },
+            { "id": "d", "text": "B が次に送るセグメントの番号が 101 になる", "why": "B の番号は B の SYN (SEQ=300) から数えます。ACK は相手の番号への返事です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9293 の 3.4 は、ACK の値 X を「X の手前までのオクテットをすべて受け取った」という累積の確認と定めています。3.5 の図 6 の説明も、B は 101 番を待っており、ACK は番号 100 を使った SYN への確認だと書いています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9293#section-3.4",
+            "https://www.rfc-editor.org/rfc/rfc9293#section-3.5"
+          ]
+        },
+        {
+          "id": "main-w2-l3-q3",
+          "kind": "choice",
+          "prompt": "TCP がアプリケーションに提供するものとして、RFC 9293 が挙げているのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "信頼できて、順序どおりのバイトの流れ" },
+            { "id": "b", "text": "送った書き込みの区切りを保ったメッセージ", "why": "TCP はバイトの流れで、書き込みの区切りは相手に伝わりません。区切りはアプリケーションの側で決めます (HTTP なら Content-Length など)。" },
+            { "id": "c", "text": "通り道での暗号化", "why": "TCP は暗号化しません。暗号化はその上の TLS の役目です。" },
+            { "id": "d", "text": "届くまでの時間の上限の保証", "why": "TCP は失われたら送り直すので、届くまでの時間は保証しません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9293 の 2.2 は、TCP が「信頼できて、順序どおりの、バイトの流れ (reliable, in-order, byte-stream)」を提供するとし、信頼性は番号による損失の検出・チェックサムによる誤りの検出・再送で成り立つと書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9293#section-2.2"]
+        },
+        {
+          "id": "main-w2-l3-q4",
+          "kind": "order",
+          "prompt": "A から接続を閉じるふつうの手順を、起きる順に並べてください。",
+          "items": [
+            { "id": "fin-a", "text": "A → B: FIN (A は FIN-WAIT-1 へ)" },
+            { "id": "ack-b", "text": "B → A: A の FIN への ACK (B は CLOSE-WAIT へ)" },
+            { "id": "fin-b", "text": "B のアプリケーションも閉じ、B → A: FIN (B は LAST-ACK へ)" },
+            { "id": "ack-a", "text": "A → B: B の FIN への ACK (A は TIME-WAIT へ)" },
+            { "id": "wait", "text": "A は 2 MSL 待ってから CLOSED になる" }
+          ],
+          "answer": ["fin-a", "ack-b", "fin-b", "ack-a", "wait"],
+          "explanation": "RFC 9293 の 3.6 の図 12 (Normal Close Sequence) の流れです。TCP の CLOSE は「もう送るデータが無い」という片方向の意味なので、両方がそれぞれ FIN を送り、相手が ACK します。最後に ACK した側は TIME-WAIT で 2 MSL 待ちます。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9293#section-3.6"]
+        },
+        {
+          "id": "main-w2-l3-q5",
+          "kind": "choice",
+          "prompt": "誰も待ち受けていないポートに SYN を送りました。相手の TCP は何を返しますか。",
+          "choices": [
+            { "id": "a", "text": "RST (リセット)" },
+            { "id": "b", "text": "SYN と ACK", "why": "SYN と ACK は、待ち受け (LISTEN) ている相手が接続を受けるときの返事です。" },
+            { "id": "c", "text": "FIN", "why": "FIN は確立した接続を閉じるときに送ります。接続はまだありません。" },
+            { "id": "d", "text": "何も返さず、いつまでも黙っている", "why": "RFC 9293 は、接続が無い (CLOSED) ときはリセット以外の届いたセグメントに RST を返すとしています。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9293 の 3.5.2 は、接続が存在しない (CLOSED) とき、RST 以外の届いたセグメントには RST を返し、既存の接続に合わない SYN はこれで断られると書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9293#section-3.5.2"]
+        },
+        {
+          "id": "main-w2-l3-q6",
+          "kind": "choice",
+          "prompt": "https://example.com/ のようにポートを書かない URL を開くとき、TCP でつなぐ先のポートはどれですか。",
+          "choices": [
+            { "id": "a", "text": "443" },
+            { "id": "b", "text": "80", "why": "80 は http の既定のポートです。" },
+            { "id": "c", "text": "8080", "why": "開発でよく使われる番号ですが、https の既定ではありません。" },
+            { "id": "d", "text": "53", "why": "53 は DNS のサーバーのポートです (RFC 1035 4.2)。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9110 の 4.2.2 は、https の URI でポートが空か書かれていなければ、TCP の 443 (HTTP over TLS のために予約された番号) を使うとしています。TCP はポート番号でアプリケーションのサービスを見分けます (RFC 9293 2.2)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-4.2.2",
+            "https://www.rfc-editor.org/rfc/rfc9293#section-2.2"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-w2-l4",
+      "title": "TLS 1.3 のハンドシェイク",
+      "course": "main",
+      "stage": "tls",
+      "questions": [
+        {
+          "id": "main-w2-l4-q1",
+          "kind": "order",
+          "prompt": "TLS 1.3 の完全なハンドシェイク (サーバーだけが証明書で認証する場合) のメッセージを、送られる順に並べてください。",
+          "items": [
+            { "id": "ch", "text": "ClientHello (+ key_share)" },
+            { "id": "sh", "text": "ServerHello (+ key_share)" },
+            { "id": "ee", "text": "{EncryptedExtensions}" },
+            { "id": "cert", "text": "{Certificate} (サーバー)" },
+            { "id": "cv", "text": "{CertificateVerify} (サーバー)" },
+            { "id": "sfin", "text": "{Finished} (サーバー)" },
+            { "id": "cfin", "text": "{Finished} (クライアント)" }
+          ],
+          "answer": ["ch", "sh", "ee", "cert", "cv", "sfin", "cfin"],
+          "explanation": "RFC 8446 の 2 節の図 1 の流れです。鍵の交換 (ClientHello と ServerHello)、サーバーの設定 (EncryptedExtensions)、認証 (Certificate・CertificateVerify・Finished) の 3 段で進み、最後にクライアントが Finished を送ります。{} はハンドシェイク用の鍵で守られたメッセージです。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8446#section-2"]
+        },
+        {
+          "id": "main-w2-l4-q2",
+          "kind": "choice",
+          "prompt": "ClientHello で、鍵の交換に使う Diffie-Hellman の値を運ぶ拡張はどれですか。",
+          "choices": [
+            { "id": "a", "text": "key_share" },
+            { "id": "b", "text": "server_name", "why": "server_name (SNI) は接続したいサーバーの名前を伝える拡張です。" },
+            { "id": "c", "text": "supported_versions", "why": "supported_versions は、使える TLS の版を伝える拡張です。" },
+            { "id": "d", "text": "signature_algorithms", "why": "signature_algorithms は、受け入れる署名の方式を伝える拡張です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8446 の 2 節は、ClientHello が Diffie-Hellman の値の組を key_share 拡張 (4.2.8) に入れ、(EC)DHE を使うときはサーバーも ServerHello の key_share で自分の値を返すと書いています。2 つの Hello がそろった時点で共有の鍵が決まります。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc8446#section-2",
+            "https://www.rfc-editor.org/rfc/rfc8446#section-4.2.8"
+          ]
+        },
+        {
+          "id": "main-w2-l4-q3",
+          "kind": "choice",
+          "prompt": "TLS 1.3 で、サーバーが送る証明書 (Certificate) を通り道で盗み見ている人は読めますか。",
+          "choices": [
+            { "id": "a", "text": "読めない。ServerHello より後のハンドシェイクのメッセージは暗号化される" },
+            { "id": "b", "text": "読める。証明書は公開の情報なので平文で送る", "why": "TLS 1.2 まではそうでしたが、TLS 1.3 では ServerHello より後を暗号化するように変わりました。" },
+            { "id": "c", "text": "読める。暗号化は両方の Finished が済んでから始まる", "why": "Finished の後に始まるのはアプリケーションのデータ用の鍵です。ハンドシェイクの残りは、その前からハンドシェイク用の鍵で守られます。" },
+            { "id": "d", "text": "クライアントが証明書を求めたときだけ暗号化される", "why": "暗号化はクライアントの認証の有無とは関係なく、ServerHello より後のすべてに掛かります。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8446 の 1.2 は TLS 1.2 との大きな違いとして、ServerHello より後のハンドシェイクのメッセージがすべて暗号化されることを挙げています。2 節の図 1 でも、Certificate は {} (ハンドシェイク用の鍵で守る) の印が付いています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc8446#section-1.2",
+            "https://www.rfc-editor.org/rfc/rfc8446#section-2"
+          ]
+        },
+        {
+          "id": "main-w2-l4-q4",
+          "kind": "choice",
+          "prompt": "ハンドシェイク全体に対する MAC で、鍵の確認と、ハンドシェイクが改ざんされていないことを示すメッセージはどれですか。",
+          "choices": [
+            { "id": "a", "text": "Finished" },
+            { "id": "b", "text": "CertificateVerify", "why": "CertificateVerify は証明書の公開鍵に対応する秘密鍵での署名です。MAC ではなく、鍵の確認の役目も持ちません。" },
+            { "id": "c", "text": "EncryptedExtensions", "why": "暗号のパラメーターを決めるのに要らない拡張への返事を送るメッセージです。" },
+            { "id": "d", "text": "ServerHello", "why": "ServerHello は交渉の結果を伝えるメッセージで、ハンドシェイク全体の確認はしません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8446 の 2 節は、Finished をハンドシェイク全体に対する MAC と説明し、鍵の確認をして、相手の身元と交換した鍵を結び付けるとしています。詳しい作り方は 4.4.4 にあります。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc8446#section-2",
+            "https://www.rfc-editor.org/rfc/rfc8446#section-4.4.4"
+          ]
+        },
+        {
+          "id": "main-w2-l4-q5",
+          "kind": "command",
+          "tool": "openssl",
+          "prompt": "TLS 1.3 だけで接続できるか試したい。版を TLS 1.3 に限るオプションを埋めてください。",
+          "code": "openssl s_client -connect example.com:443 {{blank}} -brief </dev/null",
+          "blanks": [{ "answers": ["-tls1_3", "-min_protocol TLSv1.3"] }],
+          "output": "CONNECTION ESTABLISHED\nProtocol version: TLSv1.3\nCiphersuite: TLS_AES_256_GCM_SHA384\n...",
+          "explanation": "-tls1_3 は TLS 1.3 だけを申し出て受け入れるオプションです (openssl(1) の TLS Version Options)。最低の版を TLS 1.3 にする -min_protocol TLSv1.3 でも、今の OpenSSL では同じ結果になります。-brief は接続の要点だけを出します (openssl-s_client の説明)。相手が TLS 1.3 に対応していなければ、ハンドシェイクが失敗します。",
+          "sources": [
+            "https://docs.openssl.org/master/man1/openssl/",
+            "https://docs.openssl.org/master/man1/openssl-s_client/"
+          ]
+        },
+        {
+          "id": "main-w2-l4-q6",
+          "kind": "choice",
+          "prompt": "TLS 1.3 の 0-RTT で、ハンドシェイクの完了を待たずに送るデータ (early data) について正しいものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "接続をまたいで同じデータを送り直されない (リプレイされない) 保証がない" },
+            { "id": "b", "text": "ふつうの 1-RTT のデータと同じ安全性を持つ", "why": "RFC 8446 は 0-RTT のデータの安全性が他より弱いと明記しています。" },
+            { "id": "c", "text": "サーバーの Finished を受け取ってから送る", "why": "Finished を待ってから送るのはふつうの 1-RTT のデータです。0-RTT のデータは、前の接続で得た鍵 (PSK) を使い、最初の ClientHello に続けて送ります。" },
+            { "id": "d", "text": "暗号化されずに送られる", "why": "0-RTT のデータも、申し出た PSK から作った鍵で暗号化されます。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8446 の 2.3 は 0-RTT のデータの弱さとして、提示した PSK だけから作る鍵で暗号化するので前方秘匿性 (forward secrecy) が無いこと、接続をまたいだリプレイを防ぐ保証が無いことを挙げています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8446#section-2.3"]
+        }
+      ]
+    },
+    {
+      "id": "main-w2-l5",
+      "title": "実習: リクエストの旅を手元で見る",
+      "course": "main",
+      "stage": "tls",
+      "questions": [
+        {
+          "id": "main-w2-l5-q1",
+          "kind": "lab",
+          "prompt": "dig で example.com の IPv4 と IPv6 のアドレスを引き、答えの行を読んでください。",
+          "steps": [
+            { "text": "IPv4 のアドレスを引く", "command": "dig example.com A +noall +answer" },
+            { "text": "IPv6 のアドレスを引く", "command": "dig example.com AAAA +noall +answer" },
+            { "text": "各行の 2 つ目の欄 (TTL) を見て、少し待ってからもう一度打ち、値を比べる" }
+          ],
+          "expected": "example.com. のあとに TTL、IN、A (または AAAA)、アドレスが並んだ行が出ます。アドレスと TTL の値は時期と使うリゾルバによって違います。キャッシュを持つリゾルバに問い合わせると、2 回目は TTL が減って見えることがあります。",
+          "explanation": "+noall で表示をいったん全部消し、+answer で答えのセクションだけを出しています (dig の説明)。行の欄の並びは RFC 1035 の 4.1.3 のレコードの形 (名前・種類・クラス・TTL・中身) に対応します。",
+          "sources": [
+            "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility",
+            "https://www.rfc-editor.org/rfc/rfc1035#section-4.1.3"
+          ]
+        },
+        {
+          "id": "main-w2-l5-q2",
+          "kind": "lab",
+          "prompt": "dig +trace で、ルートから example.com までの委任をたどってください (1 回だけ打てば十分です)。",
+          "steps": [
+            { "text": "端末で次を打つ", "command": "dig +trace example.com" },
+            { "text": "NS の行のまとまりが、どの名前 (. → com. → example.com.) について出ているかを順に見る" }
+          ],
+          "expected": "最初に . (ルート) の NS の一覧、次に com. の NS、次に example.com. の NS が出て、最後に example.com. の A が出ます。各まとまりの下の Received の行に、答えたサーバーが出ます。外向きの DNS (53 番) を止めているネットワークでは途中で失敗します。",
+          "explanation": "+trace は dig 自身が非再帰の問い合わせを繰り返し、ルートからの紹介をたどります (dig の +trace の説明)。フルリゾルバがふだん裏で行っている手順 (RFC 1034 5.3.3) が見えます。",
+          "sources": [
+            "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility",
+            "https://www.rfc-editor.org/rfc/rfc1034#section-5.3.3"
+          ]
+        },
+        {
+          "id": "main-w2-l5-q3",
+          "kind": "lab",
+          "prompt": "curl -v で、名前の解決から TLS のハンドシェイク、HTTP の要求までを 1 回で見てください。",
+          "steps": [
+            { "text": "端末で次を打つ", "command": "curl -v https://example.com/ -o /dev/null" },
+            { "text": "* で始まる行のうち、resolved・Trying・TLS handshake・SSL connection using の行を探す" },
+            { "text": "> で始まる行 (送った要求) が、どの行の後に出ているかを見る" }
+          ],
+          "expected": "名前を解決した行、Trying で 443 番につなぐ行、TLS handshake の行 (Client hello・Server hello・Encrypted Extensions・Certificate・CERT verify・Finished など)、SSL connection using TLSv1.3 の行の後に、> GET / の行が出ます。TLS の行の出方は curl の版と使う TLS のライブラリによって違います。",
+          "explanation": "-v は、curl が送ったヘッダーを >、受け取ったヘッダーを <、curl からの説明を * の行で出します (curl の -v の説明)。TLS の行の順は RFC 8446 の 2 節の図 1 のハンドシェイクの順と対応します。",
+          "sources": [
+            "https://curl.se/docs/manpage.html",
+            "https://www.rfc-editor.org/rfc/rfc8446#section-2"
+          ]
+        },
+        {
+          "id": "main-w2-l5-q4",
+          "kind": "lab",
+          "prompt": "openssl s_client で、TLS の版・暗号の組・証明書の検証の結果だけを見てください。",
+          "steps": [
+            { "text": "端末で次を打つ (</dev/null で、つないだらすぐ閉じる)", "command": "openssl s_client -connect example.com:443 -brief </dev/null" },
+            { "text": "Protocol version・Ciphersuite・Peer certificate・Verification の行を読む" }
+          ],
+          "expected": "CONNECTION ESTABLISHED の後に、Protocol version: TLSv1.3 のような版、TLS_AES_256_GCM_SHA384 のような暗号の組、Peer certificate: CN=example.com のような証明書の名前、Verification: OK が出ます。値は OpenSSL の版とサーバーの設定によって違います。",
+          "explanation": "-brief は接続の要点だけを出します。-servername を省くと、-connect に書いた名前が SNI として ClientHello に入ります (openssl-s_client の説明、OpenSSL 1.1.1 から)。暗号の組の名前の形は RFC 8446 の B.4 にあります。",
+          "sources": [
+            "https://docs.openssl.org/master/man1/openssl-s_client/",
+            "https://www.rfc-editor.org/rfc/rfc8446#appendix-B.4"
+          ]
+        },
+        {
+          "id": "main-w2-l5-q5",
+          "kind": "order",
+          "prompt": "curl -v https://example.com/ の出力の一部です。出てくる順に並べてください。",
+          "items": [
+            { "id": "resolved", "text": "* Host example.com:443 was resolved." },
+            { "id": "trying", "text": "*   Trying 192.0.2.1:443..." },
+            { "id": "ch", "text": "* TLSv1.3 (OUT), TLS handshake, Client hello (1):" },
+            { "id": "sh", "text": "* TLSv1.3 (IN), TLS handshake, Server hello (2):" },
+            { "id": "cert", "text": "* TLSv1.3 (IN), TLS handshake, Certificate (11):" },
+            { "id": "get", "text": "> GET / HTTP/2" }
+          ],
+          "answer": ["resolved", "trying", "ch", "sh", "cert", "get"],
+          "explanation": "名前を引き (DNS)、443 番に TCP でつなぎ (TCP)、ClientHello・ServerHello・暗号化された Certificate の順にハンドシェイクを進め (TLS、RFC 8446 2 節の図 1)、終わってから HTTP の要求を送ります。* と > の意味は curl の -v の説明にあります。アドレスは文書用のものに置き換えています。",
+          "sources": [
+            "https://curl.se/docs/manpage.html",
+            "https://www.rfc-editor.org/rfc/rfc8446#section-2",
+            "https://www.rfc-editor.org/rfc/rfc9293#section-3.5"
+          ]
+        }
+      ]
+    }
+  ]
+}

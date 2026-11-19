@@ -5,55 +5,16 @@
 //   R-17 (390 幅): 計画の画面でコースを選び、上下のボタンとキーボード (Tab・Enter・Space) だけで並べ替えると帯の順が変わる。
 //        ボタンはどれも 44px 以上。PUT この順で学ぶ で 200 OK を出し、読み直しても同じ順
 //   R-18 (1280 幅): 計画の帯・済みの塗り・今ここの印・次のレッスンへのリンクが出て、そのリンクでレッスンが開く
-import { readFileSync, readdirSync } from 'node:fs';
+import { COURSE_ORDER, XP_PER_CORRECT, XP_PER_LAB, answer, loadLessons } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
-const COURSES_DIR = new URL('../src/content/courses/', import.meta.url);
-// 本編 → 追加のコース (src/lib/route.ts の COURSES と同じ順)。計画が無いときのホームの順
-const COURSE_ORDER = ['main', 'spring', 'tech-history', 'mgmt-history', 'security'];
-
-/** 問題データを、ホームと同じ順 (コースの順 → ファイル名の順 → ファイルの中の順) に読む */
-function loadLessons() {
-  const out = [];
-  for (const course of COURSE_ORDER) {
-    let files = [];
-    try {
-      files = readdirSync(new URL(`${course}/`, COURSES_DIR)).filter((f) => f.endsWith('.json')).sort();
-    } catch {
-      continue;
-    }
-    for (const f of files) out.push(...JSON.parse(readFileSync(new URL(`${course}/${f}`, COURSES_DIR), 'utf8')).lessons);
-  }
-  return out;
-}
 
 /** 開いているレッスンを、模範解答で最後まで解く (画面は #17 のレッスンの画面) */
 async function finishLesson(page, lesson) {
-  const send = () => page.getByRole('button', { name: 'POST 答えを送る' }).click();
   const next = () => page.getByRole('button', { name: /^(次の問題へ|POST 結果を記録する)$/ }).click();
   for (const q of lesson.questions) {
     await page.getByRole('heading', { name: q.prompt }).waitFor();
-    if (q.kind === 'command' || q.kind === 'http') {
-      const inputs = page.locator('[data-testid="fill-code"] input');
-      for (const [i, b] of q.blanks.entries()) await inputs.nth(i).fill(b.answers[0]);
-      await send();
-    } else if (q.kind === 'choice') {
-      const text = q.choices.find((c) => c.id === q.answer).text;
-      await page.getByRole('radio', { name: new RegExp(`^[A-D]\\. ${text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}$`) }).check();
-      await send();
-    } else if (q.kind === 'order') {
-      // 上下のボタンで、正しい順の頭から 1 つずつ上へ送って並べる
-      const ids = () => page.locator('[data-testid="order-rows"] > li').evaluateAll((ls) => ls.map((l) => l.dataset.item));
-      for (const [t, id] of q.answer.entries()) {
-        const text = q.items.find((it) => it.id === id).text;
-        for (let c = (await ids()).indexOf(id); c > t; c--) await page.getByRole('button', { name: `上へ: ${text}` }).click();
-      }
-      await send();
-    } else if (q.kind === 'lab') {
-      for (const box of await page.getByRole('checkbox').all()) await box.check();
-      await page.getByRole('button', { name: 'POST 実習を終える' }).click();
-    }
-    await page.locator('section.response[data-status]').first().waitFor();
+    await answer(page, q, 'right');
     await next();
   }
   await page.locator('section.response[data-status="201"]').waitFor();
@@ -123,7 +84,7 @@ export async function runHomeAndPlan(browser, { base, check, noHorizontalOverflo
     check((await page.locator(`.wf__row[data-stage="${first.stage}"]`).innerText()).includes('学習済み'), `${tag} 段に「学習済み」の字が出る`);
     const xp = Number((await page.locator('[data-header="X-Today-XP"] dd').innerText()).split('/')[0].trim());
     // 全問を正しく答えたときの XP を、問題のデータから数え直す (実習を除く問題が 1 問 3、実習が 10)
-    const wantXp = first.questions.reduce((sum, q) => sum + (q.kind === 'lab' ? 10 : 3), 0);
+    const wantXp = first.questions.reduce((sum, q) => sum + (q.kind === 'lab' ? XP_PER_LAB : XP_PER_CORRECT), 0);
     check(xp === wantXp, `${tag} 今日の目標の XP が、全問正解のぶん増えた (${xp} = ${wantXp})`);
     await overflow('レッスンを終えたあとのホーム');
 

@@ -1,0 +1,417 @@
+{
+  "lessons": [
+    {
+      "id": "tech-history-l5",
+      "title": "ARPANET とインターネット",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l5-q1",
+          "kind": "choice",
+          "prompt": "以前の困りごとへの答えとして、データを小分けにして送るパケット交換の研究が並行して進みました。Internet Society の「Brief History of the Internet」が挙げる組み合わせはどれですか。",
+          "choices": [
+            { "id": "a", "text": "RAND の Paul Baran らと、英国 NPL の Donald Davies と Roger Scantlebury" },
+            { "id": "b", "text": "CERN の Tim Berners-Lee と Robert Cailliau", "why": "CERN で生まれたのは 1989 年の WWW で、パケット交換より後です。" },
+            { "id": "c", "text": "ベル研究所の Ken Thompson と Dennis Ritchie", "why": "ベル研究所で UNIX を作った人たちで、パケット交換の研究者としては挙がっていません。" },
+            { "id": "d", "text": "Netscape の技術者たち", "why": "Netscape は SSL 3.0 の仕様を公開した会社で、パケット交換の研究者としては挙がっていません。" }
+          ],
+          "answer": "a",
+          "explanation": "ISOC の文書 (Leiner・Cerf・Kahn ら、インターネットを作った当人たちが書いたもの) は、ARPA の Larry Roberts が学会で英国 NPL の Davies と Scantlebury のパケット網の論文に出会い、RAND の Paul Baran らの研究も知った、と書いています。RAND の論文は 1964 年です。",
+          "sources": [
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/",
+            "https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html",
+            "https://www.rfc-editor.org/rfc/rfc2246#section-3"
+          ]
+        },
+        {
+          "id": "tech-history-l5-q2",
+          "kind": "choice",
+          "prompt": "1969 年、ARPANET の最初の節点 (IMP) が置かれ、1 か月後に最初のホスト間のメッセージが送られました。正しい組み合わせはどれですか。",
+          "choices": [
+            { "id": "a", "text": "最初の節点は UCLA。最初のメッセージは UCLA (Kleinrock の研究室) から SRI へ" },
+            { "id": "b", "text": "最初の節点は MIT。最初のメッセージは MIT から Harvard へ", "why": "ISOC の文書では最初の節点は UCLA、2 番目が SRI です。" },
+            { "id": "c", "text": "最初の節点は CERN。最初のメッセージは CERN から UCLA へ", "why": "CERN は ARPANET の節点ではありません。" },
+            { "id": "d", "text": "最初の節点は SRI。最初のメッセージは SRI から Utah へ", "why": "SRI は 2 番目の節点で、メッセージを受けた側です。Utah と UCSB は後で加わりました。" }
+          ],
+          "answer": "a",
+          "explanation": "ISOC の文書は、1969 年 9 月に BBN が UCLA に最初の IMP を置き、1 か月後に SRI がつながったとき、Kleinrock の研究室から SRI へ最初のホスト間のメッセージが送られた、と書いています。その後 UCSB と Utah が加わり、1969 年末には 4 台のホストがつながりました。",
+          "sources": ["https://www.internetsociety.org/internet/history-internet/brief-history-internet/"]
+        },
+        {
+          "id": "tech-history-l5-q3",
+          "kind": "order",
+          "prompt": "ARPANET からインターネットへの出来事を、古い順に並べてください。",
+          "items": [
+            { "id": "imp", "text": "UCLA に ARPANET の最初の IMP が置かれる" },
+            { "id": "cerf", "text": "Cerf と Kahn の論文「A Protocol for Packet Network Intercommunication」が出る" },
+            { "id": "flag", "text": "ARPANET のホストの規約が NCP から TCP/IP へ一斉に切り替わる" },
+            { "id": "decom", "text": "ARPANET が役目を終えて廃止される" }
+          ],
+          "answer": ["imp", "cerf", "flag", "decom"],
+          "explanation": "ISOC の文書によると、最初の IMP は 1969 年 9 月、Cerf と Kahn の論文は IEEE Trans. Comm. の 1974 年 5 月号、NCP から TCP/IP への切り替えは 1983 年 1 月 1 日、ARPANET の廃止は 1990 年です。切り替えの日付は移行の計画の RFC 801 にも書かれています。",
+          "sources": [
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/",
+            "https://www.rfc-editor.org/rfc/rfc801"
+          ]
+        },
+        {
+          "id": "tech-history-l5-q4",
+          "kind": "choice",
+          "prompt": "1983 年 1 月 1 日の NCP から TCP/IP への切り替えは、どんな形で行われましたか。",
+          "choices": [
+            { "id": "a", "text": "すべてのホストが同時に切り替える「flag day」の形" },
+            { "id": "b", "text": "10 年かけて少しずつ切り替えた", "why": "ISOC の文書は、全ホストが一斉に切り替える flag day 式だったと書いています。" },
+            { "id": "c", "text": "希望するホストだけが切り替え、NCP はその後も並んで使われ続けた", "why": "切り替えない場合は、その場しのぎの方法で通信するしかなくなる、と書かれています。" },
+            { "id": "d", "text": "切り替えは中止され、NCP が今も使われている", "why": "切り替えは行われ、その後の ARPANET の規約は TCP/IP です。" }
+          ],
+          "answer": "a",
+          "explanation": "ISOC の文書は、ARPANET のホストの規約を NCP から TCP/IP へ 1983 年 1 月 1 日に移したことを「flag-day」式の移行と呼び、全ホストが同時に変換するか、その場しのぎの方法で通信するかを迫られた、と書いています。",
+          "sources": ["https://www.internetsociety.org/internet/history-internet/brief-history-internet/"]
+        },
+        {
+          "id": "tech-history-l5-q5",
+          "kind": "choice",
+          "prompt": "以前の困りごと: ホストの名前とアドレスを 1 つの表で管理していました。DNS が生まれた理由と、考えた人の組み合わせで正しいのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "独立に管理される網 (LAN など) が増え、1 つの表では無理になった。考えたのは USC/ISI の Paul Mockapetris" },
+            { "id": "b", "text": "名前の表が盗まれる事件が起きた。考えたのは Vint Cerf", "why": "ISOC の文書が挙げる理由は網の数が増えたことで、DNS を考えたのは Mockapetris です。" },
+            { "id": "c", "text": "Web のページが増えた。考えたのは Tim Berners-Lee", "why": "DNS の最初の RFC (882・883) は 1983 年 11 月で、WWW (1989 年) より前です。" },
+            { "id": "d", "text": "電話番号と統一するため。考えたのは Bob Kahn", "why": "電話番号との統一は理由に挙がっていません。" }
+          ],
+          "answer": "a",
+          "explanation": "ISOC の文書は、ホストが少ないうちは 1 つの表で足りたが、独立に管理される網が増えて 1 つの表では無理になり、USC/ISI の Paul Mockapetris が DNS を考えた、と書いています。RFC 882 の著者は Mockapetris、日付は 1983 年 11 月です。",
+          "sources": [
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/",
+            "https://www.rfc-editor.org/rfc/rfc882"
+          ]
+        },
+        {
+          "id": "tech-history-l5-q6",
+          "kind": "command",
+          "tool": "dig",
+          "prompt": "今: DNS で example.com の IP アドレスだけを短く出したい。答えだけを出す dig のオプションを埋めてください。",
+          "code": "dig {{blank}} example.com A",
+          "blanks": [{ "answers": ["+short"] }],
+          "explanation": "+short は詳しい出力の代わりに答えだけを短く出します (BIND 9 の dig のマニュアル)。昔の 1 つの表の代わりに、今は分散した DNS に問い合わせて名前からアドレスを引いています。",
+          "sources": ["https://bind9.readthedocs.io/en/latest/manpages.html"]
+        },
+        {
+          "id": "tech-history-l5-q7",
+          "kind": "choice",
+          "prompt": "日本では大学どうしをつなぐ網が生まれ、のちに WIDE プロジェクトが始まりました。WIDE プロジェクトの公式の歴史のページで、「JUNET 運用開始」と「WIDE プロジェクト開始」の年の組み合わせはどれですか。",
+          "choices": [
+            { "id": "a", "text": "JUNET 運用開始は 1984 年、WIDE プロジェクト開始は 1986 年" },
+            { "id": "b", "text": "JUNET 運用開始は 1984 年、WIDE プロジェクト開始は 1988 年", "why": "公式の歴史のページでは、WIDE プロジェクト開始は 1986 年です (1985 年に前身の WIDE 研究会が発足)。1988 年の項にあるのは合宿と東大-東工大間の接続です。" },
+            { "id": "c", "text": "JUNET 運用開始は 1969 年、WIDE プロジェクト開始は 1974 年", "why": "1969 年は ARPANET の最初の節点の年です。" },
+            { "id": "d", "text": "JUNET 運用開始は 1991 年、WIDE プロジェクト開始は 1995 年", "why": "公式の歴史のページでは、JUNET 運用開始は 1984 年です。" }
+          ],
+          "answer": "a",
+          "explanation": "WIDE プロジェクトの「WIDE Project のあゆみ」では、1984 年の項に「JUNET 運用開始」、1985 年に「WIDE 研究会 (WIDE プロジェクト前身) 発足」と「日本語メール開始 (JUNET)」、1986 年に「WIDE プロジェクト開始」とあります。",
+          "sources": [
+            "https://www.wide.ad.jp/About/history.html",
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l6",
+      "title": "HTTP",
+      "course": "tech-history",
+      "stage": "http",
+      "questions": [
+        {
+          "id": "tech-history-l6-q1",
+          "kind": "choice",
+          "prompt": "以前の困りごと: 世界中の大学や研究所の科学者が、情報を自動で共有できなかった。この求めに応えて World Wide Web が考えられたのは、いつ、どこですか。",
+          "choices": [
+            { "id": "a", "text": "1989 年、CERN" },
+            { "id": "b", "text": "1969 年、UCLA", "why": "1969 年の UCLA は ARPANET の最初の節点です。WWW は 1989 年の CERN です。" },
+            { "id": "c", "text": "1995 年、Netscape", "why": "Netscape は Web が広がった後のブラウザの会社です。" },
+            { "id": "d", "text": "2000 年、UC Irvine", "why": "2000 年の UC Irvine は Fielding が REST を書いた博士論文です。" }
+          ],
+          "answer": "a",
+          "explanation": "CERN の「The birth of the Web」は、英国の科学者 Tim Berners-Lee が 1989 年に CERN で WWW を考え、世界の大学や研究所の科学者が情報を自動で共有したいという求めに応えるためだった、と書いています。W3C の本人の経歴のページも、1989 年に CERN で発明し、1990 年に最初のクライアントとサーバーを書き、URI・HTTP・HTML の仕様が広がるにつれて磨かれた、と書いています。",
+          "sources": [
+            "https://home.cern/science/computing/the-birth-of-the-web/",
+            "https://www.w3.org/People/Berners-Lee/",
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/",
+            "https://ics.uci.edu/~fielding/pubs/dissertation/top.htm"
+          ]
+        },
+        {
+          "id": "tech-history-l6-q2",
+          "kind": "order",
+          "prompt": "HTTP の版を定めた RFC を、出た順に並べてください。",
+          "items": [
+            { "id": "h10", "text": "RFC 1945 (HTTP/1.0)" },
+            { "id": "h11", "text": "RFC 2068 (HTTP/1.1 の最初の RFC)" },
+            { "id": "h2", "text": "RFC 7540 (HTTP/2)" },
+            { "id": "h3", "text": "RFC 9114 (HTTP/3)" }
+          ],
+          "answer": ["h10", "h11", "h2", "h3"],
+          "explanation": "各 RFC の冒頭の日付は、RFC 1945 が 1996 年 5 月、RFC 2068 が 1997 年 1 月、RFC 7540 が 2015 年 5 月、RFC 9114 が 2022 年 6 月です。RFC 1945 は Informational で、RFC 2068 は Standards Track です。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1945",
+            "https://www.rfc-editor.org/rfc/rfc2068",
+            "https://www.rfc-editor.org/rfc/rfc7540",
+            "https://www.rfc-editor.org/rfc/rfc9114"
+          ]
+        },
+        {
+          "id": "tech-history-l6-q3",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "古い HTTP/1.0 で要求を送って、違いを見てみたい。HTTP/1.0 を使わせる curl のオプションを埋めてください。",
+          "code": "curl -sI {{blank}} https://example.com/",
+          "blanks": [{ "answers": ["--http1.0", "-0"] }],
+          "output": "HTTP/1.1 200 OK\n...",
+          "explanation": "-0 (--http1.0) は、curl に既定の版ではなく HTTP/1.0 で要求させます (curl のマニュアル)。HTTP/1.0 は RFC 1945 (1996 年 5 月) にまとめられた版です。ただし応答の版はサーバーが選びます。RFC 9110 の 6.2 は、サーバーは要求のメジャー版以下で自分が準拠する最も高い版で返すべき (SHOULD) と書きます。そのため HTTP/1.1 のサーバーの多くは、HTTP/1.0 の要求にも HTTP/1.1 200 OK で返します (example.com もそうです)。送った要求の行 (> HEAD / HTTP/1.0) は -v を付けると見られます。",
+          "sources": [
+            "https://curl.se/docs/manpage.html",
+            "https://www.rfc-editor.org/rfc/rfc1945",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-6.2"
+          ]
+        },
+        {
+          "id": "tech-history-l6-q4",
+          "kind": "choice",
+          "prompt": "今: HTTP/3 (RFC 9114) は、どの通信の規約の上で HTTP を運びますか。",
+          "choices": [
+            { "id": "a", "text": "QUIC" },
+            { "id": "b", "text": "TCP の上の TLS", "why": "それは HTTP/1.1 と HTTP/2 の運び方です。HTTP/3 は QUIC を使います。" },
+            { "id": "c", "text": "SMTP", "why": "SMTP はメールを運ぶ規約です。" },
+            { "id": "d", "text": "NCP", "why": "NCP は 1983 年まで ARPANET で使われた古い規約です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9114 の要旨は、QUIC にはストリームの多重化、ストリームごとの流量制御、接続の確立の遅れの少なさなど HTTP の運び手として望ましい性質がある、と書き、HTTP の意味論を QUIC の上に対応づけるのが HTTP/3 だと述べています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9114",
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/"
+          ]
+        },
+        {
+          "id": "tech-history-l6-q5",
+          "kind": "choice",
+          "prompt": "今: HTTP の版によらない共通の意味 (メソッド・ステータスコード・ヘッダーの意味) をまとめた RFC はどれですか。",
+          "choices": [
+            { "id": "a", "text": "RFC 9110 (HTTP Semantics、2022 年 6 月)" },
+            { "id": "b", "text": "RFC 1945", "why": "HTTP/1.0 の 1996 年の文書で、今の正本ではありません。" },
+            { "id": "c", "text": "RFC 2616", "why": "HTTP/1.1 の古い正本で、RFC 7230 などに置き換えられ、RFC 7230 も RFC 9110 に置き換えられました。" },
+            { "id": "d", "text": "RFC 9114", "why": "HTTP/3 の文書です。意味論は RFC 9110 にあります。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9110 の題は「HTTP Semantics」で、日付は 2022 年 6 月です。冒頭の Obsoletes に RFC 7230・7231 などが並び、意味論がこの 1 本にまとまりました。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110", "https://www.rfc-editor.org/rfc/rfc7230"]
+        },
+        {
+          "id": "tech-history-l6-q6",
+          "kind": "choice",
+          "prompt": "Web が世界に広がったきっかけの一つとして、CERN は 1993 年 4 月 30 日に何をしましたか。",
+          "choices": [
+            { "id": "a", "text": "WWW のソフトウェアをパブリックドメインにした" },
+            { "id": "b", "text": "WWW の特許を取り、使用料を取り始めた", "why": "逆です。CERN はソフトウェアをパブリックドメインにし、のちに開かれたライセンスでも出しました。" },
+            { "id": "c", "text": "HTTP/2 を発表した", "why": "HTTP/2 の RFC 7540 は 2015 年です。" },
+            { "id": "d", "text": "最初の Web サイトを閉じた", "why": "最初のサイト info.cern.ch は、2013 年に CERN が復元の計画を始めています。" }
+          ],
+          "answer": "a",
+          "explanation": "CERN の「The birth of the Web」に、1993 年 4 月 30 日に CERN が WWW のソフトウェアをパブリックドメインにし、のちに開かれたライセンスでも出したことが、Web が栄える助けになった、とあります。",
+          "sources": [
+            "https://home.cern/science/computing/the-birth-of-the-web/",
+            "https://www.rfc-editor.org/rfc/rfc7540"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l7",
+      "title": "REST",
+      "course": "tech-history",
+      "stage": "rest",
+      "questions": [
+        {
+          "id": "tech-history-l7-q1",
+          "kind": "choice",
+          "prompt": "答え: Web のアーキテクチャの原則を REST (Representational State Transfer) としてまとめたのは何ですか。",
+          "choices": [
+            { "id": "a", "text": "Roy Fielding の博士論文 (UC Irvine、2000 年)" },
+            { "id": "b", "text": "RFC 9110", "why": "RFC 9110 は 2022 年の HTTP の意味論の文書で、REST を定めたものではありません。" },
+            { "id": "c", "text": "OpenAPI 3.0", "why": "OpenAPI は API の仕様書の書き方で、REST の原則の出どころではありません。" },
+            { "id": "d", "text": "Tim Berners-Lee の 1989 年の提案", "why": "1989 年の提案は WWW そのものの提案です。REST の名は Fielding の論文の第 5 章です。" }
+          ],
+          "answer": "a",
+          "explanation": "Fielding の博士論文「Architectural Styles and the Design of Network-based Software Architectures」は UC Irvine の 2000 年のもので、第 5 章の題が「Representational State Transfer (REST)」です。",
+          "sources": [
+            "https://ics.uci.edu/~fielding/pubs/dissertation/top.htm",
+            "https://home.cern/science/computing/the-birth-of-the-web/",
+            "https://www.rfc-editor.org/rfc/rfc9110"
+          ]
+        },
+        {
+          "id": "tech-history-l7-q2",
+          "kind": "choice",
+          "prompt": "Fielding は HTTP の仕様の著者でもあります。RFC 1945 (HTTP/1.0) の著者の欄に名前があるのは誰ですか。",
+          "choices": [
+            { "id": "a", "text": "T. Berners-Lee、R. Fielding、H. Frystyk" },
+            { "id": "b", "text": "V. Cerf、R. Kahn", "why": "TCP/IP の 1974 年の論文の著者です。" },
+            { "id": "c", "text": "D. Crockford", "why": "JSON の RFC 4627 の著者です。" },
+            { "id": "d", "text": "N. Borenstein、N. Freed", "why": "MIME の RFC 1341 の著者です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 1945 (1996 年 5 月) の冒頭の著者は T. Berners-Lee (MIT/LCS)、R. Fielding (UC Irvine)、H. Frystyk (MIT/LCS) です。HTTP/1.1 の RFC 2068 の著者にも R. Fielding (UC Irvine) が入っています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1945",
+            "https://www.rfc-editor.org/rfc/rfc2068",
+            "https://www.internetsociety.org/internet/history-internet/brief-history-internet/"
+          ]
+        },
+        {
+          "id": "tech-history-l7-q3",
+          "kind": "order",
+          "prompt": "Fielding の論文の第 5.1 節は、何も制約の無い状態から制約を 1 つずつ足して REST を組み立てます。足していく順に並べてください。",
+          "items": [
+            { "id": "cs", "text": "Client-Server" },
+            { "id": "stateless", "text": "Stateless" },
+            { "id": "cache", "text": "Cache" },
+            { "id": "uniform", "text": "Uniform Interface" },
+            { "id": "layered", "text": "Layered System" },
+            { "id": "cod", "text": "Code-On-Demand" }
+          ],
+          "answer": ["cs", "stateless", "cache", "uniform", "layered", "cod"],
+          "explanation": "第 5.1 節の小見出しは 5.1.2 Client-Server、5.1.3 Stateless、5.1.4 Cache、5.1.5 Uniform Interface、5.1.6 Layered System、5.1.7 Code-On-Demand の順で、それぞれ前の制約に足していく形で書かれています。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm"]
+        },
+        {
+          "id": "tech-history-l7-q4",
+          "kind": "choice",
+          "prompt": "REST の Stateless (状態を持たない) の制約が求めることはどれですか。",
+          "choices": [
+            { "id": "a", "text": "クライアントからの要求はそれぞれ、理解に要る情報をすべて含む" },
+            { "id": "b", "text": "サーバーはデータベースを持ってはいけない", "why": "求めているのは通信の中で会話の状態をサーバーに頼らないことで、資源の状態を持たないことではありません。" },
+            { "id": "c", "text": "応答はすべてキャッシュしてよい", "why": "それは Cache の制約の話で、しかも応答にはキャッシュしてよいかどうかの印を付けます。" },
+            { "id": "d", "text": "要求は必ず 1 回で終わり、再送しない", "why": "再送の可否を決める制約ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "第 5.1.3 節は、クライアントからサーバーへの各要求が、要求を理解するのに要る情報をすべて含み、サーバーに保存された文脈を使えないこと、とし、会話の状態はすべてクライアントが持つ、と書いています。同じ節は、同じデータを繰り返し送るので効率が落ちうるという引き換えも挙げています。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm"]
+        },
+        {
+          "id": "tech-history-l7-q5",
+          "kind": "choice",
+          "prompt": "Fielding の論文で、REST の 6 つの制約のうち「任意 (optional)」とされているのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "Code-On-Demand" },
+            { "id": "b", "text": "Uniform Interface", "why": "論文は Uniform Interface を、REST をほかの様式と分ける中心の特徴と書いています。" },
+            { "id": "c", "text": "Stateless", "why": "必須の制約として足されています。" },
+            { "id": "d", "text": "Client-Server", "why": "最初に足される必須の制約です。" }
+          ],
+          "answer": "a",
+          "explanation": "第 5.1.7 節は、Code-On-Demand (アプレットやスクリプトの形でコードを取ってきて実行し、クライアントの機能を広げる) を任意の制約とし、ファイアウォールなどでこの制約が効かない環境もあると書いています。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm"]
+        },
+        {
+          "id": "tech-history-l7-q6",
+          "kind": "choice",
+          "prompt": "Fielding の論文が「REST をほかのネットワークの様式と分ける中心の特徴」と書くのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "部品のあいだの統一されたインターフェース (Uniform Interface)" },
+            { "id": "b", "text": "JSON を使うこと", "why": "論文は特定のデータ形式を求めていません。JSON の RFC 4627 は 2006 年で、論文より後です。" },
+            { "id": "c", "text": "URL に動詞を入れること", "why": "論文の中心の特徴は統一されたインターフェースで、URL の書き方の規則ではありません。" },
+            { "id": "d", "text": "サーバーが 1 台であること", "why": "Layered System の制約は、むしろ中継を重ねる構成を許します。" }
+          ],
+          "answer": "a",
+          "explanation": "第 5.1.5 節は、REST をほかの様式と分ける中心の特徴は部品のあいだの統一されたインターフェースの重視だと書き、その引き換えに、決まった形でやり取りするのでアプリごとに最適な形より効率が落ちる、とも述べています。",
+          "sources": [
+            "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm",
+            "https://www.rfc-editor.org/rfc/rfc4627"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l8",
+      "title": "URI と URL",
+      "course": "tech-history",
+      "stage": "uri",
+      "questions": [
+        {
+          "id": "tech-history-l8-q1",
+          "kind": "choice",
+          "prompt": "答え: WWW で使う資源の名前と住所の書き方を、Tim Berners-Lee (CERN) が最初に RFC にまとめたのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "RFC 1630「Universal Resource Identifiers in WWW」(1994 年 6 月)" },
+            { "id": "b", "text": "RFC 3986 (2005 年 1 月)", "why": "RFC 3986 は今の URI の一般の構文で、1994 年の RFC 1630 より後です。" },
+            { "id": "c", "text": "RFC 822", "why": "RFC 822 は電子メールの形式の古い文書です。" },
+            { "id": "d", "text": "RFC 1945", "why": "RFC 1945 は HTTP/1.0 です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 1630 の著者は T. Berners-Lee (CERN)、日付は 1994 年 6 月で、副題は「ネットワーク上のものの名前と住所を表す統一の構文」です。中では FTP・Gopher・WAIS・Prospero の住所を URI に対応づける書き方にも触れています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc1630",
+            "https://www.rfc-editor.org/rfc/rfc3986"
+          ]
+        },
+        {
+          "id": "tech-history-l8-q2",
+          "kind": "choice",
+          "prompt": "RFC 1630 と RFC 3986 の題では、URI の「U」が違います。正しい組み合わせはどれですか。",
+          "choices": [
+            { "id": "a", "text": "RFC 1630 は Universal、RFC 3986 は Uniform" },
+            { "id": "b", "text": "RFC 1630 は Uniform、RFC 3986 は Universal", "why": "逆です。" },
+            { "id": "c", "text": "どちらも Uniform", "why": "RFC 1630 の題は「Universal Resource Identifiers in WWW」です。" },
+            { "id": "d", "text": "どちらも Unique", "why": "Unique はどちらの題にもありません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 1630 の題は「Universal Resource Identifiers in WWW」、RFC 3986 の題は「Uniform Resource Identifier (URI): Generic Syntax」です。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc1630", "https://www.rfc-editor.org/rfc/rfc3986"]
+        },
+        {
+          "id": "tech-history-l8-q3",
+          "kind": "choice",
+          "prompt": "今: URI の一般の構文の正本は RFC 3986 (2005 年 1 月) です。冒頭の Obsoletes (置き換えた RFC) に無いのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "RFC 9110" },
+            { "id": "b", "text": "RFC 2396", "why": "RFC 3986 の Obsoletes に RFC 2396 があります。" },
+            { "id": "c", "text": "RFC 1808", "why": "RFC 3986 の Obsoletes に RFC 1808 があります。" },
+            { "id": "d", "text": "RFC 2732", "why": "RFC 3986 の Obsoletes に RFC 2732 があります。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 3986 の冒頭には「Obsoletes: 2732, 2396, 1808」とあります。RFC 9110 は 2022 年の HTTP の意味論の文書で、RFC 3986 より後です。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc3986",
+            "https://www.rfc-editor.org/rfc/rfc9110"
+          ]
+        },
+        {
+          "id": "tech-history-l8-q4",
+          "kind": "order",
+          "prompt": "RFC 3986 の例の URI foo://example.com:8042/over/there?name=ferret#nose を、左から部品の名前の順に並べてください。",
+          "items": [
+            { "id": "scheme", "text": "scheme (foo)" },
+            { "id": "authority", "text": "authority (example.com:8042)" },
+            { "id": "path", "text": "path (/over/there)" },
+            { "id": "query", "text": "query (name=ferret)" },
+            { "id": "fragment", "text": "fragment (nose)" }
+          ],
+          "answer": ["scheme", "authority", "path", "query", "fragment"],
+          "explanation": "RFC 3986 の第 3 節が、この例の URI を scheme・authority・path・query・fragment に分けて図で示しています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3986#section-3"]
+        },
+        {
+          "id": "tech-history-l8-q5",
+          "kind": "choice",
+          "prompt": "ブラウザで https://example.com/page#top を開きます。fragment (#top) はどう扱われますか。",
+          "choices": [
+            { "id": "a", "text": "取りに行く前に URI から切り離され、利用者の側 (ブラウザ) だけが解釈する" },
+            { "id": "b", "text": "サーバーへの要求の path に含めて送る", "why": "RFC 3986 は、fragment は取りに行く前に切り離される、と書いています。" },
+            { "id": "c", "text": "query と同じく、サーバーが解釈する", "why": "fragment はスキームごとの処理には使われず、利用者の側だけが解釈します。" },
+            { "id": "d", "text": "DNS の問い合わせに含めて送る", "why": "DNS で引くのはホストの名前だけです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 3986 の第 3.5 節は、fragment はスキームごとの処理には使われず、取りに行く (dereference) 前に URI の残りから切り離され、その中身は URI のスキームによらず利用者の側 (user agent) だけが解釈する、と書いています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3986#section-3.5"]
+        }
+      ]
+    }
+  ]
+}

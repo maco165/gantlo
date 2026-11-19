@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { findLesson } from '../src/content/index';
 import type { ChoiceQuestion } from '../src/content/types';
 import { shuffleChoices } from '../src/lib/shuffle';
+import { sampleLesson } from './fixtures/sample-lesson';
 
-const choice = findLesson('main-w1-l1')!.questions.find((q): q is ChoiceQuestion => q.kind === 'choice')!;
+const choice = sampleLesson.questions.find((q): q is ChoiceQuestion => q.kind === 'choice')!;
 
 /** 決まった並びの乱数 (テストで並びを固定する) */
 function seq(values: number[]) {
@@ -30,7 +30,7 @@ describe('4 択の選択肢を混ぜる', () => {
   it('fixedOrder の 4 択と、4 択でない問題はそのまま', () => {
     const fixed = { ...choice, fixedOrder: true };
     expect(shuffleChoices(fixed, seq([0])).choices).toEqual(choice.choices);
-    const other = findLesson('main-w1-l1')!.questions[0];
+    const other = sampleLesson.questions[0];
     expect(shuffleChoices(other, seq([0]))).toBe(other);
   });
 });
