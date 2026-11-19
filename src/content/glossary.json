@@ -22,7 +22,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l5",
+        "spring-l3",
+        "tech-history-l6"
       ]
     },
     {
@@ -46,7 +48,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l2",
+        "tech-history-l8"
       ]
     },
     {
@@ -69,7 +72,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l4",
+        "spring-l3",
+        "tech-history-l11"
       ]
     },
     {
@@ -93,7 +98,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l3",
+        "main-w3-l4",
+        "tech-history-l9"
       ]
     },
     {
@@ -111,7 +118,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc8259#section-8.1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l4",
+        "tech-history-l10",
+        "tech-history-l11"
+      ]
     },
     {
       "id": "rest",
@@ -131,7 +142,11 @@
           "url": "https://ics.uci.edu/~fielding/pubs/dissertation/top.htm"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w3-l1",
+        "main-w3-l5",
+        "tech-history-l7"
+      ]
     },
     {
       "id": "dns",
@@ -148,7 +163,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w2-l1",
+        "main-w2-l5",
+        "tech-history-l5"
       ]
     },
     {
@@ -173,7 +190,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w2-l1",
+        "main-w2-l3",
+        "tech-history-l5"
       ]
     },
     {
@@ -196,7 +215,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w2-l4",
+        "main-w2-l5",
+        "tech-history-l12"
       ]
     },
     {
@@ -218,7 +239,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc6749#section-1.1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w4-l1",
+        "main-w4-l3",
+        "tech-history-l13"
+      ]
     },
     {
       "id": "jwt",
@@ -234,7 +259,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc7519#section-1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w4-l4",
+        "main-w4-l5",
+        "tech-history-l13"
+      ]
     },
     {
       "id": "openapi",
@@ -255,7 +284,11 @@
           "url": "https://spec.openapis.org/oas/latest.html#format"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w3-l3",
+        "main-w3-l5",
+        "tech-history-l14"
+      ]
     },
     {
       "id": "resource",
@@ -272,7 +305,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l1",
+        "main-w3-l2"
       ]
     },
     {
@@ -289,7 +323,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l2",
+        "tech-history-l12"
       ]
     },
     {
@@ -307,7 +342,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l1",
+        "main-w3-l2"
       ]
     },
     {
@@ -321,7 +357,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l1",
+        "main-w3-l2"
       ]
     },
     {
@@ -335,7 +372,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l1",
+        "main-w3-l2"
       ]
     },
     {
@@ -349,7 +387,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l1",
+        "main-w1-l5",
+        "main-w3-l2"
       ]
     },
     {
@@ -362,7 +402,10 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.4"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l1",
+        "main-w3-l2"
+      ]
     },
     {
       "id": "delete",
@@ -374,7 +417,10 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.5"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l1",
+        "main-w3-l2"
+      ]
     },
     {
       "id": "status-code",
@@ -390,7 +436,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l1",
+        "main-w3-l3",
+        "main-w3-l4"
       ]
     },
     {
@@ -404,7 +452,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l5",
+        "tech-history-l6"
       ]
     },
     {
@@ -418,7 +467,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w3-l2",
+        "main-w3-l4",
+        "spring-l3"
       ]
     },
     {
@@ -431,9 +482,7 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.3.3"
         }
       ],
-      "lessons": [
-        "main-w1-l1"
-      ]
+      "lessons": []
     },
     {
       "id": "204-no-content",
@@ -445,9 +494,7 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.3.5"
         }
       ],
-      "lessons": [
-        "main-w1-l1"
-      ]
+      "lessons": []
     },
     {
       "id": "400-bad-request",
@@ -459,7 +506,10 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l1",
+        "main-w3-l4"
+      ]
     },
     {
       "id": "404-not-found",
@@ -471,7 +521,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.5"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l1",
+        "main-w3-l4",
+        "main-w4-l3"
+      ]
     },
     {
       "id": "409-conflict",
@@ -483,7 +537,9 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w3-l4"
+      ]
     },
     {
       "id": "415-unsupported-media-type",
@@ -495,7 +551,10 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.16"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l3",
+        "main-w3-l4"
+      ]
     },
     {
       "id": "header",
@@ -516,7 +575,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l3",
+        "main-w1-l5",
+        "tech-history-l9"
       ]
     },
     {
@@ -530,7 +591,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l3",
+        "main-w1-l5",
+        "tech-history-l9"
       ]
     },
     {
@@ -544,7 +607,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l1",
+        "main-w2-l3",
+        "tech-history-l9"
       ]
     },
     {
@@ -558,7 +623,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l2",
+        "main-w1-l5",
+        "main-w4-l2"
       ]
     },
     {
@@ -572,7 +639,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w3-l2",
+        "main-w3-l4"
       ]
     },
     {
@@ -585,7 +653,9 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.3"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w3-l4"
+      ]
     },
     {
       "id": "authorization",
@@ -601,7 +671,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc6750#section-2.1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w4-l2",
+        "main-w4-l3",
+        "tech-history-l13"
+      ]
     },
     {
       "id": "accept",
@@ -613,7 +687,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l3",
+        "main-w1-l4",
+        "tech-history-l9"
+      ]
     },
     {
       "id": "charset",
@@ -625,7 +703,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-8.3.2"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l3",
+        "main-w1-l4",
+        "tech-history-l11"
+      ]
     },
     {
       "id": "status-line",
@@ -641,7 +723,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "spring-l3",
+        "spring-l4"
       ]
     },
     {
@@ -659,7 +742,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l1",
+        "main-w1-l2",
+        "main-w1-l5"
       ]
     },
     {
@@ -677,7 +762,8 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w2-l4",
+        "main-w2-l5"
       ]
     },
     {
@@ -685,7 +771,9 @@
       "term": "3 ウェイハンドシェイク",
       "aliases": [
         "three-way handshake",
-        "スリーウェイハンドシェイク"
+        "スリーウェイハンドシェイク",
+        "3-way handshake",
+        "三者間ハンドシェイク"
       ],
       "description": "TCP の接続を作る手順です。片方が SYN を送り、相手が SYN と ACK (受け取りの確かめ) で応え、最初の側が ACK を返す、の 3 つで接続ができます。",
       "sources": [
@@ -694,7 +782,9 @@
           "url": "https://www.rfc-editor.org/rfc/rfc9293#section-3.5"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w2-l3"
+      ]
     },
     {
       "id": "port",
@@ -714,7 +804,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc3986#section-3.2.3"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l2",
+        "main-w2-l3",
+        "spring-l2"
+      ]
     },
     {
       "id": "quic",
@@ -731,7 +825,7 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "tech-history-l6"
       ]
     },
     {
@@ -748,7 +842,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc1034#section-2.4"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w2-l1",
+        "main-w2-l2",
+        "main-w2-l5"
+      ]
     },
     {
       "id": "curl",
@@ -765,7 +863,9 @@
         }
       ],
       "lessons": [
-        "main-w1-l1"
+        "main-w1-l3",
+        "main-w1-l5",
+        "main-w2-l5"
       ]
     },
     {
@@ -781,7 +881,10 @@
           "url": "https://www.rfc-editor.org/rfc/rfc3986#section-3.1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l2",
+        "tech-history-l8"
+      ]
     },
     {
       "id": "query",
@@ -797,7 +900,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc3986#section-3.4"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l2",
+        "main-w4-l3",
+        "tech-history-l8"
+      ]
     },
     {
       "id": "fragment",
@@ -813,7 +920,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc3986#section-3.5"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l2",
+        "main-w1-l5",
+        "tech-history-l8"
+      ]
     },
     {
       "id": "percent-encoding",
@@ -828,7 +939,9 @@
           "url": "https://www.rfc-editor.org/rfc/rfc3986#section-2.1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l2"
+      ]
     },
     {
       "id": "access-token",
@@ -843,7 +956,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc6749#section-1.4"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w4-l1",
+        "main-w4-l2",
+        "main-w4-l3"
+      ]
     },
     {
       "id": "bearer-token",
@@ -863,7 +980,11 @@
           "url": "https://www.rfc-editor.org/rfc/rfc6750#section-2.1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w4-l1",
+        "main-w4-l3",
+        "tech-history-l13"
+      ]
     },
     {
       "id": "claim",
@@ -878,7 +999,10 @@
           "url": "https://www.rfc-editor.org/rfc/rfc7519#section-2"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w4-l4",
+        "main-w4-l5"
+      ]
     },
     {
       "id": "stateless",
@@ -893,7 +1017,10 @@
           "url": "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_3"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w3-l1",
+        "tech-history-l7"
+      ]
     },
     {
       "id": "bom",
@@ -913,7 +1040,9 @@
           "url": "https://www.rfc-editor.org/rfc/rfc8259#section-8.1"
         }
       ],
-      "lessons": []
+      "lessons": [
+        "main-w1-l4"
+      ]
     }
   ]
 }
