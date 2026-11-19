@@ -4,6 +4,7 @@ import { savePlan } from '../src/lib/plan';
 import {
   STORAGE_KEY,
   completeLesson,
+  setProfile,
   emptyProgress,
   loadProgress,
   parseImport,
@@ -13,7 +14,24 @@ import {
   type Progress,
 } from '../src/lib/progress';
 import type { CourseId } from '../src/lib/route';
-import { DAYS_PER_LESSON, buildSchedule, courseDays, daysBetween, defaultCourseDays, planStart, scheduleStatus, verdictLabel } from '../src/lib/schedule';
+import {
+  DAYS_PER_LESSON,
+  MAX_TICKS,
+  addMonths,
+  axisTicks,
+  buildSchedule,
+  courseDays,
+  daysBetween,
+  defaultCourseDays,
+  labelTicks,
+  planStart,
+  scheduleHeader,
+  scheduleStatus,
+  setCourseDays,
+  verdictLabel,
+  verdictTone,
+} from '../src/lib/schedule';
+import { MAX_RANGE_DAYS, normalizeGanttView, rangeDays, rangeProblem, type GanttView } from '../src/lib/progress';
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = { ...initial };
@@ -55,8 +73,8 @@ describe('予定の帯 (開始日と目安の日数から、学ぶ順に並ぶ)'
     // 軸は開始日から予定の終わりまで。帯の幅は日数に比例し、隙間なく並ぶ
     expect(s.axisStart).toBe('2026-11-23');
     expect(s.axisDays).toBe(12);
-    expect(s.bars.map((b) => b.left)).toEqual([0, 50, (10 / 12) * 100]);
-    expect(s.bars.map((b) => b.width)).toEqual([50, (4 / 12) * 100, (2 / 12) * 100]);
+    [0, 50, (10 / 12) * 100].forEach((v, i) => expect(s.bars[i].left).toBeCloseTo(v, 10));
+    [50, (4 / 12) * 100, (2 / 12) * 100].forEach((v, i) => expect(s.bars[i].width).toBeCloseTo(v, 10));
   });
 
   it('目安の日数を直すと、そのコースの帯が伸び縮みし、後ろの帯がずれる', () => {
@@ -285,5 +303,176 @@ describe('日付は端末の日付で数える (時差・夏時間でずれな�
     expect(spring.plannedBefore).toBe(2);
     expect(spring.bars[0].last).toBe('2027-03-16');
     expect(spring.todayLeft).toBeCloseTo((2.5 / 4) * 100, 10);
+  });
+});
+
+describe('表示する期間と日付の目盛り (R-21)', () => {
+  const view = (v: GanttView, today: string, p: Progress = emptyProgress(), days?: Partial<Record<CourseId, number>>) =>
+    buildSchedule({ courses: ['main', 'spring'], start: '2026-11-23', days }, p, noon(today), SAMPLE, v);
+
+  it('全体は開始日から予定の終わりまで (期間を渡さないときと同じ)', () => {
+    const all = view({ kind: 'all' }, '2026-11-25');
+    expect([all.axisStart, all.axisEnd, all.axisDays]).toEqual(['2026-11-23', '2026-11-28', 6]);
+    expect(all).toEqual(main4(emptyProgress(), '2026-11-25'));
+  });
+
+  it('2 週は今日から 14 日、1 か月は今日から 1 か月後の前の日まで、指定は両端を含む', () => {
+    expect(['axisStart', 'axisEnd', 'axisDays'].map((k) => view({ kind: '2w' }, '2026-11-25')[k as 'axisStart'])).toEqual(['2026-11-25', '2026-12-08', 14]);
+    const m = view({ kind: '1m' }, '2026-11-25');
+    expect([m.axisStart, m.axisEnd, m.axisDays]).toEqual(['2026-11-25', '2026-12-24', 30]);
+    // 1-31 の 1 か月後は 2-28 (行き先の月に無い日はその月の最後の日)
+    expect(addMonths('2027-01-31', 1)).toBe('2027-02-28');
+    expect(addMonths('2026-12-15', 1)).toBe('2027-01-15');
+    const jan = view({ kind: '1m' }, '2027-01-31');
+    expect([jan.axisStart, jan.axisEnd]).toEqual(['2027-01-31', '2027-02-27']);
+    const r = view({ kind: 'range', from: '2026-11-20', to: '2026-11-21' }, '2026-11-25');
+    expect([r.axisStart, r.axisEnd, r.axisDays]).toEqual(['2026-11-20', '2026-11-21', 2]);
+  });
+
+  it('期間の外にはみ出す帯は端で切れ、外の帯は幅 0 になる。済みの塗りも端で切る', () => {
+    // 本編 4 日 (11-23〜11-26)・Spring 2 日 (11-27〜11-28) を、11-25〜11-26 だけ見る
+    const p = finish(emptyProgress(), 'main-l1', 'main-l2', 'main-l3');
+    const s = view({ kind: 'range', from: '2026-11-25', to: '2026-11-26' }, '2026-11-25', p);
+    expect(s.bars[0]).toMatchObject({ left: 0, width: 100, cutStart: true, cutEnd: false });
+    expect(s.bars[0].doneWidth).toBeCloseTo(50, 10); // 済み 3 日ぶん (11-25 の終わりまで) のうち、期間に入るのは 11-25 の 1 日
+    expect(s.bars[1]).toMatchObject({ width: 0, cutStart: false, cutEnd: false });
+    // 両側にはみ出す帯は、両端で切れて期間いっぱい
+    const long = view({ kind: '2w' }, '2026-11-25', emptyProgress(), { main: 20 });
+    expect(long.bars[0]).toMatchObject({ left: 0, width: 100, cutStart: true, cutEnd: true, doneWidth: 0 });
+    // 期間が帯より前なら、帯は幅 0
+    const before = view({ kind: 'range', from: '2026-11-01', to: '2026-11-10' }, '2026-11-25');
+    expect(before.bars.map((b) => b.width)).toEqual([0, 0]);
+    for (const b of [...s.bars, ...long.bars, ...before.bars]) {
+      expect(b.left).toBeGreaterThanOrEqual(0);
+      expect(b.left + b.width).toBeLessThanOrEqual(100 + 1e-9);
+    }
+  });
+
+  it('今日と今ここが期間の外なら線と印を出さない。巻き・遅れは期間によらない', () => {
+    const p = finish(emptyProgress(), 'main-l1');
+    const out = view({ kind: 'range', from: '2026-12-01', to: '2026-12-10' }, '2026-11-25', p);
+    expect(out.todayLeft).toBeNull();
+    expect(out.hereLeft).toBeNull();
+    const inView = view({ kind: '2w' }, '2026-11-25', p);
+    expect(inView.todayLeft).toBeCloseTo((0.5 / 14) * 100, 10);
+    expect(out.verdict).toEqual(inView.verdict);
+    expect(out.verdict).toEqual(main4(p, '2026-11-25').verdict);
+  });
+
+  it('目盛りは週の頭 (月曜) と月の境 (1 日)。1 日が月曜なら月の境の 1 本だけ。1 月は年も書く', () => {
+    expect(axisTicks('2026-11-23', 14)).toEqual([
+      { day: '2026-11-23', kind: 'week', left: 0, label: '11/23' },
+      { day: '2026-11-30', kind: 'week', left: 50, label: '11/30' },
+      { day: '2026-12-01', kind: 'month', left: (8 / 14) * 100, label: '12月' },
+    ]);
+    const feb = axisTicks('2027-01-01', 35);
+    expect(feb.filter((t) => t.kind === 'month').map((t) => [t.day, t.label])).toEqual([
+      ['2027-01-01', '2027年1月'],
+      ['2027-02-01', '2月'],
+    ]);
+    expect(feb.filter((t) => t.day === '2027-02-01')).toHaveLength(1); // 2027-02-01 は月曜
+    expect(feb.filter((t) => t.kind === 'week').map((t) => t.day)).toEqual(['2027-01-04', '2027-01-11', '2027-01-18', '2027-01-25']);
+    // 表示する期間を変えると目盛りも変わる
+    expect(view({ kind: '2w' }, '2026-11-25').ticks.map((t) => t.day)).toEqual(['2026-11-30', '2026-12-01', '2026-12-07']);
+    expect(view({ kind: 'all' }, '2026-11-25').ticks.map((t) => t.day)).toEqual(['2026-11-23']);
+  });
+
+  it('字が重ならないよう間引く。月の境を先に残し、線は全部残す', () => {
+    const ticks = axisTicks('2026-11-01', 120); // 4 か月・週の頭 17 本
+    const labeled = labelTicks(ticks, 18).filter((t) => t.label !== null);
+    expect(labelTicks(ticks, 18)).toHaveLength(ticks.length);
+    for (let i = 1; i < labeled.length; i++) expect(labeled[i].left - labeled[i - 1].left).toBeGreaterThanOrEqual(18);
+    expect(labeled.filter((t) => t.kind === 'month').map((t) => t.day)).toEqual(['2026-11-01', '2026-12-01', '2027-01-01', '2027-02-01']);
+    // 間が広ければ全部に字が付く
+    expect(labelTicks(axisTicks('2026-11-23', 14), 5).every((t) => t.label !== null)).toBe(true);
+    // 近い週の頭 (11-30) と月の境 (12-01) は、月の境の字を残す
+    expect(labelTicks(axisTicks('2026-11-23', 14), 18).map((t) => t.label)).toEqual(['11/23', null, '12月']);
+  });
+
+  it('選んだ期間は設定 (profile) に保存され、読み直し・書き出し・読み込み・目標を変える・記録を消すで失われない', () => {
+    const storage = memoryStorage();
+    const p = setProfile(emptyProgress(), { ganttView: { kind: 'range', from: '2026-11-20', to: '2026-12-20' } });
+    saveProgress(p, storage);
+    const reloaded = loadProgress(storage);
+    expect(reloaded.profile?.ganttView).toEqual({ kind: 'range', from: '2026-11-20', to: '2026-12-20' });
+    expect(setProfile(reloaded, { dailyGoalXp: 50 }).profile).toEqual({ dailyGoalXp: 50, ganttView: { kind: 'range', from: '2026-11-20', to: '2026-12-20' } });
+    expect(resetProgress(reloaded).profile?.ganttView).toEqual(reloaded.profile?.ganttView);
+    const text = JSON.stringify(setProfile(emptyProgress(), { ganttView: { kind: '2w' } }));
+    const r = parseImport(text, text.length);
+    expect(r.ok && r.progress.profile?.ganttView).toEqual({ kind: '2w' });
+    // 壊れた値 (知らない種類・終わりが始まりより前・実在しない日) は落とす
+    for (const bad of [{ kind: '3w' }, { kind: 'range', from: '2026-12-20', to: '2026-11-20' }, { kind: 'range', from: '2026-02-30', to: '2026-03-01' }, 'all']) {
+      const raw = { ...emptyProgress(), profile: { dailyGoalXp: 30, ganttView: bad } };
+      expect(loadProgress(memoryStorage({ [STORAGE_KEY]: JSON.stringify(raw) })).profile).toEqual({ dailyGoalXp: 30 });
+    }
+  });
+
+  it('判定の色: 予定どおりは成功 (緑)、巻きは情報 (青)、遅れは誤り。開始前と予定なしは色を付けない', () => {
+    expect(verdictTone({ kind: 'on', days: 0 })).toBe('success');
+    expect(verdictTone({ kind: 'ahead', days: 2 })).toBe('info');
+    expect(verdictTone({ kind: 'behind', days: 1 })).toBe('error');
+    expect(verdictTone({ kind: 'notStarted', days: 0 })).toBeNull();
+    expect(verdictTone({ kind: 'empty', days: 0 })).toBeNull();
+  });
+});
+
+describe('#33 のレビューの直し (W-002・W-003)', () => {
+  it('W-002: 計画を保存する前のホームは「204 計画なし」。保存すると巻き・遅れを出す', () => {
+    const p = finish(emptyProgress(), 'main-l1');
+    expect(scheduleHeader(p, noon('2026-12-10'), SAMPLE)).toBe('204 計画なし');
+    const saved = savePlan(p, ['main', 'spring'], { start: '2026-11-23' })!;
+    expect(scheduleHeader(saved, noon('2026-11-25'), SAMPLE)).toBe('408 1 日遅れ');
+    expect(scheduleHeader(savePlan(saved, ['main', 'spring'], { days: { main: 20 } })!, noon('2026-11-25'), SAMPLE)).toBe('200 2 日巻き');
+  });
+
+  it('W-003: 既定と同じ日数を打つと直した値から外れ (既定に戻る)、違う値なら残る。範囲外は受け取らない', () => {
+    expect(setCourseDays({ main: 9 }, 'main', 4, 4)).toEqual({});
+    expect(setCourseDays({ spring: 3 }, 'main', 9, 4)).toEqual({ spring: 3, main: 9 });
+    expect(setCourseDays({ main: 9 }, 'main', 0, 4)).toEqual({ main: 9 });
+    expect(setCourseDays(undefined, 'main', 366, 4)).toEqual({});
+    // 外したあとは保存しても days を持たない
+    expect(savePlan(emptyProgress(), ['main'], { start: '2026-11-23', days: setCourseDays({ main: 9 }, 'main', 4, 4) })!.plan).toEqual({ courses: ['main'], start: '2026-11-23' });
+  });
+});
+
+describe('指定の期間の長さの上限と目盛りの数 (#36 のレビュー X-001)', () => {
+  it('指定は 2 年 (両端を含む 731 日) まで。空・逆順・長すぎるを分けて返す', () => {
+    expect(MAX_RANGE_DAYS).toBe(731);
+    expect(rangeDays('2026-11-25', '2026-11-25')).toBe(1);
+    expect(rangeProblem('2026-01-01', '2027-12-31')).toBeNull(); // 730 日
+    expect(rangeProblem('2027-01-01', '2028-12-31')).toBeNull(); // うるう年を含む 731 日
+    expect(rangeProblem('2027-01-01', '2029-01-01')).toBe('long'); // 732 日
+    expect(rangeProblem('2026-11-25', '3026-11-25')).toBe('long');
+    expect(rangeProblem('2026-12-01', '2026-11-30')).toBe('order');
+    expect(rangeProblem('', '2026-11-30')).toBe('empty');
+    expect(rangeProblem('2026-12-01', '')).toBe('empty');
+  });
+
+  it('読み込んだ記録や保存した設定の指定が 2 年を超えていれば落とし、全体に戻す', () => {
+    expect(normalizeGanttView({ kind: 'range', from: '2027-01-01', to: '2028-12-31' })).toEqual({ kind: 'range', from: '2027-01-01', to: '2028-12-31' });
+    expect(normalizeGanttView({ kind: 'range', from: '2026-11-25', to: '3026-11-25' })).toBeNull();
+    const raw = { ...emptyProgress(), profile: { dailyGoalXp: 30, ganttView: { kind: 'range', from: '2026-11-25', to: '3026-11-25' } } };
+    const p = loadProgress(memoryStorage({ [STORAGE_KEY]: JSON.stringify(raw) }));
+    expect(p.profile).toEqual({ dailyGoalXp: 30 });
+    const text = JSON.stringify(raw);
+    const r = parseImport(text, text.length);
+    expect(r.ok && r.progress.profile?.ganttView).toBeUndefined();
+  });
+
+  it(`目盛りが ${200} 本を超える長い軸では、週の頭を描かず月の境だけにする`, () => {
+    expect(MAX_TICKS).toBe(200);
+    // 2 年なら週の頭と月の境で 200 本に収まる
+    const two = axisTicks('2027-01-01', 731);
+    expect(two.length).toBeLessThanOrEqual(MAX_TICKS);
+    expect(two.some((t) => t.kind === 'week')).toBe(true);
+    // 5 年 (目安の日数を長くした全体の軸) なら月の境だけ
+    const five = axisTicks('2026-01-01', 1826);
+    expect(five.every((t) => t.kind === 'month')).toBe(true);
+    expect(five).toHaveLength(60);
+    // 全体の期間でも同じ (5 コースを 365 日ずつにした計画)
+    const days = { main: 365, spring: 365, security: 365 } as const;
+    const s = buildSchedule({ courses: ['main', 'spring', 'security'], start: '2026-11-23', days }, emptyProgress(), noon('2026-11-23'), SAMPLE);
+    expect(s.axisDays).toBe(1095);
+    expect(s.ticks.length).toBeLessThanOrEqual(MAX_TICKS);
   });
 });

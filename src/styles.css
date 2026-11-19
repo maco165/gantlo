@@ -582,6 +582,91 @@ code {
 .gantt__done {
   background: var(--color-text-success);
 }
+/* 期間の外にはみ出した帯は、切れた側の角を丸めない (端で切れたと分かるように) */
+.gantt__bar--cut-start {
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+.gantt__bar--cut-end {
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+/* 済みの塗りは判定の色: 予定どおりは成功の色 (緑)、巻きは情報の色 (青)、遅れは誤りの色。判定は字でも書く */
+.gantt--info .gantt__done,
+.gantt--info .gantt__key--done::before {
+  background: var(--color-text-info);
+}
+.gantt--error .gantt__done,
+.gantt--error .gantt__key--done::before {
+  background: var(--color-text-error);
+}
+/* 表示する期間の切り替えと日付の指定 */
+.gantt__view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.gantt__range-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+}
+.plan__error {
+  flex-basis: 100%;
+  font-size: var(--text-supporting-size);
+  color: var(--color-text-error);
+}
+/* 日付の目盛り (帯の上の 1 行)。帯の行と同じ列に置き、軸の位置をそろえる */
+.gantt__axis {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  grid-template-areas: 'track';
+}
+.gantt__ticks {
+  grid-area: track;
+  position: relative;
+  height: 1.5rem;
+}
+.gantt__tick {
+  position: absolute;
+  bottom: 0;
+  height: 0.5rem;
+  border-left: 1px solid var(--color-border-emphasized);
+}
+.gantt__tick--month {
+  height: 100%;
+  border-left-color: var(--color-text-secondary);
+}
+.gantt__tick-label {
+  position: absolute;
+  bottom: 0;
+  left: var(--spacing-1);
+  white-space: nowrap;
+  font-size: var(--text-supporting-size);
+  line-height: 1;
+  color: var(--color-text-secondary);
+}
+.gantt__tick--month .gantt__tick-label {
+  bottom: auto;
+  top: 0;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+.gantt__tick--end .gantt__tick-label {
+  left: auto;
+  right: var(--spacing-1);
+}
+/* 目盛りの線を帯の行にも薄く引く */
+.gantt__grid {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--color-border);
+}
+.gantt__grid--month {
+  background: var(--color-border-emphasized);
+}
 /* 今日: 帯の上下を貫く縦の線 (今ここより太く、別の色) */
 .gantt__today {
   position: absolute;
@@ -614,7 +699,7 @@ code {
 }
 .gantt__key--here::before {
   width: 2px;
-  background: var(--color-text-info);
+  background: var(--color-text-primary);
 }
 .gantt__key--done::before {
   background: var(--color-text-success);
@@ -626,7 +711,7 @@ code {
   bottom: calc(-1 * var(--spacing-2));
   width: 2px;
   margin-left: -1px;
-  background: var(--color-text-info);
+  background: var(--color-text-primary);
 }
 .gantt__next {
   margin: 0;
@@ -644,6 +729,11 @@ code {
   .gantt__row {
     grid-template-columns: 12rem 14rem minmax(0, 1fr);
     grid-template-areas: 'name count track';
+  }
+  .gantt__axis {
+    grid-template-columns: 12rem 14rem minmax(0, 1fr);
+    grid-template-areas: '. . track';
+    column-gap: var(--spacing-3);
   }
 }
 
