@@ -31,6 +31,7 @@ import {
   XP_PER_CORRECT,
   XP_PER_LAB,
   answer,
+  arrangeOrder,
   choiceRadio,
   coverLessons,
   expectedOutcome,
@@ -44,6 +45,7 @@ import {
   orderText,
   pickWalkLesson,
   rightInputs,
+  unsortedTarget,
 } from './e2e-lessons.mjs';
 import { runProgressAndGlossary } from './e2e-progress-glossary.mjs';
 import { runReviewAndSettings } from './e2e-review-settings.mjs';
@@ -451,9 +453,8 @@ async function run(browser, name, width, height) {
       if (q === qOrder) {
         const restartOrder = await orderIds(page);
         check(restartOrder.join(',') !== q.answer.join(','), `${tag} もう一度解いても並べ替えは正解と違う並びから始まる (${restartOrder.join(',')})`);
-        // 正しい位置の行と違う位置の行を混ぜるため、正しい順の先頭の項目だけを一番上へ送る (ここは押すだけなのでマウスでよい)
-        const head0 = q.answer[0];
-        while ((await orderIds(page)).indexOf(head0) > 0) await page.getByRole('button', { name: `上へ: ${orderText(q, head0)}` }).click();
+        // 正しい位置の行と違う位置の行を混ぜ、必ず正しい順と違う並びにする (unsortedTarget。ここは押すだけなのでマウスでよい)
+        await arrangeOrder(page, q, unsortedTarget(restartOrder, q.answer));
         mixedOrder = await orderIds(page);
         await send(page);
         return true;
