@@ -1,0 +1,526 @@
+{
+  "lessons": [
+    {
+      "id": "spring-l1",
+      "title": "起動の前半: main・設定の読み込み・コンポーネントスキャン",
+      "course": "spring",
+      "questions": [
+        {
+          "id": "spring-l1-q1",
+          "kind": "choice",
+          "prompt": "Spring Boot のアプリは main メソッドから起動します。@SpringBootApplication を付けたクラスの main に書く、起動の入り口の呼び出しはどれですか。",
+          "choices": [
+            { "id": "a", "text": "SpringApplication.run(MyApplication.class, args);" },
+            { "id": "b", "text": "new MyApplication().start(args);", "why": "自分のクラスを new しても Spring は動きません。起動の手順は SpringApplication が持っています。" },
+            { "id": "c", "text": "new Tomcat().start();", "why": "組み込みの Web サーバーは Spring Boot が起動の途中で用意します。main で自分で立てるものではありません。" },
+            { "id": "d", "text": "DispatcherServlet.init(args);", "why": "DispatcherServlet は要求を受けるときの入り口で、アプリの起動の入り口ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "SpringApplication は main() から Spring のアプリを立ち上げるためのクラスで、多くの場合は静的メソッドの SpringApplication.run(Class, String...) に任せれば済みます (Spring Boot の SpringApplication の章の冒頭の例)。設定の読み込みからサーバーの起動までは、この 1 回の呼び出しの中で進みます。",
+          "sources": ["https://docs.spring.io/spring-boot/reference/features/spring-application.html"]
+        },
+        {
+          "id": "spring-l1-q2",
+          "kind": "choice",
+          "prompt": "@SpringBootApplication 1 つで有効になる 3 つの注釈 (アノテーション) の組はどれですか。",
+          "choices": [
+            { "id": "a", "text": "@SpringBootConfiguration・@EnableAutoConfiguration・@ComponentScan" },
+            { "id": "b", "text": "@Configuration・@EnableWebMvc・@ComponentScan", "why": "@EnableWebMvc は含まれません。Spring MVC の設定は自動設定が組み立てます。" },
+            { "id": "c", "text": "@EnableAutoConfiguration・@EnableTransactionManagement・@Import", "why": "トランザクションの有効化や @Import はこの注釈の中身ではありません。" },
+            { "id": "d", "text": "@Component・@Bean・@Autowired", "why": "これらは部品の登録と注入に使う注釈で、@SpringBootApplication がまとめているものではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "@SpringBootApplication は、自動設定を有効にする @EnableAutoConfiguration、アプリのクラスがあるパッケージで @Component を探す @ComponentScan、Bean を足したり設定クラスを取り込んだりできる @SpringBootConfiguration の 3 つと同じ働きをします (Spring Boot の Using the @SpringBootApplication Annotation)。どれも必須ではなく、個別の注釈に置き換えられます。",
+          "sources": ["https://docs.spring.io/spring-boot/reference/using/using-the-springbootapplication-annotation.html"]
+        },
+        {
+          "id": "spring-l1-q3",
+          "kind": "choice",
+          "prompt": "main のクラス MyApplication (@SpringBootApplication 付き) を com.example.app に置きました。次のうち、何も設定を足さないとコンポーネントスキャンで見つからないクラスはどれですか。",
+          "choices": [
+            { "id": "a", "text": "com.example.billing の @Service クラス" },
+            { "id": "b", "text": "com.example.app.order の @Service クラス", "why": "main のクラスのパッケージの下にあるので見つかります。" },
+            { "id": "c", "text": "com.example.app の @RestController クラス", "why": "main のクラスと同じパッケージなので見つかります。" },
+            { "id": "d", "text": "com.example.app.customer.repo の @Repository クラス", "why": "何段下でも、main のクラスのパッケージの下なら見つかります。" }
+          ],
+          "answer": "a",
+          "explanation": "@SpringBootApplication の @ComponentScan は、アプリのクラスがあるパッケージで部品を探します。公式文書は、main のクラスをほかのクラスより上の根のパッケージに置くことを勧めています。com.example.billing は com.example.app の下ではないので、範囲から外れます (Structuring Your Code の Locating the Main Application Class)。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/using/structuring-your-code.html#using.structuring-your-code.locating-the-main-class",
+            "https://docs.spring.io/spring-boot/reference/using/using-the-springbootapplication-annotation.html"
+          ]
+        },
+        {
+          "id": "spring-l1-q4",
+          "kind": "choice",
+          "prompt": "@Service・@Repository・@Controller と @Component の関係について、正しいものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "3 つとも @Component を特定の層向けにしたもので、スキャンで同じように見つかる。@Repository は例外の変換の目印にもなる" },
+            { "id": "b", "text": "@Service だけはスキャンで見つからず、@Bean で登録し直す必要がある", "why": "@Service も @Component の特化なので、スキャンの対象です。" },
+            { "id": "c", "text": "@Service を付けると、そのクラスのメソッドに自動でトランザクションが掛かる", "why": "トランザクションは @Transactional などで指定します。@Service は層の役目を表す目印です。" },
+            { "id": "d", "text": "@Repository を付けると、DB への接続の設定がそのクラスの中に自動で作られる", "why": "DB への接続 (DataSource など) は自動設定や自分の設定が用意します。@Repository が作るのではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "@Component は Spring が管理する部品の汎用の目印で、@Repository・@Service・@Controller は永続化・サービス・表示の各層向けにそれを特化したものです。@Repository は例外の自動変換の目印にも使われます (Spring Framework の Classpath Scanning の @Component and Further Stereotype Annotations)。Spring Boot では、これらの部品が自動で Bean として登録されます。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/core/beans/classpath-scanning.html#beans-stereotype-annotations",
+            "https://docs.spring.io/spring-boot/reference/using/spring-beans-and-dependency-injection.html"
+          ]
+        },
+        {
+          "id": "spring-l1-q5",
+          "kind": "choice",
+          "prompt": "jar の中の application.properties に server.port=9090 と書き、起動するときにコマンドラインの引数で --server.port=9000 を渡しました。アプリはどの番号で待ち受けますか。",
+          "choices": [
+            { "id": "a", "text": "9000 (コマンドラインの引数が勝つ)" },
+            { "id": "b", "text": "9090 (設定ファイルが勝つ)", "why": "コマンドラインの値は、ファイルに書いた値より常に優先されます。" },
+            { "id": "c", "text": "8080 (値がぶつかると既定に戻る)", "why": "ぶつかったら既定に戻る、という決まりはありません。後に考える出どころの値が前のものを上書きします。" },
+            { "id": "d", "text": "起動に失敗する (同じ設定が 2 か所にあるため)", "why": "同じ名前の設定が複数の出どころにあるのは普通のことで、優先の順で 1 つに決まります。" }
+          ],
+          "answer": "a",
+          "explanation": "Spring Boot は設定の出どころ (PropertySource) を決まった順に考え、後のものが前のものの値を上書きします。jar の中の application.properties より、コマンドラインの引数のほうが後です。SpringApplication は -- で始まる引数を設定に変えて Environment に足し、それはファイルの設定より常に優先されます (Externalized Configuration の冒頭と Accessing Command Line Properties)。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/features/external-config.html",
+            "https://docs.spring.io/spring-boot/reference/features/external-config.html#features.external-config.command-line-args"
+          ]
+        },
+        {
+          "id": "spring-l1-q6",
+          "kind": "order",
+          "prompt": "Spring Boot は起動するとき、主な 4 か所から application.properties を探して読みます。値がぶつかったときに負ける側から勝つ側へ (優先の低い順に) 並べてください。",
+          "items": [
+            { "id": "cp-root", "text": "クラスパスの根 (jar の中の application.properties)" },
+            { "id": "cp-config", "text": "クラスパスの /config パッケージ" },
+            { "id": "cwd", "text": "起動したときの今のディレクトリ" },
+            { "id": "cwd-config", "text": "今のディレクトリの config/ サブディレクトリ" }
+          ],
+          "answer": ["cp-root", "cp-config", "cwd", "cwd-config"],
+          "explanation": "公式文書は読む場所を、クラスパスの根・クラスパスの /config・今のディレクトリ・今のディレクトリの config/ (とその直下の子ディレクトリ) の順に挙げ、この並びは優先の順で、後の場所の値が前の場所の値を上書きすると書いています (Externalized Configuration の External Application Properties)。jar を作り直さずに、外に置いたファイルで値を変えられるのはこのためです。",
+          "sources": ["https://docs.spring.io/spring-boot/reference/features/external-config.html#features.external-config.files"]
+        },
+        {
+          "id": "spring-l1-q7",
+          "kind": "lab",
+          "prompt": "手元の Spring Boot のアプリ (Spring Web を入れたもの) を端末から起動し、起動のログを上から読んでください。IDE の実行ボタンでも同じログが出ます。",
+          "steps": [
+            { "text": "プロジェクトの根で次を打つ (Gradle なら gradle bootRun、作った jar なら java -jar target/<名前>.jar)", "command": "mvn spring-boot:run" },
+            { "text": "Starting で始まる行から Started で始まる行までを、上から順に読む" },
+            { "text": "読み終えたら Ctrl+C で止める" }
+          ],
+          "expected": "最初に Starting <クラス名> using Java ... の行、次に有効なプロファイルの行、Tomcat initialized with port 8080、Root WebApplicationContext: initialization completed、Tomcat started on port 8080、最後に Started <クラス名> in N seconds の行が出ます。",
+          "explanation": "公式文書の SpringApplication の章に、起動したときのログの例があります。main のスレッドで、アプリの開始・文脈の初期化・Tomcat の待ち受け開始・起動の完了がこの順に記録されます。mvn spring-boot:run と gradle bootRun はプラグインからアプリを動かす方法、java -jar は作った実行可能な jar を動かす方法です (Running Your Application)。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/features/spring-application.html",
+            "https://docs.spring.io/spring-boot/reference/using/running-your-application.html#using.running-your-application.with-the-maven-plugin"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spring-l2",
+      "title": "起動の後半: 自動設定・Bean の生成と DI・組み込み Tomcat",
+      "course": "spring",
+      "questions": [
+        {
+          "id": "spring-l2-q1",
+          "kind": "order",
+          "prompt": "Spring Boot のアプリが起動して要求を受けられるようになるまでの 6 段を、起きる順に並べてください。",
+          "items": [
+            { "id": "main", "text": "main メソッドから SpringApplication.run が始まる" },
+            { "id": "env", "text": "application.properties などを読み、Environment に入れる" },
+            { "id": "scan", "text": "コンポーネントスキャンで @Controller・@Service・@Repository などを見つける" },
+            { "id": "auto", "text": "自動設定がクラスパスと既にある Bean を見て、足りない部品を条件付きで組み立てる" },
+            { "id": "beans", "text": "Bean を作り、依存を注入する (@Transactional のクラスはプロキシで包む)" },
+            { "id": "tomcat", "text": "組み込みの Tomcat が 8080 番で待ち受けを始める" }
+          ],
+          "answer": ["main", "env", "scan", "auto", "beans", "tomcat"],
+          "explanation": "Environment は文脈 (ApplicationContext) を作る前に決まります (Application Events and Listeners の ApplicationEnvironmentPreparedEvent)。自動設定は、利用者が定義した Bean を登録し終えた後に読み込まれることが保証されています (Bean Conditions)。シングルトンの Bean は既定で初期化の中で前もって作られます (Lazy-initialized Beans)。なお Tomcat の用意 (Tomcat initialized) 自体はもっと早く始まります。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/features/spring-application.html#features.spring-application.application-events-and-listeners",
+            "https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html#features.developing-auto-configuration.condition-annotations.bean-conditions",
+            "https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-lazy-init.html",
+            "https://docs.spring.io/spring-boot/reference/features/spring-application.html"
+          ]
+        },
+        {
+          "id": "spring-l2-q2",
+          "kind": "choice",
+          "prompt": "クラスパスに組み込みのデータベース (HSQLDB) がある状態で、自分で DataSource の Bean を定義しました。自動設定はどう動きますか。",
+          "choices": [
+            { "id": "a", "text": "自分の DataSource が使われ、組み込みのデータベースの自動設定は身を引く" },
+            { "id": "b", "text": "自動設定の DataSource が優先され、自分の定義は無視される", "why": "自動設定は出しゃばらない作りで、自分の設定で置き換えられます。" },
+            { "id": "c", "text": "DataSource が 2 つできて、起動が必ず失敗する", "why": "自動設定は既に Bean があるかを条件に見るので、普通は 2 つ目を作りません。" },
+            { "id": "d", "text": "自動設定を止める exclude を書かない限り、自分の定義は読まれない", "why": "exclude は不要な自動設定を止める手段で、自分の Bean を有効にするのに要るものではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "自動設定はクラスパスの jar を見て組み立てますが、出しゃばらない作りで、自分で DataSource の Bean を足すと組み込みのデータベースの扱いは身を引きます (Auto-configuration の Gradually Replacing Auto-configuration)。自動設定のクラスは多くが @ConditionalOnClass と @ConditionalOnMissingBean で、関係するクラスがあり、利用者が自分で定義していないときだけ効くように書かれています。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/using/auto-configuration.html#using.auto-configuration.replacing",
+            "https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html#features.developing-auto-configuration.understanding-auto-configured-beans"
+          ]
+        },
+        {
+          "id": "spring-l2-q3",
+          "kind": "choice",
+          "prompt": "自動設定のクラスが @ConditionalOnMissingBean を安全に使えるのはなぜですか。",
+          "choices": [
+            { "id": "a", "text": "自動設定は、利用者が定義した Bean を登録し終えた後に読み込まれることが保証されているから" },
+            { "id": "b", "text": "自動設定はコンポーネントスキャンより先に読み込まれるから", "why": "逆です。先に読むと、利用者の Bean がまだ無いので『無い』と誤って判定します。" },
+            { "id": "c", "text": "条件は、最初の要求が来たときに初めて評価されるから", "why": "条件は起動のときに Bean の定義を登録する段階で評価されます。" },
+            { "id": "d", "text": "同じ型の Bean が 2 つあっても、Spring が自動で 1 つにまとめるから", "why": "まとめる仕組みではありません。そもそも 2 つ目を作らないための条件です。" }
+          ],
+          "answer": "a",
+          "explanation": "@ConditionalOnBean と @ConditionalOnMissingBean は、その時点までに処理された Bean の定義を見て判定するので、定義の順番に注意が要ります。公式文書は、自動設定のクラスでだけこれらを使うことを勧め、その理由を自動設定は利用者の Bean の定義が足された後に読み込まれることが保証されているからと書いています (Creating Your Own Auto-configuration の Bean Conditions)。",
+          "sources": ["https://docs.spring.io/spring-boot/reference/features/developing-auto-configuration.html#features.developing-auto-configuration.condition-annotations.bean-conditions"]
+        },
+        {
+          "id": "spring-l2-q4",
+          "kind": "choice",
+          "prompt": "Service に Repository を注入する方法として Spring のチームが勧めるのはどれですか。理由も合わせて選んでください。",
+          "choices": [
+            { "id": "a", "text": "コンストラクタで受け取る。部品を不変にでき、必須の依存が null にならない" },
+            { "id": "b", "text": "フィールドに @Autowired を付ける。コードが短く、テストで差し替えやすい", "why": "公式文書が勧めているのはコンストラクタでの注入です。" },
+            { "id": "c", "text": "setter で受け取る。必須の依存は後から入れたほうが安全", "why": "setter は任意の依存に向くとされ、必須の依存にはコンストラクタが勧められています。" },
+            { "id": "d", "text": "Service の中で new して作る。Spring に頼らないので速い", "why": "自分で new すると Spring が管理する Bean (プロキシなど) が入らず、DI の利点を失います。" }
+          ],
+          "answer": "a",
+          "explanation": "Spring Boot の文書は、依存をつなぐのにコンストラクタでの注入を勧めています (Spring Beans and Dependency Injection)。Spring Framework の文書は、部品を不変のオブジェクトにでき、必須の依存が null でないことを保証できるので、コンストラクタでの注入を推すと書いています (Dependencies の Constructor-based or setter-based DI?)。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/using/spring-beans-and-dependency-injection.html",
+            "https://docs.spring.io/spring-framework/reference/core/beans/dependencies/factory-collaborators.html#beans-setter-injection"
+          ]
+        },
+        {
+          "id": "spring-l2-q5",
+          "kind": "choice",
+          "prompt": "OrderService のメソッドに @Transactional を付けました。Controller のコンストラクタに注入される OrderService の正体はどれですか。",
+          "choices": [
+            { "id": "a", "text": "OrderService を包んだ AOP のプロキシ。呼び出しの前後でトランザクションを扱い、本体へ渡す" },
+            { "id": "b", "text": "OrderService の本体そのもの。トランザクションは DB のドライバーが自動で掛ける", "why": "宣言的なトランザクションは AOP のプロキシで実現されています。本体だけでは掛かりません。" },
+            { "id": "c", "text": "要求ごとに new される OrderService の新しいインスタンス", "why": "Bean は既定でシングルトンです。要求ごとに作り直すのではありません。" },
+            { "id": "d", "text": "Controller ごとに複製された OrderService のコピー", "why": "Bean を注入先ごとに複製する仕組みではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "Spring の宣言的なトランザクションは AOP のプロキシで実現され、TransactionInterceptor がメソッドの呼び出しの前後でトランザクションを動かします (Understanding the Spring Framework's Declarative Transaction Implementation)。呼び出し側はプロキシへの参照を持ち、プロキシが関係する処理を挟んでから本体を呼びます (Understanding AOP Proxies)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-decl-explained.html",
+            "https://docs.spring.io/spring-framework/reference/core/aop/proxying.html#aop-understanding-aop-proxies"
+          ]
+        },
+        {
+          "id": "spring-l2-q6",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "/greeting に応える Controller を持つ Spring Boot のアプリを、server.port を何も設定せずに起動しました。同じマシンから要求を送ります。空欄の番号を埋めてください。",
+          "code": "curl -i http://localhost:{{blank}}/greeting",
+          "blanks": [{ "answers": ["8080"] }],
+          "output": "HTTP/1.1 200\nContent-Type: application/json\n...",
+          "explanation": "組み込みのサーバーは既定で 8080 番で HTTP の要求を待ちます (Servlet Web Applications の Embedded Servlet Container Support)。番号は server.port で変えられます (How-to の Change the HTTP Port)。-i は応答のヘッダーも表示する curl のオプションです (curl 8.10.0 からの名前は --show-headers)。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/web/servlet.html#web.servlet.embedded-container",
+            "https://docs.spring.io/spring-boot/how-to/webserver.html#howto.webserver.change-port",
+            "https://curl.se/docs/manpage.html"
+          ]
+        },
+        {
+          "id": "spring-l2-q7",
+          "kind": "choice",
+          "prompt": "起動のログの一部です。組み込みのサーバーがポートで待ち受けを始めたことを示す最初の行はどれですか。",
+          "code": {
+            "format": "text",
+            "text": "(1) Tomcat initialized with port 8080 (http)\n(2) Root WebApplicationContext: initialization completed in 4023 ms\n(3) Tomcat started on port 8080 (http) with context path '/'\n(4) Started MyApplication in 7.98 seconds"
+          },
+          "choices": [
+            { "id": "a", "text": "(3) Tomcat started on port 8080" },
+            { "id": "b", "text": "(1) Tomcat initialized with port 8080", "why": "使う番号を決めて Tomcat を用意した段階で、まだ待ち受けは始まっていません。" },
+            { "id": "c", "text": "(2) Root WebApplicationContext: initialization completed", "why": "Web の文脈の初期化の区切りで、Tomcat の待ち受け開始はこの後の行です。" },
+            { "id": "d", "text": "(4) Started MyApplication", "why": "起動全体が終わった印で、待ち受けはその前の (3) で始まっています。" }
+          ],
+          "answer": "a",
+          "fixedOrder": true,
+          "explanation": "公式文書の起動のログの例では、Tomcat initialized → initialization completed → Tomcat started on port 8080 → Started の順に出ます (SpringApplication の章の冒頭)。待ち受けを始めたと読めるのは started の行です。Web サーバーが整ったことを知らせる WebServerInitializedEvent は、ApplicationStartedEvent より前に出ます。一方、アプリが要求を受ける用意ができた印 (ReadinessState.ACCEPTING_TRAFFIC) は ApplicationReadyEvent の直後で、待ち受けの開始よりもっと後です (Application Events and Listeners)。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/features/spring-application.html",
+            "https://docs.spring.io/spring-boot/reference/features/spring-application.html#features.spring-application.application-events-and-listeners"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spring-l3",
+      "title": "リクエストの 4 段: 受信・振り分け・業務処理・応答",
+      "course": "spring",
+      "questions": [
+        {
+          "id": "spring-l3-q1",
+          "kind": "choice",
+          "prompt": "Spring MVC で、組み込みのサーバーから要求を最初に受け取り、処理を担当の部品に振り分ける中心の Servlet はどれですか。",
+          "choices": [
+            { "id": "a", "text": "DispatcherServlet" },
+            { "id": "b", "text": "@RestController を付けた自分の Controller", "why": "Controller は振り分けられた先で、要求を最初に受けるのは DispatcherServlet です。" },
+            { "id": "c", "text": "HttpMessageConverter", "why": "本文と Java のオブジェクトを変換する部品で、要求の入り口ではありません。" },
+            { "id": "d", "text": "SpringApplication", "why": "起動の入り口で、要求ごとの処理には関わりません。" }
+          ],
+          "answer": "a",
+          "explanation": "Spring MVC はフロントコントローラーの形で作られていて、中心の Servlet である DispatcherServlet が要求の処理の共通の流れを持ち、実際の仕事は差し替えのできる部品に任せます (Spring Web MVC の DispatcherServlet)。Spring Boot は Servlet を組み込みのサーバーに登録し、Servlet が 1 つだけなら / に割り当てます (Servlets, Filters, and Listeners)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet.html",
+            "https://docs.spring.io/spring-boot/reference/web/servlet.html#web.servlet.embedded-container.servlets-filters-listeners.beans"
+          ]
+        },
+        {
+          "id": "spring-l3-q2",
+          "kind": "choice",
+          "prompt": "DispatcherServlet が、要求の URL やメソッドから担当のハンドラー (@GetMapping などを付けた Controller のメソッド) を探すときに使う部品はどれですか。",
+          "choices": [
+            { "id": "a", "text": "HandlerMapping" },
+            { "id": "b", "text": "ViewResolver", "why": "ハンドラーが返したビューの名前から実際のビューを決める部品です。" },
+            { "id": "c", "text": "HandlerExceptionResolver", "why": "処理の途中で起きた例外の扱いを決める部品です。" },
+            { "id": "d", "text": "LocaleResolver", "why": "利用者の言語や地域 (ロケール) を決める部品です。" }
+          ],
+          "answer": "a",
+          "explanation": "HandlerMapping は要求をハンドラーと前後処理のインターセプターの一覧に対応づけます。主な実装の RequestMappingHandlerMapping が @RequestMapping (とその略記の @GetMapping など) を付けたメソッドを扱います。見つかったハンドラーを実際に呼ぶのは HandlerAdapter の役目です (DispatcherServlet の Special Bean Types)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/special-bean-types.html",
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/sequence.html"
+          ]
+        },
+        {
+          "id": "spring-l3-q3",
+          "kind": "http",
+          "format": "http",
+          "prompt": "Controller が @RestController @RequestMapping(\"/persons\") で、メソッドに @GetMapping(\"/{id}\") が付いています。このメソッドに振り分けられる要求になるよう、空欄のメソッドを埋めてください。",
+          "code": "{{blank}} /persons/42 HTTP/1.1\nHost: localhost:8080\nAccept: application/json",
+          "blanks": [{ "answers": ["GET", "HEAD"] }],
+          "explanation": "クラスに付けた @RequestMapping は共通の道を、メソッドに付けた @GetMapping はその先の道と HTTP のメソッドを表します。@GetMapping は GET に絞った @RequestMapping の略記です。{id} の部分は @PathVariable で受け取れます (Spring Web MVC の Mapping Requests)。@GetMapping は HTTP の HEAD も、Controller を変えずにそのまま受けるので、HEAD も別解です (同じ章の HTTP HEAD, OPTIONS)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html#mvc-ann-requestmapping-annotation",
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html#mvc-ann-requestmapping-head-options"
+          ]
+        },
+        {
+          "id": "spring-l3-q4",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "@PostMapping(\"/persons\") のメソッドが @RequestBody Person person を受け取ります。本文を JSON として送り、Content-Type: application/json も付けたい。1 つで両方をこなす curl のオプションを埋めてください。",
+          "code": "curl {{blank}} '{\"name\":\"Ann\"}' http://localhost:8080/persons",
+          "blanks": [{ "answers": ["--json"] }],
+          "explanation": "--json は、本文をそのまま送る --data-binary と、Content-Type: application/json・Accept: application/json の 2 つのヘッダーをまとめた略記で、POST で送ります (curl の man page、7.82.0 から)。@RequestBody は要求の本文を HttpMessageConverter で読み、オブジェクトに変換します (Spring Web MVC の @RequestBody)。",
+          "sources": [
+            "https://curl.se/docs/manpage.html",
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/requestbody.html"
+          ]
+        },
+        {
+          "id": "spring-l3-q5",
+          "kind": "choice",
+          "prompt": "@RequestBody の引数に、要求の本文の JSON が Person のオブジェクトとして入ります。この変換をしている仕組みはどれですか。",
+          "choices": [
+            { "id": "a", "text": "HttpMessageConverter (JSON なら既定で Jackson を使う)" },
+            { "id": "b", "text": "Tomcat が JSON を読んで、引数の型に合わせて作る", "why": "Tomcat は HTTP の要求を Servlet に渡すまでが役目で、JSON を Java のオブジェクトにはしません。" },
+            { "id": "c", "text": "@Transactional のプロキシが変換する", "why": "プロキシはトランザクションを扱うもので、本文の変換とは関係ありません。" },
+            { "id": "d", "text": "Environment に入った設定の値から作られる", "why": "Environment は設定の置き場所で、要求の本文は入りません。" }
+          ],
+          "answer": "a",
+          "explanation": "@RequestBody は要求の本文を HttpMessageConverter で読み、オブジェクトに変換します (Spring Web MVC の @RequestBody)。Spring Boot では、オブジェクトは Jackson で JSON に自動で変換されるなど、使える既定が最初から入っています (Servlet Web Applications の HttpMessageConverters)。Spring Boot 4 で既定の JSON のライブラリは Jackson 3 です (JSON の章)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/requestbody.html",
+            "https://docs.spring.io/spring-boot/reference/web/servlet.html#web.servlet.spring-mvc.message-converters",
+            "https://docs.spring.io/spring-boot/reference/features/json.html"
+          ]
+        },
+        {
+          "id": "spring-l3-q6",
+          "kind": "choice",
+          "prompt": "業務処理の段で、Controller が OrderService (メソッドに @Transactional 付き) を呼び、その中で Repository が DB を更新します。トランザクションが始まるのはどこですか。",
+          "choices": [
+            { "id": "a", "text": "Controller が OrderService のメソッドを呼んだとき、間に入ったプロキシが本体を呼ぶ前に始める" },
+            { "id": "b", "text": "DispatcherServlet が要求を受け取った瞬間に、すべての要求で始まる", "why": "トランザクションは @Transactional を付けたメソッドの呼び出しの周りで、プロキシが扱います。" },
+            { "id": "c", "text": "Repository が SQL を送るたびに、1 文ずつ別に始まる", "why": "@Transactional のメソッドの中の DB の操作は、その 1 つのトランザクションに入ります。" },
+            { "id": "d", "text": "応答を JSON に変換し終えた後に始まる", "why": "変換は業務処理の後の応答の段で、トランザクションはその前に終わっています。" }
+          ],
+          "answer": "a",
+          "explanation": "宣言的なトランザクションは AOP のプロキシで実現され、TransactionInterceptor がメソッドの呼び出しの周りでトランザクションを動かします (Understanding the Spring Framework's Declarative Transaction Implementation)。このトランザクションは普通、今のスレッドに結び付き、そのスレッドの中のデータの操作すべてに及びます (同じ節)。",
+          "sources": ["https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-decl-explained.html"]
+        },
+        {
+          "id": "spring-l3-q7",
+          "kind": "http",
+          "format": "http",
+          "prompt": "Controller のメソッドに @PostMapping と @ResponseStatus(HttpStatus.CREATED) が付いていて、戻り値は void です。正常に終わったときの応答のステータス行の空欄を埋めてください。",
+          "code": "HTTP/1.1 {{blank}} Created",
+          "blanks": [{ "answers": ["201"] }],
+          "explanation": "@ResponseStatus で返すステータスを決められ、HttpStatus.CREATED は 201 Created です。Spring Framework の Mapping Requests の例でも、@PostMapping に @ResponseStatus(HttpStatus.CREATED) を付けて作成を表しています。ステータスやヘッダーを本文と一緒に決めたいときは ResponseEntity を返します (ResponseEntity)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html#mvc-ann-requestmapping-annotation",
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/responseentity.html"
+          ]
+        },
+        {
+          "id": "spring-l3-q8",
+          "kind": "choice",
+          "prompt": "@RestController のメソッドが Person のオブジェクトを返すと、応答の本文は JSON になります。その理由として正しいものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "@RestController は @Controller と @ResponseBody をまとめたもので、戻り値が HttpMessageConverter で本文に書かれるから" },
+            { "id": "b", "text": "@RestController が戻り値を toString() で文字列にして返すから", "why": "toString() ではなく、HttpMessageConverter が形式に合わせて変換します。" },
+            { "id": "c", "text": "戻り値の名前をビューの名前として探し、JSON のテンプレートを描くから", "why": "それは @ResponseBody の無い @Controller の動きです。@RestController は戻り値を本文にします。" },
+            { "id": "d", "text": "Tomcat が戻り値を受け取り、JSON に変換して送るから", "why": "変換は Spring MVC の HttpMessageConverter の仕事で、Tomcat はできた応答を送ります。" }
+          ],
+          "answer": "a",
+          "explanation": "@ResponseBody を付けると、戻り値は HttpMessageConverter で直列化されて応答の本文になります。クラスに付けると全メソッドに効き、@RestController は @Controller と @ResponseBody を付けたメタ注釈にすぎません (Spring Web MVC の @ResponseBody)。Spring Boot の既定では、JSON への変換に Jackson が使われます。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/responsebody.html",
+            "https://docs.spring.io/spring-boot/reference/web/servlet.html#web.servlet.spring-mvc.message-converters"
+          ]
+        },
+        {
+          "id": "spring-l3-q9",
+          "kind": "order",
+          "prompt": "POST /persons (本文は JSON) の要求が届いてから応答を返すまでを、起きる順に並べてください。",
+          "items": [
+            { "id": "receive", "text": "DispatcherServlet が要求を受け取る" },
+            { "id": "mapping", "text": "HandlerMapping が担当の Controller のメソッドを探す" },
+            { "id": "read", "text": "HttpMessageConverter が本文の JSON を @RequestBody の引数のオブジェクトに変える" },
+            { "id": "service", "text": "Controller が Service (プロキシ) を呼び、トランザクションの中で Repository が DB を更新する" },
+            { "id": "write", "text": "戻り値を HttpMessageConverter が JSON にして、ステータスと一緒に応答の本文に書く" }
+          ],
+          "answer": ["receive", "mapping", "read", "service", "write"],
+          "explanation": "DispatcherServlet は要求を受けると、まず合うハンドラーを探し、見つかればその実行の連なりを動かします。注釈付きの Controller では、ビューを返す代わりに HandlerAdapter の中で応答を書けます (DispatcherServlet の Processing)。引数の @RequestBody は呼び出しの前に本文から作られ (@RequestBody)、戻り値は呼び出しの後に本文へ書かれます (@ResponseBody)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-servlet/sequence.html",
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/requestbody.html",
+            "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-methods/responsebody.html"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "spring-l4",
+      "title": "落とし穴と確かめ方: トランザクションのプロキシと debug",
+      "course": "spring",
+      "questions": [
+        {
+          "id": "spring-l4-q1",
+          "kind": "choice",
+          "prompt": "次の OrderService を、Controller から orderService.placeAll(orders) と呼びました (既定のプロキシの方式)。place に付けた @Transactional はどう効きますか。",
+          "code": {
+            "format": "java",
+            "text": "@Service\npublic class OrderService {\n    public void placeAll(List<Order> orders) {\n        for (Order o : orders) {\n            place(o); // 同じクラスの中から呼ぶ\n        }\n    }\n\n    @Transactional\n    public void place(Order o) { /* ... */ }\n}"
+          },
+          "choices": [
+            { "id": "a", "text": "効かない。place は this から直接呼ばれ、プロキシを通らないのでトランザクションは始まらない" },
+            { "id": "b", "text": "place を呼ぶたびに、1 件ずつ新しいトランザクションが始まる", "why": "同じオブジェクトの中からの呼び出し (自己呼び出し) はプロキシを通らないので、始まりません。" },
+            { "id": "c", "text": "placeAll 全体が 1 つのトランザクションになる", "why": "placeAll には @Transactional が付いていません。中の place の注釈も効かないので、トランザクションはありません。" },
+            { "id": "d", "text": "設定の誤りとして起動のときに例外になり、すぐ気づける", "why": "起動を止める仕組みではありません。実行のときにトランザクションが始まらないだけです。" }
+          ],
+          "answer": "a",
+          "explanation": "既定のプロキシの方式では、プロキシを通って外から来た呼び出しだけが横取りされます。対象のオブジェクトの中のメソッドが同じオブジェクトの別のメソッドを呼ぶ自己呼び出しは、@Transactional が付いていても実行のときにトランザクションになりません (Using @Transactional)。AOP の章も、this への呼び出しは助言 (advice) を通らないとし、まず自己呼び出しが起きない形に直すことを勧めています (Understanding AOP Proxies)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html",
+            "https://docs.spring.io/spring-framework/reference/core/aop/proxying.html#aop-understanding-aop-proxies"
+          ]
+        },
+        {
+          "id": "spring-l4-q2",
+          "kind": "choice",
+          "prompt": "@Transactional のメソッドが DB を更新した後、検査例外 (チェック例外) の IOException を投げて終わりました。rollbackFor などを何も指定していないとき、更新はどうなりますか。",
+          "choices": [
+            { "id": "a", "text": "ロールバックされずにコミットされる (既定でロールバックするのは RuntimeException と Error だけ)" },
+            { "id": "b", "text": "例外なので必ずロールバックされる", "why": "既定では、検査例外はロールバックの理由になりません。" },
+            { "id": "c", "text": "コミットもロールバックもされず、トランザクションが開いたまま残る", "why": "メソッドを抜けるとき、プロキシはコミットかロールバックかを決めて終えます。" },
+            { "id": "d", "text": "IOException は入出力の例外なので、DB の更新とは関係なく破棄される", "why": "例外の種類で決まるのはロールバックの印を付けるかどうかで、入出力かどうかは関係ありません。" }
+          ],
+          "answer": "a",
+          "explanation": "@Transactional の既定では、RuntimeException と Error でロールバックし、検査例外ではロールバックしません (Using @Transactional の @Transactional Settings)。Rolling Back の節も、既定ではロールバックの印を付けるのは非検査の実行時例外 (RuntimeException とその子) の場合だけと書いており、例外でロールバックしないように決めたトランザクションはコミットされます (同じ節の no-rollback の例)。検査例外でも戻したいときは rollbackFor などで指定します。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html#transaction-declarative-attransactional-settings",
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html"
+          ]
+        },
+        {
+          "id": "spring-l4-q3",
+          "kind": "order",
+          "prompt": "Controller が @Transactional 付きの Service のメソッドを呼び、例外なく終わったときに起きることを、順に並べてください。",
+          "items": [
+            { "id": "call", "text": "Controller が、注入された Service (実はプロキシ) のメソッドを呼ぶ" },
+            { "id": "begin", "text": "プロキシ (TransactionInterceptor) がトランザクションを始める" },
+            { "id": "target", "text": "プロキシが Service の本体を呼び、本体が Repository で DB を更新する" },
+            { "id": "commit", "text": "本体が例外を投げずに戻り、プロキシがコミットする" }
+          ],
+          "answer": ["call", "begin", "target", "commit"],
+          "explanation": "呼び出し側が持っているのはプロキシへの参照で、プロキシがそのメソッドに関係する処理を挟んでから本体へ渡します (Understanding AOP Proxies)。トランザクションの場合、TransactionInterceptor がメソッドの呼び出しの周りでトランザクションを動かします (Understanding the Spring Framework's Declarative Transaction Implementation)。宣言的なトランザクションの例のログでも、プロキシの TransactionInterceptor がトランザクションを取ってから本体が動きます (Example of Declarative Transaction Implementation)。既定では、ロールバックの対象の例外 (RuntimeException と Error) が投げられると印が付き、付かなければコミットされます (Rolling Back a Declarative Transaction)。検査例外ではロールバックしないことは @Transactional Settings の既定の一覧にあります (Using @Transactional)。",
+          "sources": [
+            "https://docs.spring.io/spring-framework/reference/core/aop/proxying.html#aop-understanding-aop-proxies",
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/tx-decl-explained.html",
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/first-example.html",
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html",
+            "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html#transaction-declarative-attransactional-settings"
+          ]
+        },
+        {
+          "id": "spring-l4-q4",
+          "kind": "choice",
+          "prompt": "Service の @PostConstruct のメソッドから、同じクラスの @Transactional のメソッドを呼んで初期データを入れようとしています。公式文書の注意に合うのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "初期化のコードでプロキシの働きに頼らない。プロキシが整う前で、トランザクションが効く前提にできない" },
+            { "id": "b", "text": "@PostConstruct の中なら、自己呼び出しでもトランザクションが効く", "why": "初期化の中でも自己呼び出しはプロキシを通りません。公式文書は初期化のコードでこの働きに頼らないよう書いています。" },
+            { "id": "c", "text": "@PostConstruct は起動の最後、Tomcat の待ち受けの後に呼ばれるので問題ない", "why": "呼ばれる時機の問題ではなく、プロキシが整っている前提が置けないことが注意の中身です。" },
+            { "id": "d", "text": "@PostConstruct に @Transactional を付ければ、必ず 1 つのトランザクションになる", "why": "公式文書は初期化のコードでプロキシの働きに頼らないよう注意しています。" }
+          ],
+          "answer": "a",
+          "explanation": "公式文書は、期待どおりに動くにはプロキシが初期化を終えている必要があるので、初期化のコード (たとえば @PostConstruct のメソッド) でこの働きに頼るべきではないと書いています (Using @Transactional の、プロキシの方式と自己呼び出しの注意の続き)。",
+          "sources": ["https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/annotations.html"]
+        },
+        {
+          "id": "spring-l4-q5",
+          "kind": "lab",
+          "prompt": "どの自動設定がなぜ効いたのかを、条件の評価の報告 (conditions report) で確かめてください。手元のアプリで行います。",
+          "steps": [
+            { "text": "アプリの依存に spring-boot-starter-jdbc と、組み込みのデータベース (H2 か HSQLDB) を足す" },
+            { "text": "アプリの jar を作ってから、--debug を付けて起動する (application.properties に debug=true と書いても同じ)", "command": "java -jar target/<名前>.jar --debug" },
+            { "text": "コンソールに出た報告から、DispatcherServlet や DataSource に関係する自動設定を探す" },
+            { "text": "自分で DataSource の Bean を足した版でも起動し、報告がどう変わるかを比べる" }
+          ],
+          "expected": "条件の評価の報告が出て、当てはまった自動設定と当てはまらなかった自動設定が、どの条件 (クラスがあるか、Bean が既にあるか など) でそうなったかと一緒に並びます。自分の DataSource を足すと、組み込みのデータベースの自動設定が身を引いたことが読めます。",
+          "explanation": "--debug で起動すると、主なロガーの debug ログが出るようになり、条件の評価の報告がコンソールに出ます。今どの自動設定がなぜ効いているかを知りたいときの手段です (Auto-configuration の Gradually Replacing Auto-configuration)。application.properties の debug=true でも同じ debug モードになります (Logging の Console Output)。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/using/auto-configuration.html#using.auto-configuration.replacing",
+            "https://docs.spring.io/spring-boot/reference/features/logging.html#features.logging.console-output"
+          ]
+        },
+        {
+          "id": "spring-l4-q6",
+          "kind": "choice",
+          "prompt": "application.properties に debug=true と書いて起動しました。何が起きますか。",
+          "choices": [
+            { "id": "a", "text": "組み込みのサーバー・Hibernate・Spring Boot などの主なロガーが詳しく出す。すべてのログが DEBUG になるわけではない" },
+            { "id": "b", "text": "アプリのすべてのログが DEBUG の水準で出るようになる", "why": "debug モードは主なロガーだけを詳しくします。すべてを DEBUG にはしません。" },
+            { "id": "c", "text": "アプリがデバッガーの接続を待って止まる", "why": "デバッガーの接続はログの debug モードとは別の仕組みです。" },
+            { "id": "d", "text": "自動設定が止まり、自分で書いた設定だけで起動する", "why": "debug は自動設定を止めません。自動設定を外すのは exclude などです。" }
+          ],
+          "answer": "a",
+          "explanation": "debug モードを有効にすると、主なロガー (組み込みのコンテナ・Hibernate・Spring Boot) がより多くの情報を出すように設定されます。debug モードを有効にしても、アプリのすべてのメッセージを DEBUG で記録するようにはなりません (Logging の Console Output)。自動設定の報告もこのときに出ます。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/features/logging.html#features.logging.console-output",
+            "https://docs.spring.io/spring-boot/reference/using/auto-configuration.html#using.auto-configuration.replacing"
+          ]
+        },
+        {
+          "id": "spring-l4-q7",
+          "kind": "lab",
+          "prompt": "存在しない道へ要求を送り、Spring Boot が既定で返す誤りの応答を手元で見てください。自分のアプリだけに送ります。",
+          "steps": [
+            { "text": "アプリを起動したまま、別の端末で次を打つ", "command": "curl -i http://localhost:8080/no-such-path" },
+            { "text": "ステータス行と Content-Type、本文の JSON を読む" }
+          ],
+          "expected": "ステータスは 404 (Not Found) で、本文は JSON です。JSON の中に、ステータスの番号などの誤りの詳しい内容が入っています。",
+          "explanation": "Spring Boot は既定で /error の割り当てを用意し、すべての誤りをそこで扱います。ブラウザ以外の相手には、誤りの詳しい内容と HTTP のステータスを JSON で返し、ブラウザには同じ内容を HTML の whitelabel のページで見せます (Servlet Web Applications の Error Handling)。",
+          "sources": [
+            "https://docs.spring.io/spring-boot/reference/web/servlet.html#web.servlet.spring-mvc.error-handling",
+            "https://curl.se/docs/manpage.html"
+          ]
+        }
+      ]
+    }
+  ]
+}

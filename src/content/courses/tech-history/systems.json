@@ -1,0 +1,642 @@
+{
+  "lessons": [
+    {
+      "id": "tech-history-l15",
+      "title": "プログラミング言語の思想",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l15-q1",
+          "kind": "order",
+          "prompt": "言語の節目を、古い順に並べてください。",
+          "items": [
+            { "id": "c", "text": "C の言語の要点がそろい、UNIX のカーネルを C で書き直す" },
+            { "id": "cpp", "text": "C++ の最初の商用の実装が出る" },
+            { "id": "py", "text": "Guido van Rossum が Python を USENET に公開する" },
+            { "id": "go", "text": "Go が公開のオープンソースの計画になる" },
+            { "id": "rust", "text": "Rust 1.0 が出る" },
+            { "id": "kotlin", "text": "Kotlin 1.0 が出る" }
+          ],
+          "answer": ["c", "cpp", "py", "go", "rust", "kotlin"],
+          "explanation": "Ritchie の「The Development of the C Language」は 1973 年の初めに C の要点がそろい、その夏に UNIX のカーネルを C で書き直したと書いています。C++ の最初の商用の実装は 1985 年 10 月 (Stroustrup の FAQ)、Python の USENET への公開は 1991 年 2 月 (Python の FAQ)、Go の公開は 2009 年 11 月 10 日 (Go の FAQ)、Rust 1.0 は 2015 年 5 月 15 日、Kotlin 1.0 は 2016 年 2 月 15 日 (どちらも公式のブログ) です。",
+          "sources": [
+            "https://www.nokia.com/bell-labs/about/dennis-m-ritchie/chist.html",
+            "https://www.stroustrup.com/bs_faq.html",
+            "https://docs.python.org/3/faq/general.html",
+            "https://go.dev/doc/faq",
+            "https://blog.rust-lang.org/2015/05/15/Rust-1.0/",
+            "https://blog.jetbrains.com/kotlin/2016/02/kotlin-1-0-released-pragmatic-language-for-jvm-and-android/"
+          ]
+        },
+        {
+          "id": "tech-history-l15-q2",
+          "kind": "choice",
+          "prompt": "Bjarne Stroustrup の FAQ によると、C++ の最初の版は何と呼ばれていましたか。",
+          "choices": [
+            { "id": "a", "text": "C with Classes" },
+            { "id": "b", "text": "Plan 9", "why": "Plan 9 はベル研究所の OS の名前で、RFC 3629 によると UTF-8 はそのために考えられました。" },
+            { "id": "c", "text": "B", "why": "B は C の前の言語です。" },
+            { "id": "d", "text": "Mocha", "why": "Mocha は、Brendan Eich が 1995 年 5 月に JavaScript を試作したときの名前です。" }
+          ],
+          "answer": "a",
+          "explanation": "Stroustrup の FAQ は、1979 年に C++ になるものの作業を始め、最初の版は「C with Classes」と呼ばれ、1983 年の終わりに C++ の名前が使われ、最初の商用の実装は 1985 年 10 月に『The C++ Programming Language』の初版と同時に出た、と書いています。",
+          "sources": [
+            "https://www.stroustrup.com/bs_faq.html",
+            "https://www.rfc-editor.org/rfc/rfc3629#section-1",
+            "https://brendaneich.com/2008/04/popularity/"
+          ]
+        },
+        {
+          "id": "tech-history-l15-q3",
+          "kind": "lab",
+          "prompt": "Python の設計の考え方は、PEP 20「The Zen of Python」に短い文でまとめられています。手元で読んでみてください。",
+          "steps": [
+            { "text": "端末で次を打つ", "command": "python3 -c 'import this'" },
+            { "text": "出てきた格言の中から、やり方の数について書いた行を探す" }
+          ],
+          "expected": "The Zen of Python, by Tim Peters に続いて格言が並び、その中に「There should be one-- and preferably only one --obvious way to do it.」の行があります。",
+          "explanation": "PEP 20 (著者 Tim Peters) の本文に、明らかなやり方は 1 つ、できれば 1 つだけあるべきだ、という行があります。PEP 20 は「Easter Egg」として >>> import this を挙げています。",
+          "sources": ["https://peps.python.org/pep-0020/"]
+        },
+        {
+          "id": "tech-history-l15-q4",
+          "kind": "choice",
+          "prompt": "Brendan Eich は自分のブログで、1995 年の JavaScript の最初のエンジンの試作にどれくらいかかったと書いていますか。",
+          "choices": [
+            { "id": "a", "text": "5 月の 10 日間" },
+            { "id": "b", "text": "1 日", "why": "Eich は 10 日間 (ten days) と書いています。" },
+            { "id": "c", "text": "3 年", "why": "Eich は 1995 年 5 月の 10 日間と書いています。" },
+            { "id": "d", "text": "Java と同じく 5 年", "why": "Eich は試作を 10 日間と書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "Eich のブログ (2011 年 6 月の記事) に、「JavaScript を 10 日で書いた」「1995 年のことで、エンジンの試作は 5 月の 10 日間かかった」とあります。2008 年の記事では、5 月の前半に「Mocha」を試作したと書いています。",
+          "sources": [
+            "https://brendaneich.com/2011/06/new-javascript-engine-module-owner/",
+            "https://brendaneich.com/2008/04/popularity/"
+          ]
+        },
+        {
+          "id": "tech-history-l15-q5",
+          "kind": "choice",
+          "prompt": "以前の困りごと: Go の FAQ は、Go が生まれた理由を何への不満と書いていますか。",
+          "choices": [
+            { "id": "a", "text": "速いコンパイル・速い実行・書きやすさの 3 つを、主流の言語の 1 つで同時に得られなかった" },
+            { "id": "b", "text": "C の構文が古かった", "why": "FAQ が挙げるのは構文ではなく、3 つのうちどれかを選ばなければならなかったことです。" },
+            { "id": "c", "text": "Java が無料ではなかった", "why": "FAQ は値段の話をしていません。" },
+            { "id": "d", "text": "Web のブラウザで動く言語が無かった", "why": "それは 1995 年の JavaScript の話に近く、Go の理由ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "Go の FAQ の「Why did you create a new language?」は、Go は Google での仕事に使う言語と環境への不満から生まれ、速いコンパイル・速い実行・書きやすさのどれかを選ぶしかなく、3 つがそろう主流の言語は無かった、と書いています。同じ FAQ は、2007 年 9 月 21 日に Robert Griesemer・Rob Pike・Ken Thompson が目標を書き始めたとも書いています。",
+          "sources": [
+            "https://go.dev/doc/faq",
+            "https://brendaneich.com/2011/06/new-javascript-engine-module-owner/"
+          ]
+        },
+        {
+          "id": "tech-history-l15-q6",
+          "kind": "choice",
+          "prompt": "Rust 1.0 の発表は、Rust が速さと安全を何なしで実現すると書いていますか。",
+          "choices": [
+            { "id": "a", "text": "ガベージコレクターやランタイム" },
+            { "id": "b", "text": "コンパイラ", "why": "Rust はコンパイルする言語です。発表は GC やランタイムが要らないと書いています。" },
+            { "id": "c", "text": "型", "why": "Rust には静的な型があります。" },
+            { "id": "d", "text": "標準ライブラリ", "why": "発表は標準ライブラリを要らないとは書いていません。" }
+          ],
+          "answer": "a",
+          "explanation": "Rust の公式ブログの「Announcing Rust 1.0」(2015 年 5 月 15 日) は、Rust は低い層の性能の制御と高い層の便利さと安全の保証を合わせ持ち、それをガベージコレクターやランタイムなしで実現するので、C の代わりにライブラリとして使える、と書いています。",
+          "sources": ["https://blog.rust-lang.org/2015/05/15/Rust-1.0/"]
+        },
+        {
+          "id": "tech-history-l15-q7",
+          "kind": "choice",
+          "prompt": "Java の仮想マシンの仕様 (JVMS) の「A Bit of History」は、Java の基盤がもともと何のために作られたと書いていますか。",
+          "choices": [
+            { "id": "a", "text": "ネットワークにつながる家電などの機器のソフトを作る問題に取り組むため" },
+            { "id": "b", "text": "大型の銀行のシステムを置き換えるため", "why": "JVMS は、ネットワークにつながる消費者向けの機器のためだったと書いています。" },
+            { "id": "c", "text": "UNIX のカーネルを書くため", "why": "それは C の話です。" },
+            { "id": "d", "text": "スマートフォンのアプリを作るため", "why": "JVMS の書く出発点は、ネットワークにつながる消費者向けの機器です。" }
+          ],
+          "answer": "a",
+          "explanation": "JVMS の第 1.1 節は、Java の基盤はネットワークにつながる消費者向けの機器のソフトを作る問題に取り組むために作られ、いろいろな機械で動き、部品を安全に届けることを狙った、と書き、Web の広がりでその性質が生き、プログラムを一度書けば Java の実行環境のある機械ならどこでも動く、と続けています。",
+          "sources": ["https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-1.html"]
+        },
+        {
+          "id": "tech-history-l15-q8",
+          "kind": "choice",
+          "prompt": "PHP の公式のマニュアルの歴史によると、PHP の最初の形は何でしたか。",
+          "choices": [
+            { "id": "a", "text": "1994 年に Rasmus Lerdorf が作った、C で書いた CGI のプログラムの集まり (Personal Home Page Tools)" },
+            { "id": "b", "text": "Netscape がブラウザの中で動かすために作った言語", "why": "それは JavaScript です。" },
+            { "id": "c", "text": "ベル研究所が UNIX のために作った言語", "why": "それは C です。" },
+            { "id": "d", "text": "Google が並行処理のために作った言語", "why": "それは Go です。" }
+          ],
+          "answer": "a",
+          "explanation": "PHP のマニュアルの「History of PHP」は、今の PHP の前身の PHP/FI は 1994 年に Rasmus Lerdorf が作り、最初の形は C で書いた CGI のバイナリの集まりで、自分の履歴書のページの訪問を数えるのに使い、「Personal Home Page Tools」と名付けた、と書いています。",
+          "sources": ["https://www.php.net/manual/en/history.php.php"]
+        },
+        {
+          "id": "tech-history-l15-q9",
+          "kind": "choice",
+          "prompt": "今: Kotlin 1.0 の発表は、Kotlin が力を入れた点の筆頭に何を挙げていますか。",
+          "choices": [
+            { "id": "a", "text": "Java との相互運用 (interoperability)" },
+            { "id": "b", "text": "Java を置き換えて使えなくすること", "why": "発表は、Java のライブラリを Kotlin から使え、逆もできると書いています。" },
+            { "id": "c", "text": "ブラウザの中だけで動くこと", "why": "発表は、Java が動くところならどこでも (サーバー・Android・デスクトップ) 動くと書いています。" },
+            { "id": "d", "text": "ガベージコレクションを無くすこと", "why": "それは Rust の発表の話です。Kotlin は JVM で動きます。" }
+          ],
+          "answer": "a",
+          "explanation": "JetBrains のブログの「Kotlin 1.0 Released」は、Kotlin を JVM と Android のための実用的な言語とし、相互運用・安全・明快さ・道具の支えに重点を置くと書き、Java と Kotlin が混ざった計画への対応を力を入れた点に挙げています。",
+          "sources": ["https://blog.jetbrains.com/kotlin/2016/02/kotlin-1-0-released-pragmatic-language-for-jvm-and-android/"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l16",
+      "title": "RDB・SQL・ORM",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l16-q1",
+          "kind": "choice",
+          "prompt": "答え: データを表と関係で扱うリレーショナルモデルを提唱した論文はどれですか。",
+          "choices": [
+            { "id": "a", "text": "E. F. Codd「A Relational Model of Data for Large Shared Data Banks」(Communications of the ACM、1970 年 6 月)" },
+            { "id": "b", "text": "Härder と Reuter「Principles of Transaction-Oriented Database Recovery」(1983 年)", "why": "ACID をまとめた回復の論文です。" },
+            { "id": "c", "text": "Chamberlin と Boyce「SEQUEL」", "why": "SEQUEL は問い合わせの言語の論文で、リレーショナルモデルの提唱そのものではありません。" },
+            { "id": "d", "text": "Rochkind「The Source Code Control System」(1975 年)", "why": "版の管理 (SCCS) の論文です。" }
+          ],
+          "answer": "a",
+          "explanation": "Codd の論文の掲載は Communications of the ACM の 1970 年 6 月号 (DOI の書誌) で、著者の所属は IBM Research Laboratory です。",
+          "sources": [
+            "https://doi.org/10.1145/362384.362685",
+            "https://doi.org/10.1109/TSE.1975.6312866",
+            "https://doi.org/10.1145/289.291"
+          ]
+        },
+        {
+          "id": "tech-history-l16-q2",
+          "kind": "choice",
+          "prompt": "SQL のもとになった問い合わせの言語 SEQUEL の論文の著者は誰ですか。",
+          "choices": [
+            { "id": "a", "text": "Donald D. Chamberlin と Raymond F. Boyce" },
+            { "id": "b", "text": "E. F. Codd ひとり", "why": "Codd はリレーショナルモデルの提唱者です。SEQUEL の論文は Chamberlin と Boyce です。" },
+            { "id": "c", "text": "Larry Ellison と Bob Miner", "why": "Oracle の前身の会社を作った人たちです。" },
+            { "id": "d", "text": "Jim Gray と Andreas Reuter", "why": "トランザクションの研究で名の知られた人たちです。" }
+          ],
+          "answer": "a",
+          "explanation": "論文「SEQUEL」の書誌 (DOI) の著者は Donald D. Chamberlin と Raymond F. Boyce です。",
+          "sources": ["https://doi.org/10.1145/800296.811515"]
+        },
+        {
+          "id": "tech-history-l16-q3",
+          "kind": "choice",
+          "prompt": "Oracle の公式の歴史によると、1977 年に Larry Ellison・Bob Miner・Ed Oates が作った会社の最初の名前は何ですか。",
+          "choices": [
+            { "id": "a", "text": "Software Development Laboratories" },
+            { "id": "b", "text": "Oracle Corporation", "why": "Oracle Corporation は、Relational Software Inc. から名前を変えた後の名前です。" },
+            { "id": "c", "text": "Sun Microsystems", "why": "Java を作った別の会社です。" },
+            { "id": "d", "text": "Bell Laboratories", "why": "UNIX と C が生まれた研究所です。" }
+          ],
+          "answer": "a",
+          "explanation": "Oracle の会社のページの「A history of possibilities」は、1977 年に Ellison・Miner・Oates が Software Development Laboratories を作り、のちに Relational Software Inc. (前の SDL) から Oracle Corporation へ名前を変えた、と書いています。",
+          "sources": ["https://www.oracle.com/corporate/"]
+        },
+        {
+          "id": "tech-history-l16-q4",
+          "kind": "choice",
+          "prompt": "以前の困りごと: Hibernate の利用者の手引きの序文は、オブジェクト指向のソフトとリレーショナルのデータベースを一緒に使うと開発の費用が高くなる理由を何と書いていますか。",
+          "choices": [
+            { "id": "a", "text": "オブジェクトとリレーショナルのデータベースで、データの表し方が合わない (paradigm mismatch)" },
+            { "id": "b", "text": "SQL が遅い", "why": "序文が挙げているのは速度ではなく、データの表し方のずれです。" },
+            { "id": "c", "text": "データベースが JSON を扱えない", "why": "序文はデータの形式ではなく、オブジェクトと表のずれを挙げています。" },
+            { "id": "d", "text": "Java にクラスが無い", "why": "Java にはクラスがあります。" }
+          ],
+          "answer": "a",
+          "explanation": "Hibernate ORM の User Guide の序文は、オブジェクト指向のソフトとリレーショナルのデータベースの両方を扱うのは面倒で時間がかかり、オブジェクトとデータベースでデータの表し方が合わない (paradigm mismatch) ため開発の費用がずっと高くなる、と書き、Hibernate はそのための Object/Relational Mapping の解だとしています。",
+          "sources": ["https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html"]
+        },
+        {
+          "id": "tech-history-l16-q5",
+          "kind": "choice",
+          "prompt": "答え: ORM の考え方が Java の標準の JPA になりました。JPA を含む JSR 220 (Enterprise JavaBeans 3.0) の Final Release はいつですか。",
+          "choices": [
+            { "id": "a", "text": "2006 年 5 月" },
+            { "id": "b", "text": "1970 年 6 月", "why": "Codd の論文の年月です。" },
+            { "id": "c", "text": "2014 年 4 月", "why": "Spring Boot 1.0 GA の年月です。" },
+            { "id": "d", "text": "2001 年 3 月", "why": "W3C の WSDL 1.1 の Note の年月です。" }
+          ],
+          "answer": "a",
+          "explanation": "JCP の JSR 220 のページの Stage timeline で、Final Release は 2006 年 5 月 11 日です。同じページは、この JSR が EJB の仕組みを開発者から見て簡単にするためのものだと書いています。",
+          "sources": [
+            "https://jcp.org/en/jsr/detail?id=220",
+            "https://jcp.org/en/jsr/detail?id=317",
+            "https://doi.org/10.1145/362384.362685",
+            "https://spring.io/blog/2014/04/01/spring-boot-1-0-ga-released",
+            "https://www.w3.org/TR/2001/NOTE-wsdl-20010315"
+          ]
+        },
+        {
+          "id": "tech-history-l16-q6",
+          "kind": "choice",
+          "prompt": "今: Hibernate の手引きで、関連するデータを別の SQL の SELECT で取ってくる取り方は、一般に何と呼ばれると書かれていますか。",
+          "choices": [
+            { "id": "a", "text": "N+1" },
+            { "id": "b", "text": "JOIN", "why": "JOIN は外部結合で一度に取る別の取り方として書かれています。" },
+            { "id": "c", "text": "BATCH", "why": "BATCH は IN の条件でまとめて取る別の取り方です。" },
+            { "id": "d", "text": "ACID", "why": "ACID はトランザクションの性質の名前です。" }
+          ],
+          "answer": "a",
+          "explanation": "Hibernate の User Guide の取り方の説明は、SELECT を「関連するデータを別の SQL の select で読み込む」とし、これが一般に N+1 と呼ばれる取り方だと書いています。1 件ずつ取りに行くと問い合わせが増えるので、JOIN や BATCH の取り方も用意されています。",
+          "sources": ["https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l17",
+      "title": "JVM と GC",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l17-q1",
+          "kind": "choice",
+          "prompt": "答え: 使い終わったメモリを自動で回収する仕組みは、John McCarthy の LISP の論文に早くも出てきます。この論文で、空いた記憶の場所をまとめておく仕組みは何と呼ばれていますか。",
+          "choices": [
+            { "id": "a", "text": "free-storage list (空き記憶のリスト)" },
+            { "id": "b", "text": "G1", "why": "G1 は JDK 9 で server の構成の既定になった、ずっと後の Java の GC です。" },
+            { "id": "c", "text": "stack frame", "why": "論文が空いた場所をまとめるのに使うのは free-storage list です。" },
+            { "id": "d", "text": "heap dump", "why": "メモリの中身を書き出すもので、空いた場所の管理の仕組みではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "McCarthy の「Recursive Functions of Symbolic Expressions and Their Computation by Machine, Part I」(MIT、1960 年 4 月) は、リストの構造に使っていない場所を free-storage list という 1 本のリストにまとめると説明しています。なお Stanford に置かれたこの写しは後に LaTeX で組み直したもので、McCarthy は後から脚注に、この回収の処理を当時すでに「garbage collection」と呼んでいたが論文では使わなかった、と書き足しています。",
+          "sources": [
+            "https://www-formal.stanford.edu/jmc/recursive.pdf",
+            "https://openjdk.org/jeps/248"
+          ]
+        },
+        {
+          "id": "tech-history-l17-q2",
+          "kind": "order",
+          "prompt": "GC と Java の出来事を、古い順に並べてください。",
+          "items": [
+            { "id": "lisp", "text": "McCarthy の LISP の論文" },
+            { "id": "jls", "text": "Gosling・Joy・Steele が『The Java Language Specification』の初版を書く" },
+            { "id": "jdk9", "text": "JDK 9 で G1 が server の構成の既定の GC になる" },
+            { "id": "jdk10", "text": "JDK 10 が一般提供になる (半年ごとの版の最初)" },
+            { "id": "jdk15", "text": "JDK 15 で ZGC が実験から本番向けになる" }
+          ],
+          "answer": ["lisp", "jls", "jdk9", "jdk10", "jdk15"],
+          "explanation": "LISP の論文は 1960 年 4 月、JLS の初版は 1996 年 (JLS SE 8 版の序文)、G1 の既定化は JEP 248 (Release 9)、JDK 10 の一般提供は 2018 年 3 月 20 日 (OpenJDK の JDK 10 のページ)、ZGC の本番向けは JEP 377 (Release 15) です。",
+          "sources": [
+            "https://www-formal.stanford.edu/jmc/recursive.pdf",
+            "https://docs.oracle.com/javase/specs/jls/se8/html/jls-0-preface8.html",
+            "https://openjdk.org/jeps/248",
+            "https://openjdk.org/projects/jdk/10/",
+            "https://openjdk.org/jeps/377"
+          ]
+        },
+        {
+          "id": "tech-history-l17-q3",
+          "kind": "choice",
+          "prompt": "JEP 248 は、G1 を (32 ビットと 64 ビットの server の構成で) 既定の GC にする理由をどう書いていますか。",
+          "choices": [
+            { "id": "a", "text": "GC で止まる時間を抑えることは、多くの場合、処理量を最大にすることより大事だから" },
+            { "id": "b", "text": "G1 はメモリを一切使わないから", "why": "JEP 248 が挙げる理由は止まる時間の短さです。" },
+            { "id": "c", "text": "G1 しか無くなったから", "why": "ほかの GC も残っています。理由は止まる時間を抑えることです。" },
+            { "id": "d", "text": "処理量 (throughput) を最大にするのが何より大事だから", "why": "逆です。JEP 248 は止まる時間を抑える方が一般に大事だと書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "JEP 248「Make G1 the Default Garbage Collector」(Release 9) は、GC の停止時間を抑えることは一般に処理量を最大にすることより大事で、G1 のような停止の短い GC に切り替えると多くの利用者の体験が良くなる、と書いています。",
+          "sources": ["https://openjdk.org/jeps/248"]
+        },
+        {
+          "id": "tech-history-l17-q4",
+          "kind": "choice",
+          "prompt": "今: JEP 333 (JDK 11 で実験として入った ZGC) が目標に掲げた GC の停止時間はどれですか。",
+          "choices": [
+            { "id": "a", "text": "10 ミリ秒を超えない" },
+            { "id": "b", "text": "1 秒を超えない", "why": "JEP 333 の目標は 10ms です。" },
+            { "id": "c", "text": "1 分を超えない", "why": "JEP 333 の目標は 10ms です。" },
+            { "id": "d", "text": "停止時間は目標にしていない", "why": "JEP 333 は停止時間を 10ms 以内にすることを目標に挙げています。" }
+          ],
+          "answer": "a",
+          "explanation": "JEP 333「ZGC: A Scalable Low-Latency Garbage Collector (Experimental)」(Release 11) の目標に「GC pause times should not exceed 10ms」とあります。本番向けになったのは JEP 377 (Release 15) です。",
+          "sources": ["https://openjdk.org/jeps/333", "https://openjdk.org/jeps/377"]
+        },
+        {
+          "id": "tech-history-l17-q5",
+          "kind": "choice",
+          "prompt": "2017 年 9 月、Mark Reinhold は Java の出し方を変える提案をブログに書きました。提案の中心はどれですか。",
+          "choices": [
+            { "id": "a", "text": "機能の版を 6 か月ごとに出す" },
+            { "id": "b", "text": "機能の版を 10 年ごとに出す", "why": "提案は 6 か月ごとです。" },
+            { "id": "c", "text": "Java を有料の製品だけにする", "why": "提案は版を出す間隔の話です。" },
+            { "id": "d", "text": "JVM をやめて機械語に直接コンパイルする", "why": "提案は版を出す間隔の話です。" }
+          ],
+          "answer": "a",
+          "explanation": "Reinhold のブログ「Moving Java Forward Faster」(2017/09/06) は「let's ship a feature release every six months」と書き、更新の版は 3 か月ごと、長期支援の版を別に決める形を提案しています。最初の 6 か月ごとの版の JDK 10 は 2018 年 3 月 20 日に一般提供になりました。",
+          "sources": ["https://mreinhold.org/blog/forward-faster", "https://openjdk.org/projects/jdk/10/"]
+        },
+        {
+          "id": "tech-history-l17-q6",
+          "kind": "choice",
+          "prompt": "今: Oracle の Java SE のサポートの道筋のページで、LTS (長期支援) の版として挙がっていないのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "Java SE 23" },
+            { "id": "b", "text": "Java SE 17", "why": "ページに「Java SE 8, 11, 17, 21, and 25 are LTS releases」とあります。" },
+            { "id": "c", "text": "Java SE 21", "why": "ページに「Java SE 8, 11, 17, 21, and 25 are LTS releases」とあります。" },
+            { "id": "d", "text": "Java SE 25", "why": "ページに「Java SE 8, 11, 17, 21, and 25 are LTS releases」とあります。" }
+          ],
+          "answer": "a",
+          "explanation": "Oracle の「Oracle Java SE Support Roadmap」に、Java SE 8・11・17・21・25 が LTS だとあり、今後の LTS は 2 年ごとの予定と書かれています。LTS でない版は次の版が出ると置き換えられます。",
+          "sources": ["https://www.oracle.com/java/technologies/java-se-support-roadmap.html"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l18",
+      "title": "UNIX と Linux",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l18-q1",
+          "kind": "choice",
+          "prompt": "以前の困りごと: Dennis Ritchie の「The Evolution of the Unix Time-sharing System」は、UNIX が生まれた 1969 年のベル研究所の事情として何を挙げていますか。",
+          "choices": [
+            { "id": "a", "text": "Multics の計画から研究所が身を引いたこと" },
+            { "id": "b", "text": "ARPANET につなぐ機械が要ったこと", "why": "Ritchie が挙げるのは、Multics が期待に届かず研究所が計画から身を引いたことです。" },
+            { "id": "c", "text": "Linux の代わりが要ったこと", "why": "Linux は 1991 年で、UNIX (1969 年) よりずっと後です。" },
+            { "id": "d", "text": "Java を動かす OS が要ったこと", "why": "Java の言語仕様の初版は 1996 年で、UNIX (1969 年) よりずっと後です。" }
+          ],
+          "answer": "a",
+          "explanation": "Ritchie の文章は、UNIX は 1974 年ではなく 1969 年に生まれたと書き、そのころ Multics が期待したものを届けられないことが明らかになり、ベル研究所が Multics の計画から身を引いた事情を述べています。",
+          "sources": [
+            "https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html",
+            "https://docs.oracle.com/javase/specs/jls/se8/html/jls-0-preface8.html",
+            "https://www.cs.cmu.edu/~awb/linux.history.html"
+          ]
+        },
+        {
+          "id": "tech-history-l18-q2",
+          "kind": "order",
+          "prompt": "UNIX と Linux の出来事を、古い順に並べてください。",
+          "items": [
+            { "id": "born", "text": "UNIX が生まれる" },
+            { "id": "pipe", "text": "UNIX にパイプが入る" },
+            { "id": "c", "text": "UNIX のカーネルが C で書き直される" },
+            { "id": "linux", "text": "Linus Torvalds が comp.os.minix に新しい OS を作っていると投稿する" }
+          ],
+          "answer": ["born", "pipe", "c", "linux"],
+          "explanation": "Ritchie の文章によると、UNIX は 1969 年に生まれ、パイプは 1972 年に入り、カーネルは 1973 年に C で書き直されました。Torvalds の投稿は 1991 年 8 月 25 日の日付です。",
+          "sources": [
+            "https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html",
+            "https://www.cs.cmu.edu/~awb/linux.history.html"
+          ]
+        },
+        {
+          "id": "tech-history-l18-q3",
+          "kind": "choice",
+          "prompt": "答え: Ritchie は、UNIX にとって「おそらく最も大事な分かれ目」は何だったと書いていますか。",
+          "choices": [
+            { "id": "a", "text": "1973 年にカーネルを C で書き直したこと" },
+            { "id": "b", "text": "1991 年に Linux が出たこと", "why": "Ritchie の文章の分かれ目は 1973 年の C での書き直しです。" },
+            { "id": "c", "text": "GUI を付けたこと", "why": "文章は GUI の話をしていません。" },
+            { "id": "d", "text": "BSD が生まれたこと", "why": "Ritchie が分かれ目と呼ぶのは 1973 年の C での書き直しです。" }
+          ],
+          "answer": "a",
+          "explanation": "Ritchie の文章は、おそらく最も大事な分かれ目 (Perhaps the most important watershed) は 1973 年にカーネルを C で書き直したことで、このときシステムは今の形になり、最も大きな変化はマルチプログラミングの導入だった、と書いています。この成功で C がほぼ万能の道具だと確信した、とも書いています。",
+          "sources": ["https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html"]
+        },
+        {
+          "id": "tech-history-l18-q4",
+          "kind": "choice",
+          "prompt": "UNIX のパイプは、誰の勧め (または強い求め) で入ったと Ritchie は書いていますか。",
+          "choices": [
+            { "id": "a", "text": "M. D. McIlroy" },
+            { "id": "b", "text": "Linus Torvalds", "why": "パイプが入ったのは 1972 年で、Linux (1991 年) よりずっと前です。" },
+            { "id": "c", "text": "Vint Cerf", "why": "TCP/IP の設計者で、UNIX のパイプの話には出てきません。" },
+            { "id": "d", "text": "Bjarne Stroustrup", "why": "C++ の作者です。" }
+          ],
+          "answer": "a",
+          "explanation": "Ritchie の文章は、パイプは PDP-11 版が動いた後の 1972 年に、M. D. McIlroy の勧め (あるいは強い求め) で UNIX に入ったと書いています。McIlroy は以前から、コマンドを入力と出力をつなぐ演算子のように考えるべきだと言っていました。",
+          "sources": ["https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html"]
+        },
+        {
+          "id": "tech-history-l18-q5",
+          "kind": "lab",
+          "prompt": "今: 小さなコマンドをパイプでつなぐ使い方は、今の Linux でもそのまま使えます。手元で試してください。",
+          "steps": [
+            { "text": "3 行の文字を作り、並べ替えて先頭の 1 行だけを出す", "command": "printf 'banana\\napple\\ncherry\\n' | sort | head -n 1" },
+            { "text": "途中の sort を外して、結果がどう変わるかを見る", "command": "printf 'banana\\napple\\ncherry\\n' | head -n 1" }
+          ],
+          "expected": "1 つ目は apple、2 つ目は banana が出ます。printf の出力が sort の入力に、sort の出力が head の入力に、パイプでそのまま渡っています。",
+          "explanation": "Ritchie の文章は、パイプをコマンドのパイプライン (pipeline of commands) として使うものと書いています。前のコマンドの出力が次のコマンドの入力になり、途中のコマンドを差し替えるだけで結果が変わります。",
+          "sources": ["https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html"]
+        },
+        {
+          "id": "tech-history-l18-q6",
+          "kind": "choice",
+          "prompt": "1991 年 8 月の Linus Torvalds の comp.os.minix への投稿は、新しい OS をどう紹介していますか。",
+          "choices": [
+            { "id": "a", "text": "386 (486) の AT 互換機のための自由な OS で、ただの趣味で、GNU のように大きくはならない" },
+            { "id": "b", "text": "大企業のための商用の OS", "why": "投稿は「just a hobby, won't be big and professional like gnu」と書いています。" },
+            { "id": "c", "text": "Multics の後継", "why": "投稿が似ていると書くのは Minix です。" },
+            { "id": "d", "text": "スマートフォンのための OS", "why": "投稿は 386 (486) の AT 互換機のためと書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "1991 年 8 月 25 日付の投稿で Torvalds は、386 (486) の AT 互換機のための (自由な) OS を作っていて、ただの趣味で GNU のように大きく本格的にはならない、4 月から温めてきた、と書き、bash と gcc を移したとも書いています。",
+          "sources": ["https://www.cs.cmu.edu/~awb/linux.history.html"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l19",
+      "title": "仮想化・コンテナ・Kubernetes",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l19-q1",
+          "kind": "choice",
+          "prompt": "答え: プロセスから見えるファイルの根を変えて閉じ込める chroot() のシステムコールは、どこで初めて現れたと FreeBSD のマニュアルは書いていますか。",
+          "choices": [
+            { "id": "a", "text": "Version 7 AT&T UNIX" },
+            { "id": "b", "text": "Linux 1.0", "why": "FreeBSD の chroot(2) の HISTORY は Version 7 AT&T UNIX と書いています。" },
+            { "id": "c", "text": "Docker", "why": "Docker は 2013 年の道具で、chroot よりずっと後です。" },
+            { "id": "d", "text": "FreeBSD 4.0", "why": "FreeBSD 4.0 で現れたのは jail です。" }
+          ],
+          "answer": "a",
+          "explanation": "FreeBSD の chroot(2) のマニュアルの HISTORY に、chroot() は Version 7 AT&T UNIX で現れた、とあります。jail(8) の HISTORY には、jail は FreeBSD 4.0 で現れた、とあります。",
+          "sources": [
+            "https://man.freebsd.org/cgi/man.cgi?query=chroot&sektion=2",
+            "https://man.freebsd.org/cgi/man.cgi?query=jail&sektion=8",
+            "https://kubernetes.io/blog/2024/06/06/10-years-of-kubernetes/"
+          ]
+        },
+        {
+          "id": "tech-history-l19-q2",
+          "kind": "order",
+          "prompt": "コンテナから Kubernetes までの出来事を、古い順に並べてください。",
+          "items": [
+            { "id": "seth", "text": "Google の Rohit Seth が、資源の使い方を数える単位として「container」をメールで説明する" },
+            { "id": "pycon", "text": "Solomon Hykes が PyCon の 5 分の発表で Docker を紹介する" },
+            { "id": "k8scommit", "text": "Kubernetes の最初のコミットが GitHub に push される" },
+            { "id": "borg", "text": "Google が社内の Borg の詳しい中身を学会で公表する" },
+            { "id": "k8s10", "text": "Kubernetes 1.0 が出て、CNCF への寄贈が発表される" }
+          ],
+          "answer": ["seth", "pycon", "k8scommit", "borg", "k8s10"],
+          "explanation": "Kubernetes の公式ブログの「10 Years of Kubernetes」によると、Seth のメールは 2006 年、PyCon の発表は 2013 年 3 月、最初のコミットは 2014 年 6 月 6 日、1.0 と CNCF への寄贈は 2015 年 7 月 21 日です。Borg の公表は同じブログの「Borg: The Predecessor to Kubernetes」(2015 年 4 月 23 日) です。",
+          "sources": [
+            "https://kubernetes.io/blog/2024/06/06/10-years-of-kubernetes/",
+            "https://kubernetes.io/blog/2015/04/borg-predecessor-to-kubernetes/"
+          ]
+        },
+        {
+          "id": "tech-history-l19-q3",
+          "kind": "choice",
+          "prompt": "Kubernetes の公式ブログは、Docker がコンテナの人気を一気に広げた理由を何と書いていますか。",
+          "choices": [
+            { "id": "a", "text": "Linux のコンテナを、それまでより多くの人が使えるほど使いやすくした" },
+            { "id": "b", "text": "Linux のコンテナを初めて発明した", "why": "ブログは、Docker が Linux のコンテナに使いやすさをもたらしたと書いています。コンテナの考えはそれより前からあります。" },
+            { "id": "c", "text": "仮想マシンを完全に置き換える法律ができた", "why": "そのような話は書かれていません。" },
+            { "id": "d", "text": "Windows でしか動かなかった", "why": "ブログは Linux のコンテナの話として書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "「10 Years of Kubernetes」は、2013 年 3 月に Solomon Hykes が PyCon の 5 分の発表「The future of Linux Containers」で Docker を紹介し、Docker が Linux のコンテナにそれまでより多くの人が使える使いやすさをもたらし、人気が急に高まった、と書いています。",
+          "sources": ["https://kubernetes.io/blog/2024/06/06/10-years-of-kubernetes/"]
+        },
+        {
+          "id": "tech-history-l19-q4",
+          "kind": "choice",
+          "prompt": "今: Docker の公式文書は、コンテナを隔てる仕組みとイメージをどう説明していますか。",
+          "choices": [
+            { "id": "a", "text": "名前空間 (namespaces) で隔てた作業場を作り、イメージはコンテナを作るための読み取り専用のひな形" },
+            { "id": "b", "text": "コンテナごとに別の OS のカーネルを動かし、イメージは書き換えながら使う", "why": "Docker は名前空間で隔てます。イメージは読み取り専用のひな形です。" },
+            { "id": "c", "text": "chroot だけで隔て、イメージは使わない", "why": "公式文書は名前空間で隔てると書き、イメージを中心に説明しています。" },
+            { "id": "d", "text": "コンテナは物理のサーバーを 1 台ずつ使う", "why": "それではコンテナの軽さが生まれません。" }
+          ],
+          "answer": "a",
+          "explanation": "Docker の公式文書「What is Docker?」は、イメージはコンテナを作るための指示を持つ読み取り専用のひな形で、Docker は名前空間という技術で隔てた作業場 (コンテナ) を作る、と書いています。Docker は Go で書かれ、Linux カーネルの機能を使うとも書いています。",
+          "sources": ["https://docs.docker.com/get-started/docker-overview/"]
+        },
+        {
+          "id": "tech-history-l19-q5",
+          "kind": "choice",
+          "prompt": "Kubernetes の公式ブログが「Kubernetes の前身」と呼ぶものは何ですか。",
+          "choices": [
+            { "id": "a", "text": "Google の社内のコンテナ向けのクラスタ管理のシステム Borg" },
+            { "id": "b", "text": "FreeBSD の jail", "why": "jail は OS の中の隔ての仕組みで、ブログが前身と呼ぶのは Borg です。" },
+            { "id": "c", "text": "IBM のメインフレーム", "why": "ブログが前身と呼ぶのは Google の Borg です。" },
+            { "id": "d", "text": "Docker", "why": "Docker はコンテナを作って動かす道具です。ブログが前身と呼ぶのは Borg です。" }
+          ],
+          "answer": "a",
+          "explanation": "Kubernetes の公式ブログの「Borg: The Predecessor to Kubernetes」(2015 年 4 月 23 日) は、Google は 10 年以上コンテナで本番の仕事を動かしてきたと書き、その社内のコンテナ向けのクラスタ管理のシステム Borg の中身を学会で公表したと伝えています。",
+          "sources": ["https://kubernetes.io/blog/2015/04/borg-predecessor-to-kubernetes/"]
+        }
+      ]
+    },
+    {
+      "id": "tech-history-l20",
+      "title": "バージョン管理 (SCCS から Git へ)",
+      "course": "tech-history",
+      "questions": [
+        {
+          "id": "tech-history-l20-q1",
+          "kind": "order",
+          "prompt": "バージョン管理の道具の節目を、古い順に並べてください。",
+          "items": [
+            { "id": "sccs", "text": "Rochkind の論文「The Source Code Control System」(SCCS)" },
+            { "id": "rcs", "text": "Tichy の論文「RCS — A System for Version Control」" },
+            { "id": "cvs", "text": "Dick Grune の CVS の報告 (Vrije Universiteit)" },
+            { "id": "svn", "text": "CollabNet が CVS の代わりを作ろうと Subversion を始める" },
+            { "id": "git", "text": "Linus Torvalds が Git の最初のコミットをする" },
+            { "id": "gitlab", "text": "GitLab の最初のコミット" }
+          ],
+          "answer": ["sccs", "rcs", "cvs", "svn", "git", "gitlab"],
+          "explanation": "SCCS の論文は IEEE Trans. Software Engineering の 1975 年 12 月号、RCS の論文は Software: Practice and Experience の 1985 年 7 月号 (どちらも DOI の書誌)、Grune の CVS の報告は 1986 年 (Grune のページ)、Subversion は 2000 年の初め (Subversion の本の歴史)、Git の最初のコミットは 2005 年 4 月 7 日、GitLab の最初のコミットは 2011 年 10 月 8 日 (GitLab の歴史のページ) です。",
+          "sources": [
+            "https://doi.org/10.1109/TSE.1975.6312866",
+            "https://doi.org/10.1002/spe.4380150703",
+            "https://dickgrune.com/Programs/CVS.orig/",
+            "https://svnbook.red-bean.com/en/1.7/svn.intro.whatis.html",
+            "https://github.com/git/git/commit/e83c5163316f89bfbde7d9ab23ca2e25604af290",
+            "https://about.gitlab.com/company/history/"
+          ]
+        },
+        {
+          "id": "tech-history-l20-q2",
+          "kind": "choice",
+          "prompt": "以前の困りごと: Pro Git の「A Short History of Git」は、Linux のカーネルの開発者たちが自分たちの道具を作ることになったきっかけを何と書いていますか。",
+          "choices": [
+            { "id": "a", "text": "2005 年、使っていた商用の分散型の BitKeeper との関係が壊れ、無償で使えなくなった" },
+            { "id": "b", "text": "Subversion が使えなくなった", "why": "カーネルの計画が 2002 年から使っていたのは BitKeeper です。" },
+            { "id": "c", "text": "GitHub がサービスを止めた", "why": "GitHub の始まりは 2008 年で、Git (2005 年) より後です。" },
+            { "id": "d", "text": "CVS の作者が開発をやめた", "why": "本の歴史は BitKeeper の無償の扱いが取り消されたことを挙げています。" }
+          ],
+          "answer": "a",
+          "explanation": "「A Short History of Git」は、1991〜2002 年はパッチとアーカイブのファイルで変更を回していたが、2002 年に商用の分散型の BitKeeper を使い始め、2005 年にその会社との関係が壊れて無償の扱いが取り消され、Torvalds らが BitKeeper で学んだことをもとに自分たちの道具を作った、と書いています。目標には速さ、単純な設計、何千もの並行したブランチ、完全な分散が挙がっています。",
+          "sources": [
+            "https://git-scm.com/book/en/v2/Getting-Started-A-Short-History-of-Git",
+            "https://github.blog/news-insights/the-library/we-launched/"
+          ]
+        },
+        {
+          "id": "tech-history-l20-q3",
+          "kind": "choice",
+          "prompt": "Git の最初のコミット (2005 年 4 月 7 日、Linus Torvalds) のメッセージはどれですか。",
+          "choices": [
+            { "id": "a", "text": "Initial revision of \"git\", the information manager from hell" },
+            { "id": "b", "text": "Hello, world", "why": "最初のコミットのメッセージは「Initial revision of \"git\", the information manager from hell」です。" },
+            { "id": "c", "text": "just a hobby, won't be big and professional", "why": "それに似た文は、1991 年の Linux の投稿にあります。" },
+            { "id": "d", "text": "Import from BitKeeper", "why": "最初のコミットは親を持たない、Git 自身の最初の版です。" }
+          ],
+          "answer": "a",
+          "explanation": "GitHub の git/git の e83c5163 のコミットは、作者が Linus Torvalds、日付が 2005-04-07、メッセージが「Initial revision of \"git\", the information manager from hell」で、親のコミットはありません。",
+          "sources": [
+            "https://github.com/git/git/commit/e83c5163316f89bfbde7d9ab23ca2e25604af290",
+            "https://www.cs.cmu.edu/~awb/linux.history.html",
+            "https://git-scm.com/book/en/v2/Getting-Started-A-Short-History-of-Git"
+          ]
+        },
+        {
+          "id": "tech-history-l20-q4",
+          "kind": "lab",
+          "prompt": "答え: Git は中身のハッシュで物を見分ける「内容で住所が決まる」仕組みです。同じ中身からはどの機械でも同じ鍵が出ることを、手元で確かめてください。",
+          "steps": [
+            { "text": "Git の入った端末で、次を打つ (リポジトリの外でもよい。-w を付けないので何も保存しない)", "command": "echo 'test content' | git hash-object --stdin" },
+            { "text": "文字を 1 つ変えて、もう一度打つ", "command": "echo 'test content!' | git hash-object --stdin" }
+          ],
+          "expected": "1 つ目は d670460b4b4aece5915caf5c68d12f560a9fe3e4 と出ます (Pro Git の例と同じ)。1 文字変えた 2 つ目は、まったく違う 40 桁の値になります。",
+          "explanation": "Pro Git の「Git Objects」は、Git は内容で住所が決まるファイルシステム (content-addressable filesystem) で、git hash-object は中身と見出しの SHA-1 のチェックサムを鍵として返すと書き、echo 'test content' の例で d670460b… を示しています。中身が 1 文字でも変われば鍵が変わるので、書き換えに気づけます。",
+          "sources": ["https://git-scm.com/book/en/v2/Git-Internals-Git-Objects"]
+        },
+        {
+          "id": "tech-history-l20-q5",
+          "kind": "choice",
+          "prompt": "Pro Git は、Git のブランチをどう説明していますか。",
+          "choices": [
+            { "id": "a", "text": "コミットの 1 つを指す、軽くて動かせるポインタ" },
+            { "id": "b", "text": "リポジトリの全部のファイルの写し", "why": "Pro Git は、ブランチはコミットを指す軽いポインタだと書いています。だから作るのが速いのです。" },
+            { "id": "c", "text": "サーバーにだけある特別なフォルダ", "why": "ブランチは手元のリポジトリにもあるポインタです。" },
+            { "id": "d", "text": "一度作ると動かせない印", "why": "Pro Git は「movable (動かせる)」と書いています。" }
+          ],
+          "answer": "a",
+          "explanation": "Pro Git の「Branches in a Nutshell」に、「A branch in Git is simply a lightweight movable pointer to one of these commits.」とあります。",
+          "sources": ["https://git-scm.com/book/en/v2/Git-Branching-Branches-in-a-Nutshell"]
+        },
+        {
+          "id": "tech-history-l20-q6",
+          "kind": "choice",
+          "prompt": "今: git-flow を書いた Vincent Driessen は、2020 年 3 月 5 日の「Note of reflection」で何を勧めていますか。",
+          "choices": [
+            { "id": "a", "text": "継続的に届けるチームなら、git-flow を無理に当てはめず GitHub flow のような単純な流れを使う" },
+            { "id": "b", "text": "どのチームも必ず git-flow を使う", "why": "Driessen は、git-flow が教条のように扱われることを残念がっています。" },
+            { "id": "c", "text": "Git をやめて Subversion に戻る", "why": "そのような勧めはありません。" },
+            { "id": "d", "text": "ブランチを一切使わない", "why": "勧めているのは、より単純な流れ (GitHub flow など) です。" }
+          ],
+          "answer": "a",
+          "explanation": "Driessen の記事「A successful Git branching model」(2010 年 1 月 5 日) の冒頭の 2020 年 3 月 5 日の追記は、git-flow は標準のように、さらには教条のように扱われるようになったが、継続的に届ける Web アプリは自分が想定したものではなく、そうしたチームには GitHub flow のような単純な流れを勧める、と書いています。",
+          "sources": ["https://nvie.com/posts/a-successful-git-branching-model/"]
+        }
+      ]
+    }
+  ]
+}

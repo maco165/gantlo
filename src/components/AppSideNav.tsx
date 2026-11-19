@@ -16,11 +16,11 @@ function NavItems({ route }: { route: Route }) {
     <>
       <SideNavSection title="メニュー" isHeaderHidden>
         <SideNavItem label="学習" icon={QueueListIcon} href={homeHref} isSelected={route.name === 'home'} />
-        <SideNavItem label="計画 (Gantt)" icon={TableCellsIcon} href={pageHref('plan')} isSelected={isPage('plan')} endContent={soon} />
-        <SideNavItem label="復習" icon={ArrowPathIcon} href={pageHref('review')} isSelected={isPage('review')} endContent={soon} />
+        <SideNavItem label="計画 (Gantt)" icon={TableCellsIcon} href={pageHref('plan')} isSelected={isPage('plan')} />
+        <SideNavItem label="復習" icon={ArrowPathIcon} href={pageHref('review')} isSelected={isPage('review')} />
         <SideNavItem label="進捗" icon={ChartBarIcon} href={pageHref('progress')} isSelected={isPage('progress')} endContent={soon} />
         <SideNavItem label="用語集" icon={BookOpenIcon} href={pageHref('glossary')} isSelected={isPage('glossary')} endContent={soon} />
-        <SideNavItem label="設定" icon={AdjustmentsHorizontalIcon} href={pageHref('settings')} isSelected={isPage('settings')} endContent={soon} />
+        <SideNavItem label="設定" icon={AdjustmentsHorizontalIcon} href={pageHref('settings')} isSelected={isPage('settings')} />
       </SideNavSection>
       <SideNavSection title="コース">
         {COURSES.map((c) => (

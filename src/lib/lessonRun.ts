@@ -1,0 +1,60 @@
+// レッスンを 1 問ずつ解く流れの計算 (画面から切り離してテストする)。
+import type { Question } from '../content/types';
+import { XP_PER_CORRECT, XP_PER_LAB } from './grade';
+import { completeLesson, type Progress } from './progress';
+
+/** 1 問ぶんの結果。right / wrong は採点した問題、done は実習を終えたもの */
+export type Outcome = 'right' | 'wrong' | 'done';
+
+/** 採点する種類か。実習だけは採点しない */
+export function isGraded(q: Question): boolean {
+  return q.kind !== 'lab';
+}
+
+/**
+ * 完了画面の一覧に出すコード。答えの画面に出したステータス (並べ替えの 409・メディアタイプの 415 など) があればそれを、
+ * 無ければ結果の既定 (正解・実習 200、不正解 400) を出す
+ */
+export function resultCode(outcome: Outcome, answered?: number): string {
+  if (answered !== undefined) return String(answered);
+  return outcome === 'wrong' ? '400' : '200';
+}
+
+export type LessonScore = { correct: number; total: number; xp: number };
+
+/** 正答数は採点した問題だけで数える。XP は正解 1 問ごとと、終えた実習ごとに足す */
+export function lessonScore(questions: readonly Question[], outcomes: readonly (Outcome | undefined)[]): LessonScore {
+  let correct = 0;
+  let total = 0;
+  let labs = 0;
+  questions.forEach((q, i) => {
+    if (isGraded(q)) {
+      total++;
+      if (outcomes[i] === 'right') correct++;
+    } else if (q.kind === 'lab' && outcomes[i] === 'done') labs++;
+  });
+  return { correct, total, xp: correct * XP_PER_CORRECT + labs * XP_PER_LAB };
+}
+
+/** レッスンを終えた結果を進捗に残す (完了・最高の正答率・XP・連続日数) */
+export function finishLesson(p: Progress, lessonId: string, score: LessonScore, now: Date): Progress {
+  return completeLesson(p, lessonId, { correct: score.correct, total: score.total }, score.xp, now);
+}
+
+/** 完了のレスポンスの本文 (JSON) */
+export function resultBody(lessonId: string, score: LessonScore): string {
+  return JSON.stringify({ lesson: lessonId, correct: score.correct, total: score.total, xp: score.xp }, null, 2);
+}
+
+/** 今日の復習を終えたときのレスポンスの本文 (JSON)。レッスンの記録ではないので lesson を持たない */
+export function reviewResultBody(score: LessonScore): string {
+  return JSON.stringify({ reviewed: score.total, correct: score.correct, xp: score.xp }, null, 2);
+}
+
+/** 1 問ごとの答えを送る要求の道。復習では完了のステータス行 (POST /me/reviews) と同じ置き場所の下にする */
+export function answerRequest(lessonId: string, index: number, isReview: boolean): string {
+  return isReview ? `POST /me/reviews/answers/${index + 1}` : `POST /lessons/${lessonId}/answers/${index + 1}`;
+}
+
+/** 完了のレスポンスの Location (記録の置き場所に見立てた道。画面の URL ではない) */
+export const resultLocation = (lessonId: string) => `/me/lessons/${lessonId}`;

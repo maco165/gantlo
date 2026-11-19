@@ -16,3 +16,84 @@ export const NOT_IMPLEMENTED: Status = { code: 501, reason: 'Not Implemented', j
 
 /** 知らない道 */
 export const NOT_FOUND: Status = { code: 404, reason: 'Not Found', ja: 'この URL のページはありません' };
+
+/** 計画を保存した (PUT /plan) */
+export const PLAN_SAVED: Status = { code: 200, reason: 'OK', ja: 'この順で学ぶ計画を保存しました' };
+
+/** 答えが合った */
+export const ANSWER_OK: Status = { code: 200, reason: 'OK', ja: '正解です' };
+
+/** 答えが違った */
+export const ANSWER_WRONG: Status = { code: 400, reason: 'Bad Request', ja: '不正解です。明日の復習に入ります' };
+
+/** メディアタイプの空欄を誤った (形式の誤り) */
+export const ANSWER_WRONG_MEDIA_TYPE: Status = {
+  code: 415,
+  reason: 'Unsupported Media Type',
+  ja: 'メディアタイプが違います。不正解として明日の復習に入ります',
+};
+
+/** 実習を終えた (採点はしない) */
+export const LAB_DONE: Status = { code: 200, reason: 'OK', ja: '実習を終えました' };
+
+/**
+ * 穴埋め (command・http) の答えのステータス。全部合えば 200。
+ * 誤った空欄にメディアタイプ (match が media-type) があれば 415、ほかの誤りは 400
+ */
+export function fillStatus(blanks: readonly { match?: string }[], results: readonly boolean[]): Status {
+  if (blanks.length > 0 && blanks.every((_, i) => results[i] === true)) return ANSWER_OK;
+  if (blanks.some((b, i) => b.match === 'media-type' && results[i] !== true)) return ANSWER_WRONG_MEDIA_TYPE;
+  return ANSWER_WRONG;
+}
+
+export function choiceStatus(correct: boolean): Status {
+  return correct ? ANSWER_OK : ANSWER_WRONG;
+}
+
+/**
+ * 並べ替えの答えのステータス。全部の行が正しい位置なら 200。
+ * 順が違えば 409 Conflict (並べた順が正しい順と食い違う) で、違う位置の行の数を説明に入れる
+ */
+export function orderStatus(misplaced: number): Status {
+  if (misplaced <= 0) return ANSWER_OK;
+  return { code: 409, reason: 'Conflict', ja: `${misplaced} 行が違う位置です。不正解として明日の復習に入ります` };
+}
+
+/** レッスンを終えた。結果を記録として作ったので 201 */
+export function lessonCreated(correct: number, total: number): Status {
+  return { code: 201, reason: 'Created', ja: `レッスンを終え、記録を作りました。${total} 問のうち ${correct} 問が正解です` };
+}
+
+/** 不正解の Retry-After の秒数。間違えた問題は翌日の復習に入る (1 日 = 86400 秒) */
+export const RETRY_AFTER_SECONDS = 86400;
+
+/** 今日の復習の一覧 (GET /me/reviews)。あれば 200、無ければ本文の無い 204 */
+export function reviewListStatus(due: number): Status {
+  if (due > 0) return { code: 200, reason: 'OK', ja: `今日の復習が ${due} 問あります` };
+  return { code: 204, reason: 'No Content', ja: '今日の復習はありません' };
+}
+
+/** 今日の復習を解き終えた (POST /me/reviews)。レッスンの記録は作らないので 200 */
+export function reviewDone(correct: number, total: number): Status {
+  return { code: 200, reason: 'OK', ja: `今日の復習を終えました。${total} 問のうち ${correct} 問が正解です` };
+}
+
+/** 1 日の目標を変えた (PATCH /me/profile) */
+export function goalSaved(xp: number): Status {
+  return { code: 200, reason: 'OK', ja: `1 日の目標を ${xp} XP にしました` };
+}
+
+/** 記録を読み込んで置き換えた (PUT /me) */
+export const IMPORT_DONE: Status = { code: 200, reason: 'OK', ja: '読み込んだ記録に置き換えました' };
+
+/** 読み込むファイルが 1 MB を超える。読まずに断る */
+export const IMPORT_TOO_LARGE: Status = { code: 413, reason: 'Content Too Large', ja: 'ファイルが大きすぎるので読み込みません' };
+
+/** 読み込むファイルが JSON として読めない・gantlo の記録の形でない。読まずに断る */
+export const IMPORT_INVALID: Status = { code: 422, reason: 'Unprocessable Content', ja: 'gantlo の記録として読めないので読み込みません' };
+
+/** このブラウザに保存できなかった (容量の上限・プライベートモードなど) */
+export const SAVE_FAILED: Status = { code: 507, reason: 'Insufficient Storage', ja: 'このブラウザに保存できませんでした。今の記録はそのままです' };
+
+/** 記録を消した (DELETE /me)。本文は無いので 204 */
+export const RESET_DONE: Status = { code: 204, reason: 'No Content', ja: '記録を消しました。目標と計画は残しています' };
