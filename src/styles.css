@@ -737,6 +737,17 @@ code {
   font-family: var(--font-family-code);
   overflow-wrap: anywhere;
 }
+/*
+ * 出典 (X-Source) の長い URL のリンク。Astryx の Link は inline-flex で、中の文字の箱が縮まない (min-width: auto) ため、
+ * 区切りの無い長い URL で箱が右へはみ出し、外部リンクの印が画面の外で切れる。箱を枠の幅に収め、文字をどこでも折り返す
+ * (中の文字の箱は overflow-wrap: break-word なので、anywhere にして最小の幅を縮める)
+ */
+.response__code .astryx-link {
+  max-width: 100%;
+}
+.response__code .astryx-link > .astryx-text {
+  overflow-wrap: anywhere;
+}
 .response__body {
   display: flex;
   flex-direction: column;
@@ -1024,6 +1035,18 @@ code {
 .gloss__meta {
   margin: 0;
   overflow-wrap: anywhere;
+}
+/* 「・」で区切って並べるリンク (Glossary.tsx の Joined)。区切りを後ろのリンクの 1 行目の頭に置く */
+.joined {
+  display: inline-flex;
+  align-items: baseline;
+  max-width: 100%;
+}
+.joined > a {
+  min-width: 0;
+}
+.joined__sep {
+  flex: none;
 }
 @media (min-width: 768px) {
   .gloss-group__list {

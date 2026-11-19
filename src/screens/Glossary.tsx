@@ -2,7 +2,7 @@ import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
-import { Fragment, useMemo, useState } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import StatusLine from '../components/StatusLine';
 import { SORTED, TERMS } from '../content/glossary';
 import { findLesson } from '../content/index';
@@ -11,6 +11,19 @@ import { COURSES, lessonHref } from '../lib/route';
 import { glossaryStatus } from '../lib/status';
 
 const courseTitle = (id: string) => COURSES.find((c) => c.id === id)?.title ?? id;
+
+/**
+ * 「・」で区切って並べるリンクの 1 つ。区切りを後ろのリンクと同じ箱に入れ、リンクの 1 行目の頭に並べる
+ * (狭い画面ではリンクが 44px の箱になるので、区切りだけを裸で置くと 1 行を占める)
+ */
+function Joined({ first, children }: { first: boolean; children: ReactNode }) {
+  return (
+    <span className="joined">
+      {!first && <span className="joined__sep">・</span>}
+      {children}
+    </span>
+  );
+}
 
 /** 語 1 つ。名前・別名・短い説明・出てくるレッスン・出典 */
 function Entry({ t }: { t: GlossaryTerm }) {
@@ -26,22 +39,20 @@ function Entry({ t }: { t: GlossaryTerm }) {
         <p className="gloss__meta tap-links">
           <Text type="supporting">出てくるレッスン: </Text>
           {lessons.map((l, i) => (
-            <Fragment key={l.id}>
-              {i > 0 && '・'}
+            <Joined key={l.id} first={i === 0}>
               <Link href={lessonHref(l.id)}>{`${courseTitle(l.course)} ${l.title}`}</Link>
-            </Fragment>
+            </Joined>
           ))}
         </p>
       )}
       <p className="gloss__meta tap-links">
         <Text type="supporting">出典: </Text>
         {t.sources.map((s, i) => (
-          <Fragment key={s.url}>
-            {i > 0 && '・'}
+          <Joined key={s.url} first={i === 0}>
             <Link href={s.url} isExternalLink newTabLabel="(新しいタブで開きます)">
               {s.label}
             </Link>
-          </Fragment>
+          </Joined>
         ))}
       </p>
     </article>
