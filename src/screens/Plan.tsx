@@ -4,16 +4,25 @@ import PlanGantt from '../components/PlanGantt';
 import StatusLine from '../components/StatusLine';
 import { lessonsOf } from '../content/index';
 import { canSavePlan, moveCourse, planOrder, savePlan, toggleCourse } from '../lib/plan';
-import type { Progress } from '../lib/progress';
+import { MAX_COURSE_DAYS, MIN_COURSE_DAYS, isCourseDays, isValidDay, type Plan as PlanRecord, type Progress } from '../lib/progress';
 import { COURSES, type CourseId } from '../lib/route';
+import { courseDays, planStart } from '../lib/schedule';
 import { PLAN_SAVED } from '../lib/status';
 
-type Props = { progress: Progress; updateProgress: (fn: (p: Progress) => Progress) => void };
+type Props = { progress: Progress; updateProgress: (fn: (p: Progress) => Progress) => void; now?: Date };
 
-/** 計画を組む画面 (/gantlo/plan/)。学ぶコースを選び、上下のボタンで順を並べ、PUT で保存する */
-export default function Plan({ progress, updateProgress }: Props) {
+/**
+ * 計画を組む画面 (/gantlo/plan/)。学ぶコースを選び、上下のボタンで順を並べ、開始日とコースごとの目安の日数を直して、PUT で保存する。
+ * 直している途中も、下のガントチャートの帯と巻き・遅れはその場で変わる
+ */
+export default function Plan({ progress, updateProgress, now = new Date() }: Props) {
   // 保存した計画が無ければ、既定の順 (全コース) から組み始める
   const [draft, setDraft] = useState<CourseId[]>(() => planOrder(progress));
+  // 開始日は保存したもの、無ければ最初にレッスンを終えた日か今日 (schedule.ts の planStart)
+  const [start, setStart] = useState(() => planStart(progress, now));
+  // 本人が直した目安の日数 (直していないコースはレッスン数からの既定)。入力の途中の字 (空など) は text に持ち、正しい値になったら days に入れる
+  const [days, setDays] = useState<NonNullable<PlanRecord['days']>>(() => ({ ...progress.plan?.days }));
+  const [text, setText] = useState<Partial<Record<CourseId, string>>>({});
   const [saved, setSaved] = useState(false);
   // 並べ替えたあと、押したボタンに (端で押せなくなったら反対のボタンに) 手元を戻す。キーボードだけで続けて動かせるように。
   // 上下を押したときだけ走らせる (チェックを切り替えて draft が変わったときに、手元をボタンへ引き戻さない)
@@ -30,13 +39,25 @@ export default function Plan({ progress, updateProgress }: Props) {
     setDraft(next);
     setSaved(false);
   };
+  const changeStart = (v: string) => {
+    if (!isValidDay(v)) return;
+    setStart(v);
+    setSaved(false);
+  };
+  const changeDays = (course: CourseId, v: string) => {
+    setText((t) => ({ ...t, [course]: v }));
+    const n = Number(v);
+    if (v.trim() === '' || !isCourseDays(n)) return;
+    setDays((d) => ({ ...d, [course]: n }));
+    setSaved(false);
+  };
   const move = (course: CourseId, dir: 'up' | 'down') => {
     change(moveCourse(draft, course, dir === 'up' ? -1 : 1));
     setFocus({ course, dir });
   };
   const save = () => {
     if (!canSavePlan(draft)) return;
-    updateProgress((p) => savePlan(p, draft) ?? p);
+    updateProgress((p) => savePlan(p, draft, { start, days }) ?? p);
     setSaved(true);
   };
   // 選んだコース (学ぶ順) のあとに選んでいないコースを続け、1 つの並びにする。チェックを切り替えても同じ行のまま動くので、手元がチェックに残る
@@ -51,7 +72,8 @@ export default function Plan({ progress, updateProgress }: Props) {
     <div className="page">
       <h1 className="page__title">計画 (Gantt)</h1>
       <Text type="supporting">
-        学ぶコースを選び、学ぶ順に並べます。帯の長さはレッスンの数で、期限や期間は決めません。済んだ記録は、組み直しても消えません。
+        学ぶコースを選び、学ぶ順に並べます。開始日とコースごとの目安の日数から予定の帯を引き、済んだ量を今日の予定と比べて巻きか遅れかを出します。
+        予定は目安で、期限は決めません。済んだ記録は、組み直しても消えません。
       </Text>
       {!progress.plan && <Text type="supporting">まだ計画を保存していません。いまは既定の順 (本編 → 追加のコース) です。</Text>}
 
@@ -59,6 +81,10 @@ export default function Plan({ progress, updateProgress }: Props) {
         <h2 id="plan-courses-title" className="display">
           Request Body
         </h2>
+        <p className="plan__field">
+          <label htmlFor="plan-start">開始日</label>
+          <input id="plan-start" type="date" value={start} onChange={(e) => changeStart(e.target.value)} />
+        </p>
         <ol className="plan__list" aria-label="コース (選んだものは学ぶ順)">
           {rows.map((id) => {
             const i = draft.indexOf(id);
@@ -71,6 +97,24 @@ export default function Plan({ progress, updateProgress }: Props) {
                   <span className="plan__title">{titleOf(id)}</span>
                   <Text type="supporting">{lessonsOf(id).length} レッスン</Text>
                 </label>
+                {chosen && lessonsOf(id).length > 0 && (
+                  <span className="plan__field plan__days">
+                    <label htmlFor={`plan-days-${id}`}>目安</label>
+                    <input
+                      id={`plan-days-${id}`}
+                      type="number"
+                      inputMode="numeric"
+                      min={MIN_COURSE_DAYS}
+                      max={MAX_COURSE_DAYS}
+                      step={1}
+                      value={text[id] ?? String(courseDays(days, id, lessonsOf(id).length))}
+                      onChange={(e) => changeDays(id, e.target.value)}
+                      onBlur={() => setText((t) => ({ ...t, [id]: undefined }))}
+                      aria-label={`${titleOf(id)} の目安の日数`}
+                    />
+                    <span aria-hidden="true">日</span>
+                  </span>
+                )}
                 {chosen && (
                   <span className="plan__moves">
                     <button type="button" className="btn btn--icon" ref={ref(`${id}-up`)} disabled={i === 0} onClick={() => move(id, 'up')} aria-label={`${titleOf(id)} を上へ`}>
@@ -94,7 +138,7 @@ export default function Plan({ progress, updateProgress }: Props) {
         </ol>
       </section>
 
-      <PlanGantt courses={draft} progress={progress} />
+      <PlanGantt plan={{ courses: draft, start, days }} progress={progress} now={now} />
 
       <section className="plan__save" aria-label="保存">
         <p>

@@ -3,7 +3,7 @@
 //   R-6  (390 幅と 1280 幅): 旅の 8 段がすべて未学習で、最初のレッスンだけが「次」。ホームの「次」のボタンでレッスンを開いて終え、
 //        ホームへ戻ると、そのレッスンが「完了」、紐づく段が「学習済み」、今日の XP が増えている。横にはみ出さず、文が「…」で切れない
 //   R-17 (390 幅): 計画の画面でコースを選び、上下のボタンとキーボード (Tab・Enter・Space) だけで並べ替えると帯の順が変わる。
-//        ボタンはどれも 44px 以上。PUT この順で学ぶ で 200 OK を出し、読み直しても同じ順
+//        ボタンはどれも 44px 以上。PUT この順で学ぶ で 200 OK を出し、読み直しても同じ順 (予定と巻き・遅れは e2e-schedule.mjs)
 //   R-18 (1280 幅): 計画の帯・済みの塗り・今ここの印・次のレッスンへのリンクが出て、そのリンクでレッスンが開く
 import { COURSE_ORDER, XP_PER_CORRECT, XP_PER_LAB, answer, loadLessons } from './e2e-lessons.mjs';
 
@@ -95,11 +95,11 @@ export async function runHomeAndPlan(browser, { base, check, noHorizontalOverflo
       await page.locator('.gantt__row').first().waitFor();
       await overflow('計画の画面');
       // コースを選ぶ: いったん外して選び直すと最後に並ぶ (Space で切り替える)
-      const box = page.locator('.plan__item[data-course="main"] input');
+      const box = page.locator('.plan__item[data-course="main"] input[type="checkbox"]');
       await box.focus();
       await page.keyboard.press('Space');
       check(!(await ganttOrder(page)).includes('main'), `${t} 外したコースは帯にならない`);
-      await page.locator('.plan__item[data-course="main"] input').focus();
+      await page.locator('.plan__item[data-course="main"] input[type="checkbox"]').focus();
       await page.keyboard.press('Space');
       const before = await ganttOrder(page);
       check(before.at(-1) === 'main', `${t} 選び直したコースは最後に並ぶ (${before.join(',')})`);
@@ -158,7 +158,11 @@ export async function runHomeAndPlan(browser, { base, check, noHorizontalOverflo
       await page.locator('.gantt__row').first().waitFor();
       check((await ganttOrder(page)).join(',') === last.join(','), `${t} 読み直しても保存した順で出る`);
       const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gantlo.v1') ?? 'null')?.plan);
-      check(JSON.stringify(saved) === JSON.stringify({ courses: last }), `${t} 計画は gantlo.v1 にコースの順だけで残る`);
+      // 順と、開始日 (計画を初めて保存した日。R-20)。目安の日数は直していないので持たない
+      check(
+        JSON.stringify(saved?.courses) === JSON.stringify(last) && /^\d{4}-\d{2}-\d{2}$/.test(saved?.start ?? '') && saved?.days === undefined && Object.keys(saved).length === 2,
+        `${t} 計画は gantlo.v1 にコースの順と開始日で残る (${JSON.stringify(saved)})`,
+      );
     } else {
       // R-18: 1280 幅で、計画の帯・済みの塗り・今ここの印・次のレッスンへのリンク
       const t = `[plan ${name}]`;
