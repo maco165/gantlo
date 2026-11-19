@@ -2,6 +2,7 @@
 // README の画像を作り直す: npm run readme:images (vite build のあと、このスクリプトが撮る)
 // - docs/images/banner.png: README の先頭の帯の画像。色と字体は、組み立てたサイトの Gothic テーマのトークンを画面から読んで使う
 //   (gantlo は暗い画面だけなので、帯も暗い 1 枚だけ。README の picture は明るい側にも同じ画像を出す)
+// - public/og.png: URL を共有したときのカードの画像 (1200×630。og:image)。帯と同じトークンと字体で描く
 // - docs/images/*.png: 組み立てた dist を vite preview で配り、見本の進捗を入れた状態で撮った画面 (スマホ 390 幅と PC 1280 幅)
 // 画面を変えたら走らせ直し、画像も同じ PR でコミットする。
 // 番号は README_IMAGES_PORT (既定 4331)。埋まっていれば --strictPort で止まるので、空いている番号を渡す。
@@ -14,6 +15,7 @@ const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
 
 const OUT = new URL('../docs/images/', import.meta.url).pathname;
+const OG = new URL('../public/og.png', import.meta.url).pathname;
 const PORT = Number(process.env.README_IMAGES_PORT ?? 4331);
 const BASE = `http://localhost:${PORT}/gantlo/`;
 mkdirSync(OUT, { recursive: true });
@@ -55,6 +57,49 @@ function bannerHtml(t) {
     <div class="eyebrow">API と HTTP の基礎 · 問題を解いて学ぶサイト</div>
     <div class="brand"><img src="${BASE}favicon.svg" alt=""><h1>gantlo</h1></div>
     <p>HTTP・DNS・TLS・REST・OAuth を、問題を解いて学ぶ。<br>計画はガントチャートで、進捗はブラウザの中だけに。</p>
+  </div>
+  <div class="card">
+    <div class="req">GET /me/lessons</div>
+    <div class="st">206<span>Partial Content</span></div>
+    <div class="rows">
+      <div class="row">HTTP と URI<div class="bar done" style="width:38%"></div></div>
+      <div class="row">DNS と TLS<div class="bar" style="width:30%;margin-left:38%"></div></div>
+      <div class="row">REST と OpenAPI<div class="bar" style="width:22%;margin-left:68%"></div></div>
+      <div class="row">OAuth と JWT<div class="bar" style="width:10%;margin-left:90%"></div></div>
+    </div>
+  </div>
+</div>`;
+}
+
+/** 共有用の画像 (1200×630) の中身。帯と同じ部品を、カードの形に縦に並べる。t は画面から読んだトークン */
+function ogHtml(t) {
+  return `
+<style>
+  .og { box-sizing: border-box; width: 1200px; height: 630px; display: grid; grid-template-columns: 1fr 440px; gap: 48px; align-items: center;
+    padding: 0 72px; background: ${t.body}; color: ${t.text}; font-family: ${t.font}; }
+  .og * { box-sizing: border-box; }
+  .lead { display: flex; flex-direction: column; gap: 22px; }
+  .eyebrow { font-size: 24px; color: ${t.sub}; }
+  .brand { display: flex; align-items: center; gap: 22px; }
+  .brand img { width: 84px; height: 84px; }
+  .brand h1 { margin: 0; font-family: ${t.display}; font-weight: 400; font-size: 112px; line-height: 1; }
+  .lead p { margin: 0; font-size: 28px; line-height: 1.55; color: ${t.sub}; }
+  .url { font-family: ${t.code}; font-size: 20px; color: ${t.accent}; }
+  .card { background: ${t.surface}; border: 1px solid ${t.border}; border-radius: 10px; overflow: hidden; font-family: ${t.code}; }
+  .req { padding: 14px 20px; border-bottom: 1px solid ${t.border}; font-size: 18px; color: ${t.sub}; }
+  .st { padding: 18px 20px 8px; font-size: 34px; font-weight: 600; color: ${t.success}; }
+  .st span { font-size: 20px; margin-left: 12px; }
+  .rows { padding: 10px 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+  .row { display: grid; grid-template-columns: 160px 1fr; align-items: center; gap: 12px; font-size: 17px; color: ${t.sub}; }
+  .bar { height: 14px; border-radius: 2px; background: ${t.accent}; }
+  .bar.done { background: ${t.success}; }
+</style>
+<div class="og">
+  <div class="lead">
+    <div class="eyebrow">API と HTTP の基礎 · 問題を解いて学ぶ</div>
+    <div class="brand"><img src="${BASE}favicon.svg" alt=""><h1>gantlo</h1></div>
+    <p>HTTP・DNS・TLS・REST・OAuth を、<br>curl と HTTP の問題で学ぶ。<br>計画はガントチャートで。</p>
+    <div class="url">maco165.github.io/gantlo</div>
   </div>
   <div class="card">
     <div class="req">GET /me/lessons</div>
@@ -150,6 +195,19 @@ try {
     await page.waitForTimeout(300);
     await page.locator('.banner').screenshot({ path: `${OUT}banner.png` });
     await page.close();
+
+    // 共有用の画像は SNS が縮めて出すので、等倍の 1200×630 で撮る (og:image:width・height と同じ大きさ)
+    const og = await browser.newPage({ viewport: { width: 1200, height: 630 }, deviceScaleFactor: 1 });
+    await og.goto(BASE);
+    await og.locator('.net__row').first().waitFor();
+    await og.evaluate((html) => {
+      document.body.innerHTML = html;
+      document.body.style.margin = '0';
+    }, ogHtml(t));
+    await og.evaluate(() => document.fonts.ready);
+    await og.waitForTimeout(300);
+    await og.locator('.og').screenshot({ path: OG });
+    await og.close();
   }
 
   const shoot = async (name, { width, height }, path, act) => {
