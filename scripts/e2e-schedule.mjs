@@ -226,6 +226,21 @@ export async function runSchedule(browser, { base, check, noHorizontalOverflow }
       (await page.locator('#gantt-to').getAttribute('aria-invalid')) === 'true' && (await page.locator('#gantt-to').getAttribute('aria-describedby')) === 'gantt-range-error' && JSON.stringify(await axis()) === JSON.stringify(['2026-12-01', '2026-12-10']),
       `${tag} 終わりが始まりより前なら aria-invalid と補助の文で知らせ、軸は変えない (${rangeHelp})`,
     );
+    check(rangeHelp.includes('同じかあと'), `${tag} 逆順の補助の文は「同じかあと」`);
+    // X-001: 2 年を超える指定 (年の打ち間違い) は知らせて、軸は変えない。空にしたときは別の文
+    const rangeCase = async (to) => {
+      await page.locator('#gantt-to').fill(to);
+      return {
+        invalid: await page.locator('#gantt-to').getAttribute('aria-invalid'),
+        help: await page.locator('#gantt-range-error').innerText(),
+        axis: JSON.stringify(await axis()),
+        ticks: await page.locator('.gantt__tick').count(),
+      };
+    };
+    const long = await rangeCase('3026-12-10');
+    check(long.invalid === 'true' && long.help.includes('2 年') && long.axis === JSON.stringify(['2026-12-01', '2026-12-10']), `${tag} 2 年を超える指定は aria-invalid と「2 年」の補助の文で知らせ、軸は変えない (${long.help} 目盛り ${long.ticks})`);
+    const empty = await rangeCase('');
+    check(empty.invalid === 'true' && empty.help.includes('日付を入れてください') && !empty.help.includes('同じかあと') && empty.axis === JSON.stringify(['2026-12-01', '2026-12-10']), `${tag} 日付を空にすると「日付を入れてください」 (${empty.help})`);
     await noHorizontalOverflow(page, width, `${tag} 期間を指定した計画の画面`);
     await checkContrast(page, check, `${tag} 期間を指定した計画の画面`, ['200']);
     if (width < 768) {
@@ -240,6 +255,17 @@ export async function runSchedule(browser, { base, check, noHorizontalOverflow }
     await page.getByRole('radio', { name: '1 か月' }).click();
     if (shots) await page.locator('.gantt').screenshot({ path: join(shots, `gantt-1m-${width}.png`) });
     await page.getByRole('radio', { name: '全体' }).click();
+    // X-001: 保存した設定 (読み込んだ記録など) の指定が 2 年を超えていれば、開くと全体に戻り、すぐ描ける
+    await page.evaluate(() => {
+      const p = JSON.parse(localStorage.getItem('gantlo.v1') ?? '{}');
+      p.profile = { ...p.profile, ganttView: { kind: 'range', from: '2026-11-25', to: '3026-11-25' } };
+      localStorage.setItem('gantlo.v1', JSON.stringify(p));
+    });
+    const openedAt = Date.now();
+    await page.reload();
+    await row.waitFor();
+    const ms = Date.now() - openedAt;
+    check((await page.locator('.gantt').getAttribute('data-view')) === 'all' && (await page.locator('.gantt__tick').count()) <= 200 && ms < 5000, `${tag} 1000 年の指定を保存していても、開くと全体に戻る (${ms}ms・目盛り ${await page.locator('.gantt__tick').count()})`);
 
     // 開始日を変えると帯が動く (開始日を 1 日前にすると、最後の日も 1 日前になる)
     await page.locator('#plan-start').fill(addDays(START, -1));
