@@ -2,7 +2,7 @@
   "lessons": [
     {
       "id": "main-w1-l1",
-      "title": "HTTP のやり取りを見る",
+      "title": "メソッドとステータスコード",
       "course": "main",
       "stage": "http",
       "questions": [
@@ -10,65 +10,568 @@
           "id": "main-w1-l1-q1",
           "kind": "command",
           "tool": "curl",
-          "prompt": "本文は要らず、レスポンスのステータス行とヘッダーだけを見たい。HEAD メソッドで送る curl のオプションを埋めてください。",
-          "code": "curl {{blank}} https://example.com/",
-          "blanks": [{ "answers": ["-I", "--head"] }],
-          "output": "HTTP/2 200\ncontent-type: text/html\n...",
-          "explanation": "-I (--head) は HEAD メソッドで要求を送り、返ってきたステータス行とヘッダーだけを出します。HEAD は原則として GET と同じヘッダーを返し (SHOULD)、本文は返さないメソッドです。本文を作るときに決まるヘッダーは省かれることがあります (MAY、RFC 9110 9.3.2)。",
-          "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2"]
+          "prompt": "id が 42 の資源を消す要求を送りたい。curl で使うメソッドを DELETE に変えるオプションを埋めてください。",
+          "code": "curl {{blank}} DELETE https://example.com/items/42",
+          "blanks": [{ "answers": ["-X", "--request"] }],
+          "explanation": "-X (--request) は、要求の行に書くメソッドの語を差し替えます (指定しなければ GET)。curl の man ページは、変わるのは送る語だけで curl の振る舞いは変わらないと書いています。たとえば本当の HEAD の要求には -X HEAD ではなく --head (-I) を使います。DELETE は RFC 9110 9.3.5 で定められたメソッドです。",
+          "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.5"]
         },
         {
           "id": "main-w1-l1-q2",
-          "kind": "http",
-          "format": "http",
-          "prompt": "本文が JSON であることを伝えるレスポンスです。空欄のヘッダー名とメディアタイプを埋めてください。",
-          "code": "HTTP/1.1 200 OK\n{{blank}}: {{blank}}\nContent-Length: 12\n\n{\"ok\": true}",
-          "blanks": [
-            { "answers": ["Content-Type"], "match": "header-name" },
-            { "answers": ["application/json"], "match": "media-type" }
+          "kind": "choice",
+          "prompt": "RFC 9110 が「安全 (safe)」と定めていないメソッドはどれですか。",
+          "choices": [
+            { "id": "a", "text": "POST" },
+            { "id": "b", "text": "GET", "why": "GET は安全なメソッドです。読むだけで、サーバーの状態を変えることを求めません。" },
+            { "id": "c", "text": "HEAD", "why": "HEAD は GET と同じく安全です。本文を返さない点が違います。" },
+            { "id": "d", "text": "OPTIONS", "why": "OPTIONS も安全なメソッドです。使える機能を問い合わせるだけです。" }
           ],
-          "explanation": "本文の形式は Content-Type ヘッダーで伝えます (RFC 9110 8.3)。JSON のメディアタイプは application/json で、RFC 8259 が IANA に登録しています。ヘッダー名とメディアタイプの type と subtype は大文字と小文字を区別しません。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-8.3", "https://www.rfc-editor.org/rfc/rfc8259#section-11"]
+          "answer": "a",
+          "explanation": "安全なメソッドは、意味の上で読むだけのもの (クライアントがサーバーの状態の変化を求めないもの) です。RFC 9110 が定めるメソッドのうち安全なのは GET・HEAD・OPTIONS・TRACE です (9.2.1)。POST は資源を作る・処理させるなど状態を変えうるので、安全ではありません。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-9.2.1"]
         },
         {
           "id": "main-w1-l1-q3",
-          "kind": "order",
-          "prompt": "HTTP/1.1 で https:// の URL を開くとき、要求が送られるまでに起きる順に並べてください。",
-          "items": [
-            { "id": "dns", "text": "DNS でホスト名から IP アドレスを引く" },
-            { "id": "tcp", "text": "TCP で接続する" },
-            { "id": "tls", "text": "TLS のハンドシェイクで暗号化の鍵を決める" },
-            { "id": "http", "text": "HTTP の要求 (GET / HTTP/1.1) を送る" }
+          "kind": "choice",
+          "prompt": "「冪等 (idempotent) だが、安全ではない」メソッドはどれですか。",
+          "choices": [
+            { "id": "a", "text": "PUT" },
+            { "id": "b", "text": "POST", "why": "POST は冪等ではありません。同じ要求を 2 回送ると、資源が 2 つできることがあります。" },
+            { "id": "c", "text": "GET", "why": "GET は冪等ですが、安全でもあります。問いは「安全ではない」ものです。" },
+            { "id": "d", "text": "HEAD", "why": "HEAD は安全なメソッドです (安全なメソッドは冪等でもあります)。「安全ではない」に当てはまりません。" }
           ],
-          "answer": ["dns", "tcp", "tls", "http"],
-          "explanation": "相手の IP アドレスが分からないと接続できないので、最初に名前を引きます。https では、TCP の接続の上で TLS のハンドシェイクを済ませてから、暗号化された通り道で HTTP の要求を送ります (RFC 9110 4.2.2・RFC 8446)。HTTP/3 は TCP の代わりに QUIC を使うので、この順になりません。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-4.2.2", "https://www.rfc-editor.org/rfc/rfc8446"]
+          "answer": "a",
+          "explanation": "冪等とは、同じ要求を何回送っても、サーバーへの意図した効果が 1 回のときと同じになることです。RFC 9110 では PUT・DELETE と安全なメソッドが冪等です (9.2.2)。PUT は資源を置き換えるので状態を変え (安全ではない)、同じ内容で何回置き換えても結果は同じです (冪等)。冪等な要求は、通信が切れたときに自動で送り直せます。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2"]
         },
         {
           "id": "main-w1-l1-q4",
-          "kind": "choice",
-          "prompt": "POST の要求で新しい資源を作り終えたことを、いちばん正確に伝えるステータスコードはどれですか。",
-          "choices": [
-            { "id": "a", "text": "201 Created" },
-            { "id": "b", "text": "200 OK", "why": "成功は伝わりますが、新しい資源ができたことまでは伝わりません。" },
-            { "id": "c", "text": "202 Accepted", "why": "受け付けただけで、処理はまだ終わっていないことを表します。" },
-            { "id": "d", "text": "204 No Content", "why": "成功して、返す本文が無いことを表します。資源を作ったことは伝わりません。" }
-          ],
-          "answer": "a",
-          "explanation": "201 Created は、要求が満たされ、1 つ以上の新しい資源が作られたことを表します (RFC 9110 15.3.2)。作った資源の場所は Location ヘッダーで返せます。",
-          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.3.2"]
+          "kind": "http",
+          "format": "http",
+          "prompt": "GET と HEAD しか受け付けない資源に PUT を送ったときの応答です。使えるメソッドの一覧を伝えるヘッダー名を埋めてください。",
+          "code": "HTTP/1.1 405 Method Not Allowed\n{{blank}}: GET, HEAD\nContent-Length: 0",
+          "blanks": [{ "answers": ["Allow"], "match": "header-name" }],
+          "explanation": "405 は、メソッド自体はサーバーが知っているが、その資源では使えないことを表します。405 を返すオリジンサーバーは、今使えるメソッドの一覧を Allow ヘッダーに入れなければなりません (MUST、RFC 9110 15.5.6)。Allow ヘッダーそのものは 10.2.1 で定められています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.5.6", "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.1"]
         },
         {
           "id": "main-w1-l1-q5",
-          "kind": "lab",
-          "prompt": "curl の -v で、送った要求と返ってきた応答を手元で見てください。",
-          "steps": [
-            { "text": "端末で次を打つ", "command": "curl -v https://example.com/ -o /dev/null" },
-            { "text": "> で始まる行 (送った要求) と < で始まる行 (返ってきた応答) を見比べる" }
+          "kind": "choice",
+          "prompt": "トークンを付けずに、認証が要る API を呼びました。「有効な資格情報が無い」ことを伝え、WWW-Authenticate ヘッダーで認証のしかたを示す応答はどれですか。",
+          "choices": [
+            { "id": "a", "text": "401 Unauthorized" },
+            { "id": "b", "text": "403 Forbidden", "why": "403 は、要求を理解したうえで断ることを表します。資格情報があっても足りないときや、資格情報と関係ない理由で断るときに使います。" },
+            { "id": "c", "text": "400 Bad Request", "why": "400 は、書き方の誤りなどクライアントの誤りと見なして処理しないことを表します。認証が足りないことは伝わりません。" },
+            { "id": "d", "text": "404 Not Found", "why": "404 は資源が見つからない (または有ると明かさない) ことを表します。認証のしかたは伝わりません。" }
           ],
-          "expected": "> の行に要求の行 (GET / と HTTP の版) と Host: example.com が、< の行にステータスコードと content-type などのヘッダーが出ます。* の行は接続と TLS の様子です。",
-          "explanation": "-v は、curl が送ったヘッダーと受け取ったヘッダーを行の頭の記号で分けて出します。要求の行とヘッダー、応答のステータスとヘッダーという HTTP のやり取りの形 (RFC 9110 6) が、そのまま見えます。",
+          "answer": "a",
+          "explanation": "401 は、対象の資源に有効な資格情報が無いため要求を適用しなかったことを表し、401 を返すサーバーは WWW-Authenticate ヘッダーを送らなければなりません (MUST、RFC 9110 15.5.2)。名前は Unauthorized ですが、中身は「認証されていない」です。403 は理解したうえで断ることで、クライアントは同じ資格情報で自動で送り直すべきではありません (SHOULD NOT、15.5.4)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.5.2", "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.4"]
+        },
+        {
+          "id": "main-w1-l1-q6",
+          "kind": "choice",
+          "prompt": "クライアントが、意味を知らないステータスコード 471 を受け取りました。RFC 9110 に沿った扱いはどれですか。",
+          "choices": [
+            { "id": "a", "text": "400 (Bad Request) を受け取ったものとして扱う" },
+            { "id": "b", "text": "知らない値なので、応答そのものを捨てる", "why": "クライアントはすべてのコードの意味を知らなくてよい代わりに、先頭の桁が表す分類は理解しなければなりません。捨てずに分類で扱います。" },
+            { "id": "c", "text": "200 (OK) を受け取ったものとして扱う", "why": "4 で始まるので、クライアントの誤りの分類です。成功として扱うのは分類と食い違います。" },
+            { "id": "d", "text": "500 (Internal Server Error) を受け取ったものとして扱う", "why": "5xx として扱うのは 100〜599 の外の値を受け取ったときです (SHOULD)。471 は範囲の中で、分類は 4xx です。" }
+          ],
+          "answer": "a",
+          "explanation": "ステータスコードの先頭の桁は応答の分類 (1xx 情報・2xx 成功・3xx 転送・4xx クライアントの誤り・5xx サーバーの誤り) を表します。クライアントは分類を理解しなければならず (MUST)、知らないコードはその分類の x00 と同じに扱います。RFC 9110 15 は、471 を 400 として扱う例を挙げています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15"]
+        },
+        {
+          "id": "main-w1-l1-q7",
+          "kind": "choice",
+          "prompt": "POST を受ける URL を、恒久的に別の URL へ移しました。転送されたクライアントにも POST のまま送ってほしいとき、いちばん合うステータスコードはどれですか。",
+          "choices": [
+            { "id": "a", "text": "308 Permanent Redirect" },
+            { "id": "b", "text": "301 Moved Permanently", "why": "301 は恒久的な移動ですが、歴史的な理由で、ユーザーエージェントが POST を GET に変えて送り直してよい (MAY) とされています。" },
+            { "id": "c", "text": "307 Temporary Redirect", "why": "307 はメソッドを変えてはいけません (MUST NOT) が、一時的な移動です。恒久的に移したことは伝わりません。" },
+            { "id": "d", "text": "302 Found", "why": "302 は一時的な移動で、301 と同じく POST を GET に変えてよい (MAY) とされています。" }
+          ],
+          "answer": "a",
+          "explanation": "301 と 302 では、歴史的な理由でユーザーエージェントが POST を GET に変えてよい (MAY) とされています。それを避けたいとき、301 の代わりに使うのが 308、302 の代わりに使うのが 307 です (RFC 9110 15.4.2・15.4.3・15.4.9)。恒久的な移動で、かつメソッドを保ちたいので 308 です。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.9",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.2",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.3",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.8"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-w1-l2",
+      "title": "URI を分解する",
+      "course": "main",
+      "stage": "uri",
+      "questions": [
+        {
+          "id": "main-w1-l2-q1",
+          "kind": "order",
+          "prompt": "https://api.example.com:8443/v1/items?limit=10#top を部品に分けます。部品の名前を、URI の左から現れる順に並べてください。",
+          "items": [
+            { "id": "scheme", "text": "scheme (スキーム)" },
+            { "id": "authority", "text": "authority (オーソリティ)" },
+            { "id": "path", "text": "path (パス)" },
+            { "id": "query", "text": "query (クエリ)" },
+            { "id": "fragment", "text": "fragment (フラグメント)" }
+          ],
+          "answer": ["scheme", "authority", "path", "query", "fragment"],
+          "explanation": "RFC 3986 の一般の構文は scheme・authority・path・query・fragment の順に並びます (3)。この URI では https が scheme、// の後ろの api.example.com:8443 が authority、/v1/items が path、? の後ろの limit=10 が query、# の後ろの top が fragment です。scheme と path は必ずあり (path は空でもよい)、ほかは無いこともあります。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3986#section-3"]
+        },
+        {
+          "id": "main-w1-l2-q2",
+          "kind": "choice",
+          "prompt": "https://user@example.com:8443/a?b=1#c の authority はどれですか。",
+          "choices": [
+            { "id": "a", "text": "user@example.com:8443" },
+            { "id": "b", "text": "example.com", "why": "それは host だけです。authority は userinfo と port も含みます。" },
+            { "id": "c", "text": "example.com:8443/a", "why": "authority は次の / で終わります。/a は path です。" },
+            { "id": "d", "text": "https://user@example.com:8443", "why": "https は scheme で、authority には入りません。authority は // の後ろから始まります。" }
+          ],
+          "answer": "a",
+          "explanation": "authority は // の後ろから、次の /・?・# か URI の終わりまでです (RFC 3986 3.2)。中身は [ userinfo \"@\" ] host [ \":\" port ] で、ここでは user が userinfo、example.com が host、8443 が port です。なお RFC 9110 4.2.4 は、http と https の URI を要求の対象やヘッダーの値としてメッセージに書くとき、userinfo (と @) を作ってはならない (MUST NOT) としています。この問いは構文の切り分けのための例です。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3986#section-3.2", "https://www.rfc-editor.org/rfc/rfc9110#section-4.2.4"]
+        },
+        {
+          "id": "main-w1-l2-q3",
+          "kind": "http",
+          "format": "http",
+          "prompt": "https://example.com:8443/search?q=api#top を HTTP/1.1 で直接サーバーに取りに行きます。要求の行の宛先と、Host ヘッダーの値を埋めてください (host は小文字で書いてください)。",
+          "code": "GET {{blank}} HTTP/1.1\nHost: {{blank}}",
+          "blanks": [{ "answers": ["/search?q=api"] }, { "answers": ["example.com:8443"] }],
+          "explanation": "オリジンサーバーに直接送るとき、クライアントは要求の行に URI の path と query だけを書かなければなりません (MUST、RFC 9112 3.2.1 の origin-form)。fragment は要求の対象から外れるので #top は送りません (RFC 9110 7.1)。host と port は Host ヘッダーで伝えます (RFC 9110 7.2、Host = uri-host [ \":\" port ])。https の既定の 443 ではないので port も書きます。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9112#section-3.2.1",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-7.1",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-7.2"
+          ]
+        },
+        {
+          "id": "main-w1-l2-q4",
+          "kind": "choice",
+          "prompt": "ブラウザで https://example.com/guide#install を開きました。#install の部分は、サーバーにどう届きますか。",
+          "choices": [
+            { "id": "a", "text": "届かない。クライアントの側で使う" },
+            { "id": "b", "text": "パスの一部 (/guide#install) として届く", "why": "要求の対象 (target URI) は fragment を除いたものです。要求の行の宛先は /guide になります。" },
+            { "id": "c", "text": "クエリ (?install) に変えて届く", "why": "fragment がクエリに変わる決まりはありません。fragment はそもそも送られません。" },
+            { "id": "d", "text": "Host ヘッダーに付いて届く", "why": "Host が伝えるのは host と port だけです。" }
+          ],
+          "answer": "a",
+          "explanation": "fragment はクライアント側の処理のためのもので、要求の対象 (target URI) からは外されます (RFC 9110 7.1)。RFC 3986 3.5 も、fragment は取りに行く前に URI の残りから切り離され、ユーザーエージェントだけが扱うと書いています。ページの中の位置へ飛ぶのは、応答を受け取ったブラウザです。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-7.1", "https://www.rfc-editor.org/rfc/rfc3986#section-3.5"]
+        },
+        {
+          "id": "main-w1-l2-q5",
+          "kind": "choice",
+          "prompt": "URI のパスに空白 (スペース) を入れたい。RFC 3986 の % 符号化 (percent-encoding) で正しい書き方はどれですか。",
+          "choices": [
+            { "id": "a", "text": "%20" },
+            { "id": "b", "text": "+", "why": "+ は RFC 3986 の予約文字 (sub-delims) の 1 つで、空白を % 符号化したものではありません。" },
+            { "id": "c", "text": "%2B", "why": "%2B は + の文字 (0x2B) を % 符号化したものです。空白のバイトは 0x20 です。" },
+            { "id": "d", "text": "\\u0020", "why": "\\u で始まる書き方は JSON などの文字列の書き方で、URI の % 符号化ではありません。" }
+          ],
+          "answer": "a",
+          "explanation": "% 符号化は、% のあとにバイトの値を 16 進 2 桁で書きます。空白のバイトは 0x20 なので %20 です。RFC 3986 2.1 はこの例を挙げ、16 進の A〜F は大文字と小文字が同じ意味で、作る側は大文字を使うべき (should) としています。+ が予約文字であることは 2.2 にあります。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3986#section-2.1", "https://www.rfc-editor.org/rfc/rfc3986#section-2.2"]
+        },
+        {
+          "id": "main-w1-l2-q6",
+          "kind": "choice",
+          "prompt": "https://example.com/Items と同じ資源を指す (比べて等しい) URI はどれですか。",
+          "choices": [
+            { "id": "a", "text": "HTTPS://EXAMPLE.COM/Items" },
+            { "id": "b", "text": "https://example.com/items", "why": "scheme と host 以外は大文字と小文字を区別して比べます。Items と items は別のパスです。" },
+            { "id": "c", "text": "https://example.com:8443/Items", "why": "8443 は https の既定の 443 ではないので、別の port を指します。" },
+            { "id": "d", "text": "https://example.com/Items/", "why": "末尾の / が付くと別のパスです。/ と等しく扱うのは、パスが空のときだけです。" }
+          ],
+          "answer": "a",
+          "explanation": "http と https の URI では、scheme と host は大文字と小文字を区別せず、ふつう小文字で書きます。それ以外の部品は区別して比べます (RFC 9110 4.2.3、RFC 3986 6.2.2.1)。既定の port (https なら 443) は省いた形が正規の形で、空のパスは / と等しく扱います (RFC 9110 4.2.3)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-4.2.3", "https://www.rfc-editor.org/rfc/rfc3986#section-6.2.2.1"]
+        },
+        {
+          "id": "main-w1-l2-q7",
+          "kind": "choice",
+          "prompt": "検索語「あ」(U+3042) を URI のクエリに入れます。RFC 3986 が勧める形で % 符号化したものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "%E3%81%82" },
+            { "id": "b", "text": "%30%42", "why": "文字の番号 3042 を 2 桁ずつ区切っただけです。% 符号化するのは文字の番号ではなく、符号化したバイト列です。" },
+            { "id": "c", "text": "%82%A0", "why": "Shift_JIS で符号化したバイト列です。RFC 3986 2.5 は、新しい scheme の部品で文字を表すときは UTF-8 にしてから % 符号化するよう勧めています。" },
+            { "id": "d", "text": "あ (そのまま書く)", "why": "URI に書ける文字は ASCII の決まった集合だけです。その外の文字はバイト列にして % 符号化します。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 3986 2.5 は、新しい scheme の部品で文字を表すときは、まず UTF-8 でバイト列にし、unreserved でないバイトを % 符号化するよう勧めています (should)。2.5 は例として、カタカナの「ア」を %E3%82%A2 と書いています。「あ」は UTF-8 で E3 81 82 の 3 バイトなので %E3%81%82 です (UTF-8 の形は RFC 3629 3)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3986#section-2.5", "https://www.rfc-editor.org/rfc/rfc3629#section-3"]
+        },
+        {
+          "id": "main-w1-l2-q8",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "検索語に空白を含むので、curl に符号化させてクエリに付けたい。-G と組み合わせて、値を URL 符号化して渡すオプションを埋めてください。",
+          "code": "curl -G {{blank}} \"q=hello world\" https://example.com/search",
+          "blanks": [{ "answers": ["--data-urlencode"] }],
+          "output": "> GET /search?q=hello+world HTTP/1.1",
+          "explanation": "--data-urlencode は値を URL 符号化して送るデータにします。ふつうは POST の本文になりますが、-G (--get) を付けると GET の要求になり、データは URL のクエリとして後ろに付きます (curl の man ページ)。手元の curl 8.18.0 では、空白は + に、「あ」は %e3%81%82 になりました。16 進の大文字と小文字は同じ意味です (RFC 3986 2.1)。",
+          "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc3986#section-2.1"]
+        }
+      ]
+    },
+    {
+      "id": "main-w1-l3",
+      "title": "ヘッダーと MIME タイプ",
+      "course": "main",
+      "stage": "mime",
+      "questions": [
+        {
+          "id": "main-w1-l3-q1",
+          "kind": "http",
+          "format": "http",
+          "prompt": "応答は JSON で欲しい、とサーバーに伝える要求です。空欄のヘッダー名を埋めてください。",
+          "code": "GET /items HTTP/1.1\nHost: example.com\n{{blank}}: application/json",
+          "blanks": [{ "answers": ["Accept"], "match": "header-name" }],
+          "explanation": "Accept は、ユーザーエージェントが応答のメディアタイプの好みを伝えるヘッダーです (RFC 9110 12.5.1)。送る本文の形式を伝える Content-Type と取り違えやすいので注意します。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1"]
+        },
+        {
+          "id": "main-w1-l3-q2",
+          "kind": "choice",
+          "prompt": "Content-Type: text/html; charset=utf-8 の各部分の呼び名として正しいものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "text が type、html が subtype、charset=utf-8 が引数 (parameter)" },
+            { "id": "b", "text": "text/html が type、charset が subtype", "why": "type と subtype は / で区切った左と右です。; の後ろは引数です。" },
+            { "id": "c", "text": "html が type、text が subtype", "why": "左が type、右が subtype です。逆です。" },
+            { "id": "d", "text": "utf-8 が type、text/html が引数", "why": "utf-8 は charset という名前の引数の値です。" }
+          ],
+          "answer": "a",
+          "explanation": "メディアタイプは type \"/\" subtype のあとに、; で区切った名前と値の組 (引数) が続きます (RFC 9110 8.3.1)。charset は文字の符号化方式を伝える引数です (8.3.2)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-8.3.1", "https://www.rfc-editor.org/rfc/rfc9110#section-8.3.2"]
+        },
+        {
+          "id": "main-w1-l3-q3",
+          "kind": "choice",
+          "prompt": "text/html;charset=utf-8 と Text/HTML;Charset=\"utf-8\" について、RFC 9110 に沿った説明はどれですか。",
+          "choices": [
+            { "id": "a", "text": "同じ意味を表す (そろえるには前者の書き方が勧められる)" },
+            { "id": "b", "text": "type と subtype は大文字と小文字を区別するので別の型", "why": "type と subtype は大文字と小文字を区別しません。" },
+            { "id": "c", "text": "値を \" で囲むと別の値になる", "why": "引数の値は token か、引用符で囲んだ文字列のどちらでも書けます。囲んでも utf-8 は utf-8 です。" },
+            { "id": "d", "text": "引数の名前 Charset は大文字なので無効", "why": "引数の名前は大文字と小文字を区別しません。" }
+          ],
+          "answer": "a",
+          "explanation": "type と subtype (8.3.1)、引数の名前 (5.6.6)、charset の値 (8.3.2) は、どれも大文字と小文字を区別しません。RFC 9110 8.3.1 はこの 2 つを含む 4 つの書き方を同じ意味の例に挙げ、そろえるために最初の書き方を勧めています。ほかの引数の値は、区別するかどうかが引数ごとに違います。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-8.3.1",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-5.6.6",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-8.3.2"
+          ]
+        },
+        {
+          "id": "main-w1-l3-q4",
+          "kind": "choice",
+          "prompt": "JSON の本文しか受け付けない API に、Content-Type: text/plain の本文を POST しました。サーバーが返す応答として、いちばん正確なのはどれですか。",
+          "choices": [
+            { "id": "a", "text": "415 Unsupported Media Type" },
+            { "id": "b", "text": "406 Not Acceptable", "why": "406 は、要求の Accept などに合う応答の形式を用意できないときです。応答の側の話で、送った本文の形式の話ではありません。" },
+            { "id": "c", "text": "405 Method Not Allowed", "why": "405 はメソッドがその資源で使えないときです。ここで合わないのは本文の形式です。" },
+            { "id": "d", "text": "501 Not Implemented", "why": "501 は、要求を満たす機能 (たとえばそのメソッド) をサーバーが持たないときです。" }
+          ],
+          "answer": "a",
+          "explanation": "415 は、要求の本文がその資源・そのメソッドで扱えない形式なので断ることを表します。原因は Content-Type でも、中身を調べた結果でもかまいません (RFC 9110 15.5.16)。406 は、応答の形式の交渉 (Accept など) で合うものが無いときです (15.5.7)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.5.16", "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.7"]
+        },
+        {
+          "id": "main-w1-l3-q5",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "JSON の本文を POST したい。-d だけでは JSON と伝わらないので、Content-Type のヘッダーを足すオプションを埋めてください。",
+          "code": "curl {{blank}} 'Content-Type: application/json' -d '{\"name\":\"gantlo\"}' https://example.com/items",
+          "blanks": [{ "answers": ["-H", "--header"] }],
+          "explanation": "-H (--header) は要求にヘッダーを足します。curl が自分で付けるヘッダーと同じ名前なら、こちらが使われます。-d は既定で application/x-www-form-urlencoded の Content-Type を付けるので、JSON を送るときは -H で上書きします (curl の man ページ)。",
+          "sources": ["https://curl.se/docs/manpage.html"]
+        },
+        {
+          "id": "main-w1-l3-q6",
+          "kind": "choice",
+          "prompt": "curl -d 'a=1' https://example.com/form を、ヘッダーを足さずに打ちました。curl が付ける Content-Type はどれですか。",
+          "choices": [
+            { "id": "a", "text": "application/x-www-form-urlencoded" },
+            { "id": "b", "text": "application/json", "why": "-d は中身を調べません。JSON の型が付くのは --json を使うか、-H で足したときです。" },
+            { "id": "c", "text": "text/plain", "why": "-d は、ブラウザが HTML のフォームを送るときと同じ形で送ります。text/plain ではありません。" },
+            { "id": "d", "text": "multipart/form-data", "why": "multipart/form-data で送るのは -F (--form) です。" }
+          ],
+          "answer": "a",
+          "explanation": "curl の man ページは、-d は HTML のフォームを送るブラウザと同じように POST し、content-type に application/x-www-form-urlencoded を使うと書いています。データは手を加えずそのまま渡すので、形式が合っているかは使う人の責任です。",
+          "sources": ["https://curl.se/docs/manpage.html"]
+        },
+        {
+          "id": "main-w1-l3-q7",
+          "kind": "choice",
+          "prompt": "エラーの詳しい中身を返す応答に Content-Type: application/problem+json が付いていました。+json は何を表しますか。",
+          "choices": [
+            { "id": "a", "text": "problem という形式が、JSON の構文で書かれていること" },
+            { "id": "b", "text": "problem と json の 2 つの形式を続けて送っていること", "why": "1 つの本文に 1 つの形式です。+json は subtype の名前の後ろに付く接尾辞です。" },
+            { "id": "c", "text": "JSON を problem という文字コードで符号化したこと", "why": "文字コードは charset の引数で伝えるもので、subtype の名前には入りません。" },
+            { "id": "d", "text": "problem が type (左側) であること", "why": "type は application で、problem+json が subtype です。" }
+          ],
+          "answer": "a",
+          "explanation": "+xml や +json は、subtype の名前の後ろに付けて、その形式の土台になる構文を示す接尾辞です (RFC 6838 4.2.8)。application/problem+json は、IANA のメディアタイプの登録簿に RFC 9457 を参照先として載っています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc6838#section-4.2.8", "https://www.iana.org/assignments/media-types/media-types.xhtml"]
+        },
+        {
+          "id": "main-w1-l3-q8",
+          "kind": "choice",
+          "prompt": "IANA のメディアタイプの登録簿で、最上位の type (左側) として登録されていないものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "json" },
+            { "id": "b", "text": "application", "why": "application は登録されている最上位の type です。application/json もこの下にあります。" },
+            { "id": "c", "text": "image", "why": "image は登録されている最上位の type です (image/png など)。" },
+            { "id": "d", "text": "font", "why": "font は登録されている最上位の type です (font/woff2 など)。" }
+          ],
+          "answer": "a",
+          "explanation": "IANA の登録簿は application・audio・font・haptics・image・message・model・multipart・text・video の type ごとに表を分けています (2026-11-19 に確認)。json は type ではなく、application の下の subtype です (application/json、参照先は RFC 8259)。",
+          "sources": ["https://www.iana.org/assignments/media-types/media-types.xhtml", "https://www.rfc-editor.org/rfc/rfc8259#section-11"]
+        }
+      ]
+    },
+    {
+      "id": "main-w1-l4",
+      "title": "JSON と UTF-8",
+      "course": "main",
+      "stage": "mime",
+      "questions": [
+        {
+          "id": "main-w1-l4-q1",
+          "kind": "http",
+          "format": "json",
+          "prompt": "ok は真、next は「値が無い」ことを表したい。JSON のリテラルを埋めてください。",
+          "code": "{\"ok\": {{blank}}, \"next\": {{blank}}}",
+          "blanks": [{ "answers": ["true"] }, { "answers": ["null"] }],
+          "explanation": "JSON のリテラルは false・null・true の 3 つだけで、小文字で書かなければなりません (MUST、RFC 8259 3)。True や NULL、None は JSON では書けません。この欄は大文字と小文字を区別して採点します。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-3"]
+        },
+        {
+          "id": "main-w1-l4-q2",
+          "kind": "choice",
+          "prompt": "JSON の文法 (RFC 8259) に合っているものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "{\"items\": [1, 2.5e3, null]}" },
+            { "id": "b", "text": "{'a': 1}", "why": "文字列 (名前も含む) は \" で囲みます。' は使えません。" },
+            { "id": "c", "text": "{\"a\": 1,}", "why": "文法では、, の後ろには次の名前と値の組が要ります。最後の組の後ろの , は文法にありません。" },
+            { "id": "d", "text": "{\"a\": 01}", "why": "数の頭に余分な 0 を付けることは許されていません。" }
+          ],
+          "answer": "a",
+          "explanation": "配列の値は型がそろっていなくてよく (5)、2.5e3 は指数の付いた正しい数で (6)、null はリテラルです (3)。名前は文字列で \" で囲み (4・7)、数の頭の余分な 0 は許されません (6)。文法に無い形を受け入れるパーサーもありますが (MAY、9)、送る側は文法どおりに書きます。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc8259#section-4",
+            "https://www.rfc-editor.org/rfc/rfc8259#section-6",
+            "https://www.rfc-editor.org/rfc/rfc8259#section-7",
+            "https://www.rfc-editor.org/rfc/rfc8259#section-9"
+          ]
+        },
+        {
+          "id": "main-w1-l4-q3",
+          "kind": "choice",
+          "prompt": "閉じた仕組みの外のシステムと JSON をやり取りするとき、RFC 8259 が求める文字の符号化はどれですか。",
+          "choices": [
+            { "id": "a", "text": "UTF-8 (BOM を付けない)" },
+            { "id": "b", "text": "UTF-16", "why": "以前の仕様は UTF-8 を必須にしていませんでしたが、RFC 8259 は外とのやり取りに UTF-8 を求めます。" },
+            { "id": "c", "text": "BOM 付きの UTF-8", "why": "ネットワークで送る JSON の先頭に BOM (U+FEFF) を付けてはいけません (MUST NOT)。" },
+            { "id": "d", "text": "Shift_JIS", "why": "日本語を含んでいても、外とのやり取りでは UTF-8 にしなければなりません。" }
+          ],
+          "answer": "a",
+          "explanation": "閉じた仕組みの外とやり取りする JSON は UTF-8 で符号化しなければならず (MUST)、送る JSON の先頭に BOM を付けてはいけません (MUST NOT、RFC 8259 8.1)。受け取る側は BOM を誤りとせず無視してもよい (MAY) とされています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-8.1"]
+        },
+        {
+          "id": "main-w1-l4-q4",
+          "kind": "choice",
+          "prompt": "Content-Type: application/json; charset=utf-8 の charset=utf-8 について、RFC 8259 に沿った説明はどれですか。",
+          "choices": [
+            { "id": "a", "text": "application/json に charset の引数は定義されておらず、付けても仕様に沿う受け手には効き目がない" },
+            { "id": "b", "text": "付けないと、受け手は UTF-8 だと分からない", "why": "外とやり取りする JSON はもともと UTF-8 と決まっています。引数で知らせる仕組みではありません。" },
+            { "id": "c", "text": "charset=utf-16 に変えれば UTF-16 で送ってよい", "why": "charset の引数は定義されておらず、外とのやり取りでは UTF-8 にしなければなりません。" },
+            { "id": "d", "text": "付けると Content-Type が不正になり、受け手は捨てなければならない", "why": "RFC 8259 は、付けても効き目がないと書いているだけで、捨てることは求めていません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8259 11 の application/json の登録には、charset の引数は定義されておらず、付けても仕様に沿う受け手には効き目がない、という注があります。符号化は 8.1 で UTF-8 と決まっているからです。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-11", "https://www.rfc-editor.org/rfc/rfc8259#section-8.1"]
+        },
+        {
+          "id": "main-w1-l4-q5",
+          "kind": "choice",
+          "prompt": "{\"id\": 1, \"id\": 2} のように、1 つのオブジェクトに同じ名前が 2 回ある JSON を受け取りました。どうなりますか。",
+          "choices": [
+            { "id": "a", "text": "受け手の実装によって違う (最後の値を使う・誤りにする・両方を返す など)" },
+            { "id": "b", "text": "必ず最後の値 (2) が使われる", "why": "最後の値を使う実装は多いですが、決まりではありません。" },
+            { "id": "c", "text": "必ず文法の誤りになる", "why": "名前は一意であるべき (SHOULD) とされているだけです。誤りにする実装もありますが、必ずではありません。" },
+            { "id": "d", "text": "必ず最初の値 (1) が使われる", "why": "どの値を使うかは決まっていません。" }
+          ],
+          "answer": "a",
+          "explanation": "オブジェクトの中の名前は一意であるべき (SHOULD) です。一意でないとき、受け取るソフトウェアの振る舞いは予測できません。最後の組だけを返す実装が多い一方、誤りにする実装や、重なりも含めてすべて返す実装もあります (RFC 8259 4)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-4"]
+        },
+        {
+          "id": "main-w1-l4-q6",
+          "kind": "order",
+          "prompt": "次の 4 文字を、UTF-8 で符号化したときのバイト数が少ない順に並べてください。",
+          "items": [
+            { "id": "latin-a", "text": "A (U+0041)" },
+            { "id": "e-acute", "text": "é (U+00E9)" },
+            { "id": "hiragana-a", "text": "あ (U+3042)" },
+            { "id": "emoji", "text": "😀 (U+1F600)" }
+          ],
+          "answer": ["latin-a", "e-acute", "hiragana-a", "emoji"],
+          "explanation": "UTF-8 は文字の番号の範囲でバイト数が決まります。U+0000〜007F は 1 バイト、U+0080〜07FF は 2 バイト、U+0800〜FFFF は 3 バイト、U+10000〜10FFFF は 4 バイトです (RFC 3629 3 の表)。A は 1、é は 2、あ は 3、😀 は 4 バイトです。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3629#section-3"]
+        },
+        {
+          "id": "main-w1-l4-q7",
+          "kind": "choice",
+          "prompt": "UTF-8 のバイト列で、ある文字の先頭のバイトが 1110xxxx (2 進数) でした。この文字は全部で何バイトですか。",
+          "choices": [
+            { "id": "a", "text": "3 バイト" },
+            { "id": "b", "text": "1 バイト", "why": "1 バイトの文字は先頭の bit が 0 (0xxxxxxx) です。" },
+            { "id": "c", "text": "2 バイト", "why": "2 バイトの文字の先頭は 110xxxxx です。" },
+            { "id": "d", "text": "4 バイト", "why": "4 バイトの文字の先頭は 11110xxx です。" }
+          ],
+          "answer": "a",
+          "explanation": "n バイト (n>1) の並びでは、先頭のバイトの上位 n bit が 1 で、その次が 0 です。続くバイトはどれも 10xxxxxx です (RFC 3629 3)。1 が 3 つ続いて 0 なので 3 バイトです。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc3629#section-3"]
+        },
+        {
+          "id": "main-w1-l4-q8",
+          "kind": "choice",
+          "prompt": "API の応答で、id を JSON の数 9007199254740993 (2 の 53 乗 + 1) のまま返しました。気をつけることはどれですか。",
+          "choices": [
+            { "id": "a", "text": "受け手によっては、正確に同じ値として読めないことがある" },
+            { "id": "b", "text": "JSON は 32 bit の整数までしか書けないので、文法の誤り", "why": "JSON の文法は数の桁数を制限していません。範囲と精度の制限は、実装が決めてよいものです。" },
+            { "id": "c", "text": "JSON の数なので、どの実装でも正確に同じ値になる", "why": "多くの実装は IEEE 754 の倍精度で数を扱い、正確に一致すると言えるのは -(2^53)+1 〜 2^53-1 の整数です。" },
+            { "id": "d", "text": "数は必ず文字列として送らなければならない", "why": "そうした決まりはありません。文字列で送るのは、範囲の問題を避ける工夫の 1 つです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 8259 6 は、実装が数の範囲と精度に制限を設けてよいとし、IEEE 754 の倍精度が広く使われているので、[-(2^53)+1, 2^53-1] の整数なら実装どうしで値が正確に一致する、と書いています。この範囲を超える整数は、受け手で違う値に丸められることがあります。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-6"]
+        },
+        {
+          "id": "main-w1-l4-q9",
+          "kind": "command",
+          "tool": "curl",
+          "prompt": "JSON の本文を POST し、Content-Type と Accept を application/json にする、までを 1 つで済ませる curl のオプションを埋めてください。",
+          "code": "curl {{blank}} '{\"name\":\"gantlo\"}' https://example.com/items",
+          "blanks": [{ "answers": ["--json"] }],
+          "output": "> POST /items HTTP/1.1\n> Content-Type: application/json\n> Accept: application/json",
+          "explanation": "--json は、--data-binary と --header \"Content-Type: application/json\" と --header \"Accept: application/json\" の 3 つをまとめた近道です (curl 7.82.0 で追加)。中身が正しい JSON かは調べません (curl の man ページ)。",
+          "sources": ["https://curl.se/docs/manpage.html"]
+        }
+      ]
+    },
+    {
+      "id": "main-w1-l5",
+      "title": "実習: curl -v で 1 件のやり取りを読む",
+      "course": "main",
+      "stage": "http",
+      "questions": [
+        {
+          "id": "main-w1-l5-q1",
+          "kind": "lab",
+          "prompt": "公開の見本 example.com に 1 回だけ要求を送り、curl -v の記録をファイルに残して、送った要求と返ってきた応答を読み分けてください。",
+          "steps": [
+            { "text": "端末で次を 1 回だけ打つ。本文は body.html に、-v の記録は trace.txt に入る", "command": "curl -sv https://example.com/ -o body.html 2> trace.txt" },
+            { "text": "送った要求の行を見る", "command": "grep '^>' trace.txt" },
+            { "text": "返ってきた応答の行を見る", "command": "grep '^<' trace.txt" }
+          ],
+          "expected": "> の行に GET / と HTTP の版 (HTTP/2 か HTTP/1.1)、Host: example.com、User-Agent: curl/<版>、Accept: */* が出ます。< の行の先頭にステータス (例: HTTP/2 200)、続いて content-type: text/html などの応答のヘッダーが出ます。中身の無い > と < の行は、ヘッダーの終わりです。",
+          "explanation": "-v は、curl が送ったヘッダーを >、受け取ったヘッダーを <、curl 自身の説明を * で始めて出します (curl の man ページ)。要求の行とヘッダー、応答のステータスとヘッダーという HTTP のメッセージの形 (RFC 9110 6) が、そのまま見えます。記録をファイルに残せば、あとの問いは送り直さずに読めます。",
           "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-6"]
+        },
+        {
+          "id": "main-w1-l5-q2",
+          "kind": "choice",
+          "prompt": "curl -v の記録の一部です。* で始まる行は何を表しますか。",
+          "code": {
+            "format": "text",
+            "text": "* ALPN: server accepted h2\n* using HTTP/2\n> GET / HTTP/2\n> Host: example.com\n> Accept: */*\n>\n< HTTP/2 200\n< content-type: text/html; charset=utf-8\n<"
+          },
+          "choices": [
+            { "id": "a", "text": "curl が足した説明 (接続のようすや、選んだ HTTP の版など)" },
+            { "id": "b", "text": "curl が送ったヘッダー", "why": "送ったヘッダーは > で始まる行です。" },
+            { "id": "c", "text": "curl が受け取ったヘッダー", "why": "受け取ったヘッダーは < で始まる行です。" },
+            { "id": "d", "text": "受け取った本文", "why": "受け取ったデータは { で始まる行です。" }
+          ],
+          "answer": "a",
+          "explanation": "curl の man ページの -v の説明では、> は curl が送ったヘッダー、< は受け取ったヘッダー、} と { は送ったデータと受け取ったデータ、* は curl が何をしているかの説明です。この例の * の行は、TLS の交渉 (ALPN) で HTTP/2 を使うと決まったことを伝えています。",
+          "sources": ["https://curl.se/docs/manpage.html"]
+        },
+        {
+          "id": "main-w1-l5-q3",
+          "kind": "choice",
+          "prompt": "前の問いの記録で、HTTP/2 の応答のヘッダー名が content-type のように小文字でした。なぜですか。",
+          "choices": [
+            { "id": "a", "text": "HTTP/2 では送るときにヘッダー名を小文字にする決まりがある。名前は大文字と小文字を区別しないので、意味は Content-Type と同じ" },
+            { "id": "b", "text": "サーバーの設定の誤りで、本当は Content-Type と書くべき", "why": "HTTP/2 では、送る側がヘッダー名を小文字にしなければなりません。誤りではありません。" },
+            { "id": "c", "text": "小文字の content-type は、Content-Type とは別のヘッダー", "why": "HTTP のヘッダー名は大文字と小文字を区別しません。同じヘッダーです。" },
+            { "id": "d", "text": "HTTP/2 では本文の形式を伝えないので、名前だけの飾り", "why": "content-type は HTTP/2 でも本文の形式を伝えます。ヘッダーの意味は版によらず RFC 9110 で共通です。" }
+          ],
+          "answer": "a",
+          "explanation": "HTTP のヘッダー (フィールド) の名前は大文字と小文字を区別しません (RFC 9110 5.1)。HTTP/2 では、メッセージを組み立てるときに名前を小文字にしなければなりません (MUST、RFC 9113 8.2)。HTTP/1.1 の応答では Content-Type のように大文字の混じった名前もよく見ます。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-5.1", "https://www.rfc-editor.org/rfc/rfc9113#section-8.2"]
+        },
+        {
+          "id": "main-w1-l5-q4",
+          "kind": "lab",
+          "prompt": "自分の PC の中だけで動くサーバーを立て、ある資源と無い資源を取りに行って、ステータスと Content-Type を見比べてください。外のサーバーには送りません。",
+          "steps": [
+            { "text": "空のフォルダを作って移り、JSON のファイルを 1 つ置く", "command": "mkdir gantlo-lab && cd gantlo-lab && echo '{\"ok\": true}' > hello.json" },
+            { "text": "別の端末で同じフォルダに移り、そのフォルダを配る試験用のサーバーを、自分の PC からだけ届く形で立てる (8000 番が使われていれば別の番号にする)", "command": "python3 -m http.server 8000 --bind 127.0.0.1" },
+            { "text": "ある資源を取りに行く", "command": "curl -v http://127.0.0.1:8000/hello.json" },
+            { "text": "無い資源を取りに行く", "command": "curl -v -o /dev/null http://127.0.0.1:8000/nope.json" }
+          ],
+          "expected": "hello.json では < HTTP/1.0 200 OK と、.json に合う Content-type (手元の Python 3.14 では application/json) が出て、本文に {\"ok\": true} が出ます。nope.json では < HTTP/1.0 404 File not found が出ます。どちらにも < Server: SimpleHTTP/... の行があり、サーバーの端末には要求ごとに記録の行が出ます (404 などの誤りでは、理由を書いた行も先に出ます)。",
+          "explanation": "python3 -m http.server は今いるフォルダのファイルを配る試験用のサーバーで、既定は 8000 番、--bind で待ち受けるアドレスを決めます。公式の文書は本番には勧めないと書いているので、127.0.0.1 に限って使います。404 は資源が見つからないことを表します (RFC 9110 15.5.5)。File not found のような理由の句はサーバーが選ぶ文で、クライアントは中身を無視すべき (SHOULD) とされています (RFC 9112 4)。意味を決めるのは数字です。",
+          "sources": [
+            "https://docs.python.org/3/library/http.server.html",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.5",
+            "https://www.rfc-editor.org/rfc/rfc9112#section-4"
+          ]
+        },
+        {
+          "id": "main-w1-l5-q5",
+          "kind": "lab",
+          "prompt": "前の実習のサーバーを立てたまま、fragment 付きの URL と POST を送り、curl が実際に送った行を確かめてください。",
+          "steps": [
+            { "text": "fragment (#top) 付きで取りに行き、送った要求の行を見る", "command": "curl -sv -o /dev/null 'http://127.0.0.1:8000/hello.json#top' 2>&1 | grep '^>'" },
+            { "text": "-d で POST を送り、送った行と返ってきたステータスを見る", "command": "curl -sv -o /dev/null -d 'a=1' http://127.0.0.1:8000/hello.json 2>&1 | grep '^[<>]'" },
+            { "text": "終わったら、サーバーの端末で Ctrl+C を押して止める" }
+          ],
+          "expected": "1 つめは > GET /hello.json HTTP/1.1 で、#top は送られていません。2 つめは > POST /hello.json HTTP/1.1 と > Content-Type: application/x-www-form-urlencoded が出て、< HTTP/1.0 501 Unsupported method ('POST') が返ります (手元の Python 3.14 と curl 8.18.0 で確認)。",
+          "explanation": "fragment は要求の対象から外れるので、要求の行には path と query だけが載ります (RFC 9110 7.1、RFC 9112 3.2.1)。-d は Content-Type を application/x-www-form-urlencoded にして POST します (curl の man ページ)。このサーバーは POST を持たないので 501 を返します (次の問い)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-7.1",
+            "https://www.rfc-editor.org/rfc/rfc9112#section-3.2.1",
+            "https://curl.se/docs/manpage.html"
+          ]
+        },
+        {
+          "id": "main-w1-l5-q6",
+          "kind": "choice",
+          "prompt": "前の実習で、試験用のサーバーは POST に 405 ではなく 501 を返しました。2 つの違いとして正しいものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "501 は要求を満たす機能をサーバーが持たないとき、405 はメソッドを知っているがその資源では使えないとき" },
+            { "id": "b", "text": "501 はクライアントの誤り、405 はサーバーの誤り", "why": "逆です。5 で始まる 501 はサーバーの誤り、4 で始まる 405 はクライアントの誤りの分類です。" },
+            { "id": "c", "text": "どちらも同じ意味で、どちらを返してもよい", "why": "意味が違います。405 には使えるメソッドを並べた Allow ヘッダーが必須で、501 は機能そのものが無いことを表します。" },
+            { "id": "d", "text": "501 は本文が大きすぎるときに返す", "why": "本文が大きすぎるときは 413 (Content Too Large) です。" }
+          ],
+          "answer": "a",
+          "explanation": "501 は、要求を満たす機能をサーバーが持たないことを表し、メソッドを認識せず、どの資源にも対応できないときに適した応答です (RFC 9110 15.6.2)。405 は、メソッドは知っているがその資源では使えないことを表し、Allow ヘッダーが必須です (15.5.6)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.6.2",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.6",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.14"
+          ]
         }
       ]
     }

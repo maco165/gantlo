@@ -6,15 +6,17 @@
 //   - 押せないボタン (disabled・aria-disabled) は WCAG 1.4.3 の対象外なので数えない。空の入力欄は placeholder の字と色を測る
 //   - 390 幅でスマホのメニューを開いた状態も測る (開いたモーダルの外は操作できないので、モーダルの中だけを測る)
 //   - 測り方の確かめ: opacity の群 (祖先の opacity も含む) を地と字の両方に重ねて測れること (合成のページで約 3.98:1 になる)
-import { readFileSync } from 'node:fs';
+import { answer, coverLessons, hasKind, isPlainFill, loadLessons, pickWalkLesson } from './e2e-lessons.mjs';
 
 /** WCAG 1.4.3 の最小のコントラスト比。大きな文字の例外 (3:1) は使わない */
 export const MIN_CONTRAST = 4.5;
 /** Gothic のテーマの地の色 (@astryxdesign/theme-gothic の theme.css の --color-background-body) */
 export const GOTHIC_BODY = 'rgb(16, 19, 20)';
 
-const week1 = JSON.parse(readFileSync(new URL('../src/content/courses/main/week1.json', import.meta.url), 'utf8'));
-const lesson = week1.lessons.find((l) => l.id === 'main-w1-l1');
+// 測るレッスンは問題データから選ぶ (並べ替え・4 択・穴埋めを持つもの。実習が無ければ実習を持つレッスンも足す)
+const LESSONS = loadLessons();
+const walkLesson = pickWalkLesson(LESSONS);
+const lessonsToMeasure = [walkLesson, ...coverLessons(LESSONS, hasKind(walkLesson, 'lab') ? {} : { 実習: (l) => hasKind(l, 'lab') })];
 
 /**
  * 画面の中の文字を持つ要素ごとに、文字の色・地の色・コントラスト比を測る (ブラウザの中で動く)。
@@ -180,7 +182,6 @@ export async function runContrast(browser, { base, check }) {
       const min = await checkContrast(page, check, `${tag} ${screen}`, must);
       mins.push({ label: `${name} ${screen}`, ratio: min.ratio, text: min.text });
     };
-    const send = () => page.getByRole('button', { name: 'POST 答えを送る' }).click();
     const next = () => page.getByRole('button', { name: /^(次の問題へ|POST 結果を記録する)$/ }).click();
     const response = (code) => page.locator(`section.response[data-status="${code}"]`).waitFor();
 
@@ -207,44 +208,44 @@ export async function runContrast(browser, { base, check }) {
     await page.locator('h1', { hasText: '復習' }).waitFor();
     await measure('復習 (予定なし)');
 
-    // レッスン: 問題 → 不正解 400 → 正解 200 → 並べ替えの 409 → 4 択 → 実習 → 完了 201
-    const [qCmd, qHttp, qOrder, qChoice] = lesson.questions;
-    await page.goto(`${base}lesson/${lesson.id}/`);
-    await page.getByRole('heading', { name: qCmd.prompt }).waitFor();
-    // 値を入れる前は、空欄の placeholder (____) の字を測る
-    await measure('レッスンの問題 (穴埋め・入力前)', ['____']);
-    await page.locator('[data-testid="fill-code"] input').first().fill('-x');
-    await measure('レッスンの問題 (穴埋め)', ['POST 答えを送る', '-x']);
-    await send();
-    await response(400);
-    await measure('応答 400', ['400', 'Bad Request', '次の問題へ']);
-    await next();
-    await page.getByRole('heading', { name: qHttp.prompt }).waitFor();
-    const inputs = page.locator('[data-testid="fill-code"] input');
-    for (const [i, b] of qHttp.blanks.entries()) await inputs.nth(i).fill(b.answers[0]);
-    await send();
-    await response(200);
-    await measure('応答 200', ['200', 'OK']);
-    await next();
-    await page.getByRole('heading', { name: qOrder.prompt }).waitFor();
-    await measure('レッスンの問題 (並べ替え)');
-    await send();
-    await response(409);
-    await measure('応答 409 (並べ替えの帯)', ['409', 'Conflict']);
-    await next();
-    await page.getByRole('heading', { name: qChoice.prompt }).waitFor();
-    await measure('レッスンの問題 (4 択)');
-    await page.getByRole('radio').first().check();
-    await send();
-    await page.locator('section.response[data-status]').first().waitFor();
-    await next();
-    for (const box of await page.getByRole('checkbox').all()) await box.check();
-    await measure('レッスンの問題 (実習)');
-    await page.getByRole('button', { name: 'POST 実習を終える' }).click();
-    await response(200);
-    await next();
-    await response(201);
-    await measure('完了 201', ['201', 'Created', 'もう一度解く', 'ホームへ戻る']);
+    // レッスン: 問題 → 不正解 400 → 正解 200 → 並べ替えの 409 → 4 択 → 実習 → 完了 201。どの画面もそれぞれ最初の 1 回を測る
+    const seen = new Set();
+    const first = (key) => !seen.has(key) && seen.add(key);
+    for (const lesson of lessonsToMeasure) {
+      await page.goto(`${base}lesson/${lesson.id}/`);
+      for (const q of lesson.questions) {
+        await page.getByRole('heading', { name: q.prompt }).waitFor();
+        if (isPlainFill(q) && first('400')) {
+          // 値を入れる前は、空欄の placeholder (____) の字を測る
+          await measure('レッスンの問題 (穴埋め・入力前)', ['____']);
+          // 空欄を全部埋めるまで答えを送るボタンは押せない (押せないボタンは測らない) ので、全部に入れる
+          for (const input of await page.locator('[data-testid="fill-code"] input').all()) await input.fill('-x');
+          await measure('レッスンの問題 (穴埋め)', ['POST 答えを送る', '-x']);
+          await answer(page, q, 'wrong');
+          await response(400);
+          await measure('応答 400', ['400', 'Bad Request', '次の問題へ']);
+        } else if (q.kind === 'order' && first('409')) {
+          await measure('レッスンの問題 (並べ替え)');
+          await answer(page, q, 'unsorted');
+          await response(409);
+          await measure('応答 409 (並べ替えの帯)', ['409', 'Conflict']);
+        } else if (q.kind === 'lab' && first('lab')) {
+          for (const box of await page.getByRole('checkbox').all()) await box.check();
+          await measure('レッスンの問題 (実習)');
+          await page.getByRole('button', { name: 'POST 実習を終える' }).click();
+          await response(200);
+        } else {
+          if (q.kind === 'choice' && first('choice')) await measure('レッスンの問題 (4 択)');
+          await answer(page, q, 'right');
+          await response(200);
+          if (first('200')) await measure('応答 200', ['200', 'OK']);
+        }
+        await next();
+      }
+      await response(201);
+      if (first('201')) await measure('完了 201', ['201', 'Created', 'もう一度解く', 'ホームへ戻る']);
+    }
+    check(['400', '409', 'lab', 'choice', '200', '201'].every((k) => seen.has(k)), `${tag} レッスンの画面を全部測った (${[...seen].join(',')})`);
 
     await page.goto(`${base}lesson/no-such-lesson/`);
     await page.getByText('Not Found', { exact: true }).waitFor();

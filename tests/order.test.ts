@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { findLesson } from '../src/content/index';
 import type { OrderQuestion } from '../src/content/types';
 import { answerIndex, gradeOrder, initialOrder, moveItem, shuffleItems } from '../src/lib/order';
+import { sampleLesson } from './fixtures/sample-lesson';
 
-const sample = findLesson('main-w1-l1')!.questions.find((q): q is OrderQuestion => q.kind === 'order')!;
+const sample = sampleLesson.questions.find((q): q is OrderQuestion => q.kind === 'order')!;
 
 /** テストの中で作る並べ替えの問題 (項目の数を変えて確かめる) */
 function make(n: number): OrderQuestion {
