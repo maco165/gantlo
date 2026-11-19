@@ -4,7 +4,7 @@ import PlanGantt from '../components/PlanGantt';
 import StatusLine from '../components/StatusLine';
 import { lessonsOf } from '../content/index';
 import { canSavePlan, moveCourse, planOrder, savePlan, toggleCourse } from '../lib/plan';
-import { MAX_COURSE_DAYS, MIN_COURSE_DAYS, isCourseDays, isValidDay, type Plan as PlanRecord, type Progress } from '../lib/progress';
+import { MAX_COURSE_DAYS, MIN_COURSE_DAYS, isCourseDays, isValidDay, setProfile, type GanttView, type Plan as PlanRecord, type Progress } from '../lib/progress';
 import { COURSES, type CourseId } from '../lib/route';
 import { courseDays, planStart } from '../lib/schedule';
 import { PLAN_SAVED } from '../lib/status';
@@ -51,6 +51,8 @@ export default function Plan({ progress, updateProgress, now = new Date() }: Pro
     setDays((d) => ({ ...d, [course]: n }));
     setSaved(false);
   };
+  // 表示する期間は表示の好みなので、選んだらすぐ設定 (profile) に保存する (計画の PUT を待たない)
+  const changeView = (view: GanttView) => updateProgress((p) => setProfile(p, { ganttView: view }));
   const move = (course: CourseId, dir: 'up' | 'down') => {
     change(moveCourse(draft, course, dir === 'up' ? -1 : 1));
     setFocus({ course, dir });
@@ -138,7 +140,7 @@ export default function Plan({ progress, updateProgress, now = new Date() }: Pro
         </ol>
       </section>
 
-      <PlanGantt plan={{ courses: draft, start, days }} progress={progress} now={now} />
+      <PlanGantt plan={{ courses: draft, start, days }} progress={progress} now={now} view={progress.profile?.ganttView ?? { kind: 'all' }} onView={changeView} />
 
       <section className="plan__save" aria-label="保存">
         <p>
