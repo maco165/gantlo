@@ -176,7 +176,7 @@ npm run e2e     # 書き出してから、Playwright の Chromium で通しの�
 `main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
 ## まだ無いもの
 
-本物の問題、コースのレッスンの一覧は、これから作ります。メニューには「準備中」と出しています。用語集の「出てくるレッスン」は、いま main にあるレッスンだけを指しています。問題の PR が入ったら、[docs/content-format.md](docs/content-format.md) の手順でリンクを足します。
+コースのレッスンの一覧 (コースの画面) は、これから作ります。メニューのコースには「準備中」と出しています。問題を足したときに用語集の「出てくるレッスン」を足す手順は [docs/content-format.md](docs/content-format.md) にあります。
 
 ## ライセンス
 

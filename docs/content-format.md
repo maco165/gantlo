@@ -9,7 +9,7 @@ npm run check:content                      # 全部
 node scripts/check-content.mjs <ファイル>   # 1 つだけ
 ```
 
-`NG <ファイル> <id>: <理由>` の行が出たら、その id の問題を直します。CI も同じ検査を走らせます。見本は `src/content/courses/main/week1.json` です。
+`NG <ファイル> <id>: <理由>` の行が出たら、その id の問題を直します。CI も同じ検査を走らせます。見本は `tests/fixtures/check-content-sample.json` です (5 種類の問題を 1 問ずつ持つ、検査とテストのための見本。本物の問題データとは別のファイル)。
 
 ## 置き場所とファイル
 
@@ -54,6 +54,8 @@ node scripts/check-content.mjs <ファイル>   # 1 つだけ
 | `lab` | `expected` (手元で観察できること) |
 
 ## 種類ごとの欄と例
+
+下の例は、見本 (`tests/fixtures/check-content-sample.json`) の問題を短くしたものです。id (`main-w1-l1-q1`〜`q5`) は見本の中の id で、`src/content/courses/main/week1.json` の同じ id の問題とは中身が違います。
 
 ### command: コマンドの穴埋め
 
@@ -219,7 +221,7 @@ curl・dig・openssl のコマンドの 1 か所を埋めます。
 | `standard` | 11 の規格だけ | 学ぶ順の番号 (1〜11)。1 から 11 がそろうこと。10 は OAuth 2.0 と JWT の 2 語 |
 | `description` | 必須 | 短い説明 (1〜3 文)。出典の文を長く写さず、自分の言葉で書く |
 | `sources` | 必須 | 一次情報 (RFC・IANA・W3C / WHATWG・MDN・公式文書) の出典 `{ "label", "url" }` の配列 (1 つ以上、すべて `https://`)。RFC は `https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2` のように節まで指し、`label` は `RFC 9110 9.3.2` の形 |
-| `lessons` | 必須 | 語が出てくるレッスンの id の配列。**main にあるレッスンだけ**を書く。無ければ `[]` |
+| `lessons` | 必須 | 語が出てくるレッスンの id の配列。**問題データ (`src/content/courses`) に実在し、問題にその語が出てくるレッスンだけ**を書く (多くても 3 つ)。無ければ `[]` |
 
 ```json
 {
@@ -240,11 +242,11 @@ curl・dig・openssl のコマンドの 1 か所を埋めます。
 
 書く前に、出典を `curl -sL` で実際に開き、節の番号と用語を本文で確かめます。確かめられなかった語は載せません。
 
-### 問題の PR が入ったあとに、レッスンへのリンクを足す
+### 問題を足したあとに、レッスンへのリンクを足す
 
-語の `lessons` には main にあるレッスンしか書けません (無いレッスンを書くと検査が落ちる)。問題の PR がマージされたら、次の順で足します。
+語の `lessons` には、問題データに実在するレッスンしか書けません (無いレッスンを書くと検査が落ちる)。問題の PR がマージされたら、次の順で足します。
 
 1. main を取り込み、入ったレッスンの id を出す: `node -e "for (const f of require('fs').readdirSync('src/content/courses', { recursive: true })) if (f.endsWith('.json')) for (const l of require('./src/content/courses/' + f).lessons) console.log(l.id, l.title)"`
 2. 語ごとに、問題文・コード・解説にその語 (か別名) が出るレッスンを探す (例: `grep -l '"PUT' src/content/courses/*/*.json`)
 3. その語の `lessons` に id を足す。同じレッスンを 2 度書かない
-4. `npx vitest run tests/glossary.test.ts` が通ることを確かめる。問題の PR に無い語を見つけたら、上の手順で出典を確かめて語を足す
+4. `npx vitest run tests/glossary.test.ts` が通ることを確かめる。このテストは、書いたレッスンの問題 (出典を除く) にその語の名前か別名が出てくることも見る (検索と同じ形にそろえて比べる)。レッスンで別の言い方をしていれば (例: 三者間ハンドシェイク)、その言い方を `aliases` に足す。問題の PR に無い語を見つけたら、上の手順で出典を確かめて語を足す
