@@ -1,0 +1,469 @@
+{
+  "lessons": [
+    {
+      "id": "main-w3-l1",
+      "title": "REST の制約",
+      "course": "main",
+      "stage": "rest",
+      "questions": [
+        {
+          "id": "main-w3-l1-q1",
+          "kind": "order",
+          "prompt": "Fielding の論文の 5.1 は、何も制約の無い状態から制約を 1 つずつ足して REST を導きます。足していく順に並べてください。",
+          "items": [
+            { "id": "cs", "text": "クライアント・サーバー" },
+            { "id": "stateless", "text": "ステートレス" },
+            { "id": "cache", "text": "キャッシュ" },
+            { "id": "uniform", "text": "統一インターフェース" },
+            { "id": "layered", "text": "階層化システム" },
+            { "id": "cod", "text": "コード・オン・デマンド" }
+          ],
+          "answer": ["cs", "stateless", "cache", "uniform", "layered", "cod"],
+          "explanation": "5.1.1 の Null Style から始め、5.1.2 クライアント・サーバー、5.1.3 ステートレス、5.1.4 キャッシュ、5.1.5 統一インターフェース、5.1.6 階層化システム、5.1.7 コード・オン・デマンドの順に足します。5.1.7 は「最後に足す制約」と書かれています。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1"]
+        },
+        {
+          "id": "main-w3-l1-q2",
+          "kind": "choice",
+          "prompt": "REST のステートレスの制約が求めていることはどれですか。",
+          "choices": [
+            { "id": "a", "text": "各要求が、理解に要る情報をすべて持つ。セッションの状態はクライアントが持つ" },
+            { "id": "b", "text": "サーバーはデータベースに何も保存しない", "why": "ステートレスはやり取りの間の状態 (セッションの状態) の話で、資源のデータを保存しないという意味ではありません。" },
+            { "id": "c", "text": "サーバーがセッションを保ち、クライアントは ID だけを送る", "why": "これはサーバーに保った文脈に頼る形で、ステートレスの制約が禁じていることです。" },
+            { "id": "d", "text": "応答をキャッシュしてはいけない", "why": "キャッシュは別の制約 (5.1.4) で、むしろ使えるように足されます。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の 5.1.3 は、クライアントからサーバーへの各要求が理解に要る情報をすべて含み、サーバーに保存した文脈を使えないこと、したがってセッションの状態は完全にクライアントに置くことを求めています。引き換えに、毎回同じ情報を送る分だけ通信の効率が落ちることも書かれています。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_3"]
+        },
+        {
+          "id": "main-w3-l1-q3",
+          "kind": "choice",
+          "prompt": "REST の制約のうち、「任意 (optional)」とされているものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "コード・オン・デマンド" },
+            { "id": "b", "text": "ステートレス", "why": "ステートレスは REST を成す必須の制約です。" },
+            { "id": "c", "text": "統一インターフェース", "why": "統一インターフェースは、REST をほかのスタイルと分ける中心の特徴とされています (5.1.5)。" },
+            { "id": "d", "text": "キャッシュ", "why": "キャッシュは任意ではなく、応答にキャッシュできるかどうかの印を求める制約です。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の 5.1.7 は、アプレットやスクリプトをダウンロードして実行し、クライアントの機能を広げることを認める制約を説明し、見通し (visibility) を下げるので REST の中では任意の制約にすぎないと書いています。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_7"]
+        },
+        {
+          "id": "main-w3-l1-q4",
+          "kind": "choice",
+          "prompt": "統一インターフェースを成す 4 つの制約に入らないものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "資源ごとに専用の操作 (メソッド) を定めること" },
+            { "id": "b", "text": "資源の識別", "why": "4 つの制約の 1 つです。" },
+            { "id": "c", "text": "自己記述的なメッセージ", "why": "4 つの制約の 1 つです。" },
+            { "id": "d", "text": "アプリケーションの状態のエンジンとしてのハイパーメディア", "why": "4 つの制約の 1 つで、HATEOAS と略されることがあります。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の 5.1.5 は、統一インターフェースを資源の識別・表現を通した資源の操作・自己記述的なメッセージ・アプリケーションの状態のエンジンとしてのハイパーメディアの 4 つで定めています。資源ごとに専用の操作を作るのは、汎用のインターフェースにそろえるという考えの逆です。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_5"]
+        },
+        {
+          "id": "main-w3-l1-q5",
+          "kind": "choice",
+          "prompt": "REST のキャッシュの制約について正しいものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "応答のデータに、キャッシュしてよいかどうかの印を (暗に、または明示して) 付ける" },
+            { "id": "b", "text": "すべての応答をキャッシュしなければならない", "why": "求めているのは「できる・できない」の印で、全部をキャッシュすることではありません。" },
+            { "id": "c", "text": "キャッシュには欠点が無い", "why": "論文は、古いデータが残ると信頼性が下がり得るという引き換えを挙げています。" },
+            { "id": "d", "text": "キャッシュするかどうかはサーバーが毎回クライアントに問い合わせて決める", "why": "印が付いた応答なら、クライアントのキャッシュは後の同じ要求にその応答を使う権利を持ちます。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の 5.1.4 は、要求への応答のデータに、キャッシュできるかどうかの印を暗に、または明示して付けることを求めています。キャッシュできる応答なら、クライアントのキャッシュは後の同等の要求に再利用できます。古いデータによる信頼性の低下が引き換えです。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_4"]
+        },
+        {
+          "id": "main-w3-l1-q6",
+          "kind": "choice",
+          "prompt": "階層化システムの制約が、各部品に課すことはどれですか。",
+          "choices": [
+            { "id": "a", "text": "直接やり取りしている層より向こうを見られないようにする" },
+            { "id": "b", "text": "クライアントは必ずオリジンサーバーと直接つなぐ", "why": "逆で、間に代理 (プロキシ) や共有キャッシュを挟めるようにする制約です。" },
+            { "id": "c", "text": "層を足しても遅れは増えない", "why": "論文は、層が処理の手間と遅れを足すことを主な欠点として挙げています。" },
+            { "id": "d", "text": "すべての層が同じ組織に属する", "why": "組織の境目に共有キャッシュを置く例が挙げられており、同じ組織である必要はありません。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の 5.1.6 は、各部品がやり取りしているすぐ隣の層より向こうを「見られない」ように振る舞いを制約し、システム全体の複雑さに上限を置くと説明しています。仲介する部品で負荷分散や共有キャッシュ、組織の境目でのセキュリティの方針の適用ができます。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_6"]
+        }
+      ]
+    },
+    {
+      "id": "main-w3-l2",
+      "title": "資源・表現とメソッド",
+      "course": "main",
+      "stage": "rest",
+      "questions": [
+        {
+          "id": "main-w3-l2-q1",
+          "kind": "choice",
+          "prompt": "Fielding の論文は「資源 (resource)」をどう説明していますか。",
+          "choices": [
+            { "id": "a", "text": "名前を付けられる情報なら、何でも資源になり得る" },
+            { "id": "b", "text": "データベースのテーブルの 1 行のこと", "why": "資源は実装の形に縛られない概念で、文書・画像・「今日のロサンゼルスの天気」のような移り変わるものも資源です。" },
+            { "id": "c", "text": "サーバーに置いたファイルのこと", "why": "ファイルは資源の 1 つの例にすぎません。資源は実体ではなく、概念への対応づけです。" },
+            { "id": "d", "text": "送り合う JSON のバイト列そのもの", "why": "送り合うバイト列は資源の「表現 (representation)」です (5.2.1.2)。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の 5.2.1.1 は、REST の情報の中心の抽象を資源とし、名前を付けられる情報は何でも資源になり得ると書いています。資源はある時点の実体ではなく、実体の集まりへの概念上の対応づけです。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_2_1_1"]
+        },
+        {
+          "id": "main-w3-l2-q2",
+          "kind": "choice",
+          "prompt": "REST でいう「表現 (representation)」の説明として正しいものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "バイトの並びと、そのバイトを説明するメタデータ" },
+            { "id": "b", "text": "資源の URI のこと", "why": "URI は資源を識別するもの (resource identifier) で、表現とは別の要素です。" },
+            { "id": "c", "text": "画面に表示した結果だけのこと", "why": "表現には、機械が処理するためのもの (JSON など) も含まれます。" },
+            { "id": "d", "text": "資源ごとに 1 つだけ決まっているもの", "why": "1 つの資源が複数の表現を持つことがあり、そのときは内容交渉で選びます。" }
+          ],
+          "answer": "a",
+          "explanation": "論文の 5.2.1.2 は、表現をバイトの並びと、そのバイトを説明する表現のメタデータからなるものとし、表現のデータの形式をメディアタイプと呼んでいます。資源の今の状態や、望む状態を表現で運びます。",
+          "sources": ["https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_2_1_2"]
+        },
+        {
+          "id": "main-w3-l2-q3",
+          "kind": "http",
+          "format": "http",
+          "prompt": "利用者 42 番の資源を、送る表現の内容で丸ごと置き換えたい。メソッドを埋めてください。",
+          "code": "{{blank}} /users/42 HTTP/1.1\nHost: api.example.com\nContent-Type: application/json\n\n{\"name\": \"Hanako\", \"email\": \"hanako@example.com\"}",
+          "blanks": [{ "answers": ["PUT"] }],
+          "explanation": "RFC 9110 の 9.3.4 は、PUT を、対象の資源の状態を送った表現の状態で作るか置き換えるよう求めるメソッドと定めています。メソッド名は大文字と小文字を区別します (RFC 9110 9.1)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.4",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-9.1"
+          ]
+        },
+        {
+          "id": "main-w3-l2-q4",
+          "kind": "choice",
+          "prompt": "RFC 9110 で冪等 (同じ要求を何回送っても、1 回送ったのと同じ効果) とされていないメソッドはどれですか。",
+          "choices": [
+            { "id": "a", "text": "POST" },
+            { "id": "b", "text": "PUT", "why": "PUT は同じ表現で何回置き換えても結果は同じで、冪等です。" },
+            { "id": "c", "text": "DELETE", "why": "DELETE は冪等です。2 回目の応答が 404 になるなど応答は違っても、意図した効果は同じです。" },
+            { "id": "d", "text": "GET", "why": "GET は安全なメソッドで、安全なメソッドはすべて冪等です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9110 の 9.2.2 は、この仕様のメソッドのうち PUT・DELETE と安全なメソッドを冪等としています。冪等なメソッドは、応答を読む前に接続が切れても自動で送り直せます。冪等でないメソッドは、冪等だと知る手段が無ければ自動で送り直すべきではありません (SHOULD NOT)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2"]
+        },
+        {
+          "id": "main-w3-l2-q5",
+          "kind": "http",
+          "format": "http",
+          "prompt": "POST /users で新しい利用者を作り終えました。作った資源の場所を伝えるヘッダー名を埋めてください。",
+          "code": "HTTP/1.1 201 Created\n{{blank}}: /users/43\nContent-Type: application/json\n\n{\"id\": 43, \"name\": \"Taro\"}",
+          "blanks": [{ "answers": ["Location"], "match": "header-name" }],
+          "explanation": "Location ヘッダーは、応答に関係する特定の資源を指します (RFC 9110 10.2.2)。201 の応答では、作った資源を Location で示せます (15.3.2)。値が相対参照なら、対象の URI を基準に解決します。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.2",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.3.2"
+          ]
+        },
+        {
+          "id": "main-w3-l2-q6",
+          "kind": "choice",
+          "prompt": "RFC 9110 で「安全 (safe)」とされているメソッドの組はどれですか。",
+          "choices": [
+            { "id": "a", "text": "GET・HEAD・OPTIONS・TRACE" },
+            { "id": "b", "text": "GET・POST", "why": "POST は資源の状態を変えることを頼むメソッドで、安全ではありません。" },
+            { "id": "c", "text": "GET・PUT・DELETE", "why": "PUT と DELETE は冪等ですが、状態を変えるので安全ではありません。" },
+            { "id": "d", "text": "GET だけ", "why": "HEAD・OPTIONS・TRACE も安全とされています。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9110 の 9.2.1 は、この仕様のメソッドのうち GET・HEAD・OPTIONS・TRACE を安全と定めています。安全とは、クライアントがサーバーの状態を変えることを頼まず、そう期待もしないという意味です。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-9.2.1"]
+        }
+      ]
+    },
+    {
+      "id": "main-w3-l3",
+      "title": "OpenAPI で仕様を書く",
+      "course": "main",
+      "stage": "rest",
+      "questions": [
+        {
+          "id": "main-w3-l3-q1",
+          "kind": "http",
+          "format": "json",
+          "prompt": "OpenAPI の文書の先頭です。この文書が使う OpenAPI Specification の版を書く欄の名前を埋めてください。",
+          "code": "{\n  \"{{blank}}\": \"3.2.0\",\n  \"info\": { \"title\": \"Users API\", \"version\": \"1.0.0\" },\n  \"paths\": {}\n}",
+          "blanks": [{ "answers": ["openapi"] }],
+          "explanation": "OpenAPI Object の openapi は必須 (REQUIRED) の欄で、文書が使う OpenAPI Specification の版の番号でなければなりません (MUST)。info も必須で、components・paths・webhooks のうち少なくとも 1 つが要ります (MUST)。",
+          "sources": ["https://spec.openapis.org/oas/latest.html#openapi-object"]
+        },
+        {
+          "id": "main-w3-l3-q2",
+          "kind": "choice",
+          "prompt": "info の中の version (上の例では \"1.0.0\") が表すものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "この OpenAPI の文書の版" },
+            { "id": "b", "text": "OpenAPI Specification の版", "why": "仕様の版は、文書の先頭の openapi の欄に書きます。" },
+            { "id": "c", "text": "API を動かすサーバーのソフトウェアの版", "why": "サーバーのソフトウェアの版を書く欄ではありません。" },
+            { "id": "d", "text": "使う HTTP の版", "why": "HTTP の版は OpenAPI の info には書きません。" }
+          ],
+          "answer": "a",
+          "explanation": "Info Object の version は必須 (REQUIRED) で、OpenAPI の文書の版を表し、OpenAPI Specification の版とも、記述している API の版とも別だと書かれています。openapi の欄の説明も、info.version とは関係が無いと念を押しています。",
+          "sources": [
+            "https://spec.openapis.org/oas/latest.html#info-object",
+            "https://spec.openapis.org/oas/latest.html#openapi-object"
+          ]
+        },
+        {
+          "id": "main-w3-l3-q3",
+          "kind": "http",
+          "format": "json",
+          "prompt": "/users/{id} の {id} を表す Parameter Object です。場所 (in) と、required の値を埋めてください。",
+          "code": "{\n  \"name\": \"id\",\n  \"in\": \"{{blank}}\",\n  \"required\": {{blank}},\n  \"schema\": { \"type\": \"integer\" }\n}",
+          "blanks": [{ "answers": ["path"] }, { "answers": ["true"] }],
+          "explanation": "URL の一部になる値は、in を path にします (Parameter Locations)。in が path のとき、required は必須 (REQUIRED) で、値は true でなければなりません (MUST)。ほかの場所では required の既定は false です。",
+          "sources": [
+            "https://spec.openapis.org/oas/latest.html#parameter-locations",
+            "https://spec.openapis.org/oas/latest.html#parameter-object"
+          ]
+        },
+        {
+          "id": "main-w3-l3-q4",
+          "kind": "choice",
+          "prompt": "Responses Object で、個別に書いていないステータスコードの応答をまとめて記述する欄はどれですか。",
+          "choices": [
+            { "id": "a", "text": "default" },
+            { "id": "b", "text": "4XX", "why": "4XX は 400〜499 の範囲だけを表す書き方で、ほかの範囲は含みません。" },
+            { "id": "c", "text": "error", "why": "Responses Object に error という決まった欄はありません。" },
+            { "id": "d", "text": "*", "why": "範囲を表す文字は大文字の X で、* は使いません。" }
+          ],
+          "answer": "a",
+          "explanation": "Responses Object の default は、個別のステータスコードで宣言していない応答を記述する欄です。範囲は 1XX〜5XX のように大文字の X で書けます。Responses Object は少なくとも 1 つの応答のコードを持たなければなりません (MUST)。",
+          "sources": ["https://spec.openapis.org/oas/latest.html#responses-object"]
+        },
+        {
+          "id": "main-w3-l3-q5",
+          "kind": "choice",
+          "prompt": "YAML で Responses Object を書くとき、ステータスコード 200 の鍵の書き方として仕様が求めるものはどれですか。",
+          "choices": [
+            { "id": "a", "text": "\"200\" のように文字列にする" },
+            { "id": "b", "text": "200 のように数として書く", "why": "仕様は JSON と YAML の互換のために、文字列で表すことを求めています (MUST)。" },
+            { "id": "c", "text": "OK のように理由の句で書く", "why": "鍵はステータスコードで、理由の句ではありません。" },
+            { "id": "d", "text": "status200 のように接頭辞を付ける", "why": "そのような決まりはありません。" }
+          ],
+          "answer": "a",
+          "explanation": "Responses Object の HTTP Status Code の欄は、JSON と YAML の互換のために文字列で表さなければなりません (MUST)。仕様は例として、YAML では 200 を引用符で囲むと書いています。",
+          "sources": ["https://spec.openapis.org/oas/latest.html#responses-object"]
+        },
+        {
+          "id": "main-w3-l3-q6",
+          "kind": "choice",
+          "prompt": "\"$ref\": \"#/components/schemas/User\" と書いたときの意味はどれですか。",
+          "code": {
+            "format": "json",
+            "text": "\"content\": {\n  \"application/json\": {\n    \"schema\": { \"$ref\": \"#/components/schemas/User\" }\n  }\n}"
+          },
+          "choices": [
+            { "id": "a", "text": "同じ文書の components の schemas に定めた User を参照して使う" },
+            { "id": "b", "text": "User という名前の外部のファイルを読み込む", "why": "# から始まるのは、同じ文書の中の場所を指す参照です。" },
+            { "id": "c", "text": "応答の中に User という欄を足す", "why": "$ref は欄を足すのではなく、ほかの場所の定義を参照します。" },
+            { "id": "d", "text": "コメントで、処理には影響しない", "why": "$ref は参照の識別子で、ツールはこれをたどって定義を使います。" }
+          ],
+          "answer": "a",
+          "explanation": "Media Type Object の schema は Schema Object で、Schema Object は既定では JSON Schema (Draft 2020-12) の上位集合です。その中の $ref は JSON Schema の参照のキーワードで、ここでは同じ文書の components の schemas に置いた User を指します。仕様は、Reference Object と、$ref を持つ Schema Object は別物だと注意しています。Components Object は、文書の中で使い回すオブジェクトを置く場所です。",
+          "sources": [
+            "https://spec.openapis.org/oas/latest.html#schema-object",
+            "https://spec.openapis.org/oas/latest.html#media-type-object",
+            "https://spec.openapis.org/oas/latest.html#reference-object",
+            "https://spec.openapis.org/oas/latest.html#components-object"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-w3-l4",
+      "title": "エラーをどう返すか",
+      "course": "main",
+      "stage": "rest",
+      "questions": [
+        {
+          "id": "main-w3-l4-q1",
+          "kind": "choice",
+          "prompt": "DELETE を受け付けない資源に DELETE が来ました。405 Method Not Allowed を返すときに、必ず付けるヘッダーはどれですか。",
+          "choices": [
+            { "id": "a", "text": "Allow" },
+            { "id": "b", "text": "Location", "why": "Location は応答に関係する資源の場所を指すヘッダーです。" },
+            { "id": "c", "text": "WWW-Authenticate", "why": "WWW-Authenticate は 401 で必ず付けるヘッダーです。" },
+            { "id": "d", "text": "Retry-After", "why": "Retry-After は、どれだけ待ってから送り直すとよいかを伝えるヘッダーです。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9110 の 15.5.6 は、オリジンサーバーが 405 の応答に、対象の資源が今受け付けるメソッドの一覧を入れた Allow ヘッダーを付けなければならない (MUST) としています。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.5.6"]
+        },
+        {
+          "id": "main-w3-l4-q2",
+          "kind": "http",
+          "format": "http",
+          "prompt": "JSON しか受け付けない API に、XML の本文が送られてきました。ステータスコードを埋めてください (数字 3 桁)。",
+          "code": "POST /users HTTP/1.1\nHost: api.example.com\nContent-Type: application/xml\n\n<user><name>Taro</name></user>\n\nHTTP/1.1 {{blank}} Unsupported Media Type",
+          "blanks": [{ "answers": ["415"] }],
+          "explanation": "RFC 9110 の 15.5.16 は、415 (Unsupported Media Type) を、本文がこのメソッドと対象の資源で扱えない形式なので断ることを表すコードと定めています。原因が Content-Type や Content-Encoding の場合があります。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.5.16"]
+        },
+        {
+          "id": "main-w3-l4-q3",
+          "kind": "choice",
+          "prompt": "Content-Type は application/json で、JSON の構文も正しい。けれども中の指示を処理できない (例: 必須の値が足りない) とき、RFC 9110 の定義にいちばん合うステータスコードはどれですか。",
+          "choices": [
+            { "id": "a", "text": "422 Unprocessable Content" },
+            { "id": "b", "text": "415 Unsupported Media Type", "why": "形式 (Content-Type) は理解できているので、415 は当てはまらないと RFC 9110 自身が書いています。" },
+            { "id": "c", "text": "405 Method Not Allowed", "why": "メソッドは受け付けています。問題は本文の中身です。" },
+            { "id": "d", "text": "500 Internal Server Error", "why": "サーバーの側の思いがけない失敗を表すコードで、要求の中身の誤りには使いません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9110 の 15.5.21 は、422 を、サーバーが本文のメディアタイプを理解し (だから 415 は不適切)、構文も正しいが、中の指示を処理できなかったことを表すコードと定めています。構文が壊れているときは 400 が使えます (15.5.1)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.21",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1"
+          ]
+        },
+        {
+          "id": "main-w3-l4-q4",
+          "kind": "http",
+          "format": "http",
+          "prompt": "RFC 9457 の Problem Details でエラーを返します。メディアタイプと、ステータスコードを入れる欄の名前を埋めてください。",
+          "code": "HTTP/1.1 403 Forbidden\nContent-Type: {{blank}}\n\n{\n  \"type\": \"https://example.com/probs/out-of-credit\",\n  \"title\": \"You do not have enough credit.\",\n  \"{{blank}}\": 403\n}",
+          "blanks": [
+            { "answers": ["application/problem+json"], "match": "media-type" },
+            { "answers": ["status"] }
+          ],
+          "explanation": "RFC 9457 の 3 節は、Problem Details を JSON で表すときのメディアタイプを application/problem+json としています。3.1 は欄として type・status・title・detail・instance を定め、status は問題が起きたときにオリジンサーバーが出したステータスコードです (3.1.2)。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9457#section-3",
+            "https://www.rfc-editor.org/rfc/rfc9457#section-3.1.2"
+          ]
+        },
+        {
+          "id": "main-w3-l4-q5",
+          "kind": "choice",
+          "prompt": "PUT で資源を書き換えようとしたら、ほかの人が先に書き換えていて、資源の今の状態とぶつかりました。合うステータスコードはどれですか。",
+          "choices": [
+            { "id": "a", "text": "409 Conflict" },
+            { "id": "b", "text": "403 Forbidden", "why": "403 はサーバーが要求を理解した上で断ることを表し、状態のぶつかりを表すコードではありません。" },
+            { "id": "c", "text": "404 Not Found", "why": "資源は存在しています。" },
+            { "id": "d", "text": "201 Created", "why": "書き換えは完了していないので、成功のコードは返せません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9110 の 15.5.10 は、409 を、対象の資源の今の状態とぶつかって要求を完了できないことを表すコードとし、PUT で起きやすいと書いています。サーバーは、ぶつかった原因が分かる内容を返すべきです (SHOULD)。",
+          "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.5.10"]
+        },
+        {
+          "id": "main-w3-l4-q6",
+          "kind": "choice",
+          "prompt": "認証の情報が付いていない要求に返し、WWW-Authenticate ヘッダーを必ず付けるステータスコードはどれですか。",
+          "choices": [
+            { "id": "a", "text": "401 Unauthorized" },
+            { "id": "b", "text": "403 Forbidden", "why": "403 は理解した上で断るコードで、WWW-Authenticate を付ける決まりはありません。" },
+            { "id": "c", "text": "400 Bad Request", "why": "400 は要求そのものの誤りを表すコードです。" },
+            { "id": "d", "text": "407 Proxy Authentication Required", "why": "407 は代理 (プロキシ) での認証が要るときのコードで、付けるのは Proxy-Authenticate です。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9110 の 15.5.2 は、401 を有効な認証の情報が無いため要求を適用しなかったことを表すコードとし、少なくとも 1 つのチャレンジを入れた WWW-Authenticate を送らなければならない (MUST) としています。403 (15.5.4) は、理解した上で断ることを表します。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.2",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.4"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "main-w3-l5",
+      "title": "実習: 公開 API の設計を読み、仕様を書く",
+      "course": "main",
+      "stage": "rest",
+      "questions": [
+        {
+          "id": "main-w3-l5-q1",
+          "kind": "lab",
+          "prompt": "GitHub の REST API の公開の資源を 1 回だけ取り、応答のヘッダーを読んでください (認証なしで試せます)。",
+          "steps": [
+            { "text": "端末で次を打つ", "command": "curl -i https://api.github.com/users/octocat" },
+            { "text": "content-type・cache-control・etag の行を探す" },
+            { "text": "本文の JSON の中で、値が https://api.github.com/ で始まる欄 (followers_url など) を探す" }
+          ],
+          "expected": "1 行目に HTTP/2 200、ヘッダーに content-type: application/json; charset=utf-8、cache-control: public, max-age=60 のような行、etag の行が出ます。本文には、関係する資源の URL を入れた欄がいくつも並びます。値は時期によって違います。",
+          "explanation": "-i は応答のヘッダーも出します (curl の -i の説明)。キャッシュできるかの印 (cache-control) は REST のキャッシュの制約 (論文 5.1.4) に、本文の中の URL はハイパーメディア (5.1.5) の考えに対応します。",
+          "sources": [
+            "https://curl.se/docs/manpage.html",
+            "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_4"
+          ]
+        },
+        {
+          "id": "main-w3-l5-q2",
+          "kind": "lab",
+          "prompt": "前の実習の etag の値を使って、条件付きの GET を 1 回だけ送ってください。",
+          "steps": [
+            { "text": "前の応答の etag の値 (引用符と W/ を含めて全部) を写す" },
+            { "text": "写した値を If-None-Match に入れて送る", "command": "curl -i -H 'If-None-Match: <写した etag の値>' https://api.github.com/users/octocat" }
+          ],
+          "expected": "資源が変わっていなければ、1 行目が HTTP/2 304 になり、本文は返ってきません。",
+          "explanation": "If-None-Match に持っている表現の ETag を入れて送ると、サーバーは変わっていなければ 304 Not Modified を返します (RFC 9110 13.1.2・15.4.5)。GitHub の文書も、etag を使った条件付きの要求を勧めています。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9110#section-13.1.2",
+            "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.5",
+            "https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api#use-conditional-requests"
+          ]
+        },
+        {
+          "id": "main-w3-l5-q3",
+          "kind": "lab",
+          "prompt": "利用者を 1 件取る API の OpenAPI の文書を手元で書き、JSON として読めるかを確かめてください。",
+          "steps": [
+            { "text": "openapi.json を作り、openapi・info (title と version)・paths を書く。paths に /users/{id} の get を置き、in が path の id と、200 と default の応答を書く" },
+            { "text": "JSON として読めるかを確かめる", "command": "python3 -m json.tool openapi.json" }
+          ],
+          "expected": "構文が正しければ、整形した JSON がそのまま出ます。カンマや括弧が足りないと、行と列の番号つきのエラーが出ます。必須の欄がそろっているか (openapi・info.title・info.version、path の引数の required: true) は、仕様の表と見比べて確かめます。",
+          "explanation": "python3 -m json.tool は JSON を検証して整形するコマンドです (Python の json.tool の説明)。必須の欄は OpenAPI Object・Info Object・Parameter Object の表で REQUIRED と書かれたものです。",
+          "sources": [
+            "https://docs.python.org/3/library/json.html#module-json.tool",
+            "https://spec.openapis.org/oas/latest.html#openapi-object"
+          ]
+        },
+        {
+          "id": "main-w3-l5-q4",
+          "kind": "lab",
+          "prompt": "springdoc-openapi を入れた Spring Boot の API が手元にあれば、作られた OpenAPI の文書を見てください (手元のアプリだけで試します)。",
+          "steps": [
+            { "text": "起動する前に ss -ltn で 8080 番が空いていることを確かめる。ほかのサービスが使っていたら、自分のアプリを別の番号で起動し、以降の 8080 をその番号に読み替える", "command": "ss -ltn" },
+            { "text": "自分の Spring Boot のアプリを起動する (依存に springdoc-openapi-starter-webmvc-ui を入れる)。以降の要求は、自分で起動したこのアプリにだけ送る" },
+            { "text": "OpenAPI の文書 (JSON) を取る", "command": "curl -s http://localhost:8080/v3/api-docs | python3 -m json.tool" },
+            { "text": "ブラウザで http://localhost:8080/swagger-ui.html を開き、同じ API が Swagger UI に出ることを見る" }
+          ],
+          "expected": "openapi・info・paths を持つ JSON が出ます。paths には、コントローラーに書いた URL とメソッドが並びます。Swagger UI の画面からも同じ操作を試せます。",
+          "explanation": "springdoc-openapi の文書は、既定で OpenAPI の文書を /v3/api-docs (YAML は /v3/api-docs.yaml) に、Swagger UI を /swagger-ui.html に出すと書いています。",
+          "sources": ["https://springdoc.org/"]
+        },
+        {
+          "id": "main-w3-l5-q5",
+          "kind": "choice",
+          "prompt": "実習 1 の応答に cache-control: public, max-age=60 とありました。この印が伝えることはどれですか。",
+          "choices": [
+            { "id": "a", "text": "共有のキャッシュも保存してよく、60 秒を過ぎると古い (stale) とみなす" },
+            { "id": "b", "text": "60 秒の間は API を呼び出してはいけない", "why": "呼び出しの制限ではなく、キャッシュに保存した応答の扱いを伝える印です。" },
+            { "id": "c", "text": "60 秒後にサーバーが資源を消す", "why": "資源の寿命ではなく、保存した応答が新しいとみなせる長さです。" },
+            { "id": "d", "text": "認証なしで誰でも資源を書き換えられる", "why": "public はキャッシュに保存してよいという印で、書き込みの権限とは関係がありません。" }
+          ],
+          "answer": "a",
+          "explanation": "RFC 9111 の 5.2.2.1 は、max-age を、応答の経過時間が指定の秒数を超えたら古いとみなすことを示す指示とし、5.2.2.9 は public を、キャッシュが保存してよいことを明示する印としています。キャッシュできるかどうかの印は、REST のキャッシュの制約 (論文 5.1.4) を HTTP で実現したものです。",
+          "sources": [
+            "https://www.rfc-editor.org/rfc/rfc9111#section-5.2.2.1",
+            "https://www.rfc-editor.org/rfc/rfc9111#section-5.2.2.9"
+          ]
+        }
+      ]
+    }
+  ]
+}
