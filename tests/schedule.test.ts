@@ -16,6 +16,7 @@ import {
 import type { CourseId } from '../src/lib/route';
 import {
   DAYS_PER_LESSON,
+  MAX_TICKS,
   addMonths,
   axisTicks,
   buildSchedule,
@@ -30,7 +31,7 @@ import {
   verdictLabel,
   verdictTone,
 } from '../src/lib/schedule';
-import type { GanttView } from '../src/lib/progress';
+import { MAX_RANGE_DAYS, normalizeGanttView, rangeDays, rangeProblem, type GanttView } from '../src/lib/progress';
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = { ...initial };
@@ -431,5 +432,47 @@ describe('#33 のレビューの直し (W-002・W-003)', () => {
     expect(setCourseDays(undefined, 'main', 366, 4)).toEqual({});
     // 外したあとは保存しても days を持たない
     expect(savePlan(emptyProgress(), ['main'], { start: '2026-11-23', days: setCourseDays({ main: 9 }, 'main', 4, 4) })!.plan).toEqual({ courses: ['main'], start: '2026-11-23' });
+  });
+});
+
+describe('指定の期間の長さの上限と目盛りの数 (#36 のレビュー X-001)', () => {
+  it('指定は 2 年 (両端を含む 731 日) まで。空・逆順・長すぎるを分けて返す', () => {
+    expect(MAX_RANGE_DAYS).toBe(731);
+    expect(rangeDays('2026-11-25', '2026-11-25')).toBe(1);
+    expect(rangeProblem('2026-01-01', '2027-12-31')).toBeNull(); // 730 日
+    expect(rangeProblem('2027-01-01', '2028-12-31')).toBeNull(); // うるう年を含む 731 日
+    expect(rangeProblem('2027-01-01', '2029-01-01')).toBe('long'); // 732 日
+    expect(rangeProblem('2026-11-25', '3026-11-25')).toBe('long');
+    expect(rangeProblem('2026-12-01', '2026-11-30')).toBe('order');
+    expect(rangeProblem('', '2026-11-30')).toBe('empty');
+    expect(rangeProblem('2026-12-01', '')).toBe('empty');
+  });
+
+  it('読み込んだ記録や保存した設定の指定が 2 年を超えていれば落とし、全体に戻す', () => {
+    expect(normalizeGanttView({ kind: 'range', from: '2027-01-01', to: '2028-12-31' })).toEqual({ kind: 'range', from: '2027-01-01', to: '2028-12-31' });
+    expect(normalizeGanttView({ kind: 'range', from: '2026-11-25', to: '3026-11-25' })).toBeNull();
+    const raw = { ...emptyProgress(), profile: { dailyGoalXp: 30, ganttView: { kind: 'range', from: '2026-11-25', to: '3026-11-25' } } };
+    const p = loadProgress(memoryStorage({ [STORAGE_KEY]: JSON.stringify(raw) }));
+    expect(p.profile).toEqual({ dailyGoalXp: 30 });
+    const text = JSON.stringify(raw);
+    const r = parseImport(text, text.length);
+    expect(r.ok && r.progress.profile?.ganttView).toBeUndefined();
+  });
+
+  it(`目盛りが ${200} 本を超える長い軸では、週の頭を描かず月の境だけにする`, () => {
+    expect(MAX_TICKS).toBe(200);
+    // 2 年なら週の頭と月の境で 200 本に収まる
+    const two = axisTicks('2027-01-01', 731);
+    expect(two.length).toBeLessThanOrEqual(MAX_TICKS);
+    expect(two.some((t) => t.kind === 'week')).toBe(true);
+    // 5 年 (目安の日数を長くした全体の軸) なら月の境だけ
+    const five = axisTicks('2026-01-01', 1826);
+    expect(five.every((t) => t.kind === 'month')).toBe(true);
+    expect(five).toHaveLength(60);
+    // 全体の期間でも同じ (5 コースを 365 日ずつにした計画)
+    const days = { main: 365, spring: 365, security: 365 } as const;
+    const s = buildSchedule({ courses: ['main', 'spring', 'security'], start: '2026-11-23', days }, emptyProgress(), noon('2026-11-23'), SAMPLE);
+    expect(s.axisDays).toBe(1095);
+    expect(s.ticks.length).toBeLessThanOrEqual(MAX_TICKS);
   });
 });

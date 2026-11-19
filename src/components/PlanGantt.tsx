@@ -3,7 +3,7 @@ import { Text } from '@astryxdesign/core/Text';
 import { useState } from 'react';
 import StatusLine from './StatusLine';
 import { currentLesson } from '../lib/plan';
-import { addDays, dayKey, isValidDay, type GanttView, type Progress } from '../lib/progress';
+import { MAX_RANGE_DAYS, addDays, dayKey, rangeProblem, type GanttView, type Progress } from '../lib/progress';
 import { lessonHref } from '../lib/route';
 import { buildSchedule, labelTicks, scheduleStatus, verdictLabel, verdictTone, type ScheduleInput } from '../lib/schedule';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
@@ -24,6 +24,15 @@ const VIEWS: readonly { kind: GanttView['kind']; label: string }[] = [
  */
 const TICK_GAP = { narrow: 18, wide: 12 };
 
+/** 指定の期間の誤りごとの補助の文 */
+const RANGE_HELP = {
+  empty: '始まりと終わりの日付を入れてください。',
+  order: '終わりの日は始まりの日と同じかあとにしてください。',
+  long: `期間は 2 年 (${MAX_RANGE_DAYS} 日) までにしてください。`,
+} as const;
+
+const minDay = (a: string, b: string) => (a < b ? a : b);
+
 type Props = { plan: ScheduleInput; progress: Progress; now: Date; view: GanttView; onView: (v: GanttView) => void };
 
 /**
@@ -40,14 +49,16 @@ export default function PlanGantt({ plan, progress, now, view, onView }: Props) 
   const tone = verdictTone(s.verdict);
   const gap = wide ? TICK_GAP.wide : TICK_GAP.narrow;
   const ticks = labelTicks(s.ticks, gap);
-  // 日付の指定の入力の途中 (終わりが始まりより前など) は、ここに持って知らせる
+  // 日付の指定の入力の途中 (空・終わりが始まりより前・2 年を超えるなど) は、ここに持って知らせ、軸は変えない
   const [range, setRange] = useState(() => (view.kind === 'range' ? { from: view.from, to: view.to } : null));
   const rangeFrom = range?.from ?? s.start;
-  const rangeTo = range?.to ?? s.end ?? addDays(s.start, 13);
-  const rangeInvalid = !isValidDay(rangeFrom) || !isValidDay(rangeTo) || rangeFrom > rangeTo;
+  // 初めて指定を選んだときは開始日から予定の終わりまで。ただし 2 年を超えるなら 2 年まで
+  const rangeTo = range?.to ?? minDay(s.end ?? addDays(s.start, 13), addDays(s.start, MAX_RANGE_DAYS - 1));
+  const problem = rangeProblem(rangeFrom, rangeTo);
+  const rangeInvalid = problem !== null;
   const changeRange = (from: string, to: string) => {
     setRange({ from, to });
-    if (isValidDay(from) && isValidDay(to) && from <= to) onView({ kind: 'range', from, to });
+    if (rangeProblem(from, to) === null) onView({ kind: 'range', from, to });
   };
   const choose = (kind: string) => {
     if (kind === 'range') changeRange(rangeFrom, rangeTo);
@@ -115,7 +126,7 @@ export default function PlanGantt({ plan, progress, now, view, onView }: Props) 
                 </span>
                 {rangeInvalid && (
                   <span id="gantt-range-error" className="plan__error">
-                    終わりの日は始まりの日と同じかあとにしてください。今は {s.axisStart}〜{s.axisEnd} を出しています
+                    {RANGE_HELP[problem!]}今は {s.axisStart}〜{s.axisEnd} を出しています
                   </span>
                 )}
               </p>

@@ -4,7 +4,7 @@
 import { LESSONS } from '../content/index';
 import type { Lesson } from '../content/types';
 import { currentLesson, isDone, planOrder } from './plan';
-import { addDays, dayKey, isCourseDays, type GanttView, type Plan, type Progress } from './progress';
+import { addDays, dayKey, isCourseDays, rangeDays, type GanttView, type Plan, type Progress } from './progress';
 import { COURSES, type CourseId } from './route';
 import type { Status } from './status';
 
@@ -30,11 +30,7 @@ export function courseDays(days: Plan['days'], course: CourseId, lessonCount: nu
 
 /** a から b までの日数 (b が後なら正)。暦の日付どうしを UTC の 0 時に置いて引くので、夏時間の 23・25 時間の日でもずれない */
 export function daysBetween(a: string, b: string): number {
-  const utc = (d: string) => {
-    const [y, m, day] = d.split('-').map(Number);
-    return Date.UTC(y, m - 1, day);
-  };
-  return Math.round((utc(b) - utc(a)) / 86_400_000);
+  return rangeDays(a, b) - 1;
 }
 
 /**
@@ -142,8 +138,19 @@ export function viewRange(view: GanttView, start: string, totalDays: number, tod
   }
 }
 
-/** 目盛り: 期間の中の週の頭 (月曜) と月の境 (1 日)。1 日が月曜なら月の境として 1 本だけ。字は「11/23」、月の境は「12月」(1 月は年も) */
+/** 目盛りの数の上限。超えるときは週の頭を描かず、月の境だけにする (長い全体の期間で、線が多すぎて画面が重くならないように) */
+export const MAX_TICKS = 200;
+
+/**
+ * 目盛り: 期間の中の週の頭 (月曜) と月の境 (1 日)。1 日が月曜なら月の境として 1 本だけ。字は「11/23」、月の境は「12月」(1 月は年も)。
+ * 合わせて MAX_TICKS 本を超えるときは月の境だけにする
+ */
 export function axisTicks(from: string, days: number): Tick[] {
+  const out = allTicks(from, days);
+  return out.length > MAX_TICKS ? out.filter((t) => t.kind === 'month') : out;
+}
+
+function allTicks(from: string, days: number): Tick[] {
   const out: Tick[] = [];
   for (let i = 0; i < days; i++) {
     const day = addDays(from, i);

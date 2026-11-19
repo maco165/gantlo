@@ -38,11 +38,34 @@ export const GANTT_VIEW_KINDS = ['all', '2w', '1m', 'range'] as const;
 
 export type Profile = { dailyGoalXp: number; ganttView?: GanttView };
 
-/** 読んだ値が表示する期間の形か。range は実在する日付で from <= to のものだけ */
+/**
+ * 指定できる期間の長さの上限 (両端を含む日数)。2 年 (うるう年を含む 731 日)。
+ * 年の打ち間違い (2026 → 3026 など) や読み込んだ記録で何百年もの軸になると、目盛りと線が何万本にもなって画面が固まるため
+ */
+export const MAX_RANGE_DAYS = 731;
+
+/** 指定の期間の両端を含む日数。暦の日付どうしを UTC の 0 時に置いて数える */
+export function rangeDays(from: string, to: string): number {
+  const utc = (d: string) => {
+    const [y, m, day] = d.split('-').map(Number);
+    return Date.UTC(y, m - 1, day);
+  };
+  return Math.round((utc(to) - utc(from)) / 86_400_000) + 1;
+}
+
+/** 指定の期間の誤り。日付が空か実在しない (empty)・終わりが始まりより前 (order)・2 年を超える (long)。正しければ null */
+export function rangeProblem(from: unknown, to: unknown): 'empty' | 'order' | 'long' | null {
+  if (!isValidDay(from) || !isValidDay(to)) return 'empty';
+  if (from > to) return 'order';
+  if (rangeDays(from, to) > MAX_RANGE_DAYS) return 'long';
+  return null;
+}
+
+/** 読んだ値が表示する期間の形か。range は rangeProblem の無いものだけ (2 年を超えるものは落とし、全体に戻す) */
 export function normalizeGanttView(v: unknown): GanttView | null {
   if (!isObject(v)) return null;
   if (v.kind === 'all' || v.kind === '2w' || v.kind === '1m') return { kind: v.kind };
-  if (v.kind === 'range' && isValidDay(v.from) && isValidDay(v.to) && v.from <= v.to) return { kind: 'range', from: v.from, to: v.to };
+  if (v.kind === 'range' && rangeProblem(v.from, v.to) === null) return { kind: 'range', from: v.from as string, to: v.to as string };
   return null;
 }
 
