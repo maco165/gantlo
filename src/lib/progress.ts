@@ -29,7 +29,45 @@ export const isCourseDays = (v: unknown): v is number =>
   typeof v === 'number' && Number.isInteger(v) && v >= MIN_COURSE_DAYS && v <= MAX_COURSE_DAYS;
 
 /** 設定。無ければ既定の値を使う */
-export type Profile = { dailyGoalXp: number };
+/**
+ * ガントチャートの表示する期間 (R-21)。全体・今日から 2 週・今日から 1 か月・日付の指定 (from〜to、両端を含む)。
+ * 表示の好みなので計画 (plan) ではなく設定 (profile) に置き、選んだらすぐ保存する
+ */
+export type GanttView = { kind: 'all' } | { kind: '2w' } | { kind: '1m' } | { kind: 'range'; from: string; to: string };
+export const GANTT_VIEW_KINDS = ['all', '2w', '1m', 'range'] as const;
+
+export type Profile = { dailyGoalXp: number; ganttView?: GanttView };
+
+/**
+ * 指定できる期間の長さの上限 (両端を含む日数)。2 年 (うるう年を含む 731 日)。
+ * 年の打ち間違い (2026 → 3026 など) や読み込んだ記録で何百年もの軸になると、目盛りと線が何万本にもなって画面が固まるため
+ */
+export const MAX_RANGE_DAYS = 731;
+
+/** 指定の期間の両端を含む日数。暦の日付どうしを UTC の 0 時に置いて数える */
+export function rangeDays(from: string, to: string): number {
+  const utc = (d: string) => {
+    const [y, m, day] = d.split('-').map(Number);
+    return Date.UTC(y, m - 1, day);
+  };
+  return Math.round((utc(to) - utc(from)) / 86_400_000) + 1;
+}
+
+/** 指定の期間の誤り。日付が空か実在しない (empty)・終わりが始まりより前 (order)・2 年を超える (long)。正しければ null */
+export function rangeProblem(from: unknown, to: unknown): 'empty' | 'order' | 'long' | null {
+  if (!isValidDay(from) || !isValidDay(to)) return 'empty';
+  if (from > to) return 'order';
+  if (rangeDays(from, to) > MAX_RANGE_DAYS) return 'long';
+  return null;
+}
+
+/** 読んだ値が表示する期間の形か。range は rangeProblem の無いものだけ (2 年を超えるものは落とし、全体に戻す) */
+export function normalizeGanttView(v: unknown): GanttView | null {
+  if (!isObject(v)) return null;
+  if (v.kind === 'all' || v.kind === '2w' || v.kind === '1m') return { kind: v.kind };
+  if (v.kind === 'range' && rangeProblem(v.from, v.to) === null) return { kind: 'range', from: v.from as string, to: v.to as string };
+  return null;
+}
 
 /** 1 日の目標の XP の既定と選べる値 */
 export const DEFAULT_GOAL_XP = 30;
@@ -126,6 +164,8 @@ export function normalizeProgress(raw: unknown): Progress | null {
   if (isObject(raw.profile)) {
     const goal = raw.profile.dailyGoalXp as number;
     out.profile = { dailyGoalXp: (GOAL_CHOICES as readonly number[]).includes(goal) ? goal : DEFAULT_GOAL_XP };
+    const view = normalizeGanttView(raw.profile.ganttView);
+    if (view) out.profile.ganttView = view;
   }
   if (isObject(raw.plan) && Array.isArray(raw.plan.courses)) {
     // 知らないコースと重なりを落とし、順は残す
@@ -286,7 +326,8 @@ export function goalXp(p: Progress): number {
 }
 
 export function setProfile(p: Progress, change: Partial<Profile>): Progress {
-  return { ...p, profile: { dailyGoalXp: goalXp(p), ...change } };
+  // 変えない設定 (表示する期間など) は残す
+  return { ...p, profile: { ...p.profile, dailyGoalXp: goalXp(p), ...change } };
 }
 
 /** 記録を消す。設定と計画は残す */

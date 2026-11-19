@@ -19,6 +19,9 @@ import Plan from '../src/screens/Plan';
 let host: HTMLElement;
 let root: Root;
 beforeEach(() => {
+  // jsdom は matchMedia を持たない。計画のガントチャートは幅で目盛りの字の間引き方を変えるので、狭い画面として答える
+  window.matchMedia ??= ((query: string) =>
+    ({ matches: false, media: query, addEventListener: () => {}, removeEventListener: () => {} }) as unknown as MediaQueryList) as typeof window.matchMedia;
   localStorage.clear();
   host = document.createElement('div');
   document.body.appendChild(host);
