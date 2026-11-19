@@ -7,8 +7,9 @@
 //   2. 上の帯の右端 (右の端から 24px 以内) に GitHub のボタンがあり、リポジトリを新しいタブで開く。スマホでは 44px 以上
 //   3. メニューの「このサイトについて」を押すと /gantlo/about/ が開き、200 OK・題・ソースコードと Issue のボタンが出て、
 //      メニューの項目が選ばれた印 (aria-current) になる。直に開いても同じ
-//   4. メニューのコースに「準備中」が付かない (どのコースにもレッスンがある)
+//   4. メニューのコースには「準備中」が付く (コースの画面はまだ 501。コースの画面を作る PR で、付かない検査に変える)
 //   5. 横にはみ出さず、文が切れない。ページのエラーが無い
+//   6. 390x500 (メニューがスクロールする高さ) で、メニューを Tab で進むと、手元の行が下端に留めた 2 つの下に隠れない
 import { loadLessons } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
@@ -80,7 +81,7 @@ export async function runAbout(browser, { base, check, noHorizontalOverflow }) {
       const menu = await openMenu();
       const about = menu.getByRole('link', { name: 'このサイトについて', exact: true });
       const gh = menu.getByRole('link', { name: 'GitHub のリポジトリ', exact: true });
-      const lastCourse = menu.getByRole('link', { name: 'セキュリティ', exact: true });
+      const lastCourse = menu.getByRole('link', { name: /^セキュリティ/ });
       const [ab, gb, cb] = [await about.boundingBox(), await gh.boundingBox(), await lastCourse.boundingBox()];
       const bottomOk = ab !== null && gb !== null && cb !== null && ab.y >= cb.y + cb.height && gb.y >= ab.y && gb.y + gb.height <= height && gb.y + gb.height >= height - NEAR_BOTTOM;
       check(
@@ -91,9 +92,9 @@ export async function runAbout(browser, { base, check, noHorizontalOverflow }) {
       await target(about, `${label} のメニューの「このサイトについて」`);
       await target(gh, `${label} のメニューの「GitHub のリポジトリ」`);
       if (label === 'ホーム') {
-        // 4. コースに「準備中」が付かない
+        // 4. コースの画面はまだ 501 なので、コースに「準備中」が付く
         const courses = await menu.getByRole('link', { name: /本編 4 週|Spring Boot の流れ|技術の歴史|管理の歴史|セキュリティ/ }).allInnerTexts();
-        check(courses.length === 5 && courses.every((t) => !t.includes('準備中')), `${where}: メニューのコースに「準備中」が付かない (${courses.join(' / ')})`);
+        check(courses.length === 5 && courses.every((t) => t.includes('準備中')), `${where}: メニューのコースに「準備中」が付く (${courses.map((t) => t.replace(/\s+/g, ' ')).join(' / ')})`);
       }
       await closeMenu();
       await noHorizontalOverflow(page, width, where);
@@ -123,4 +124,45 @@ export async function runAbout(browser, { base, check, noHorizontalOverflow }) {
     check(errors.length === 0, `${tag} ページのエラーが無い ${errors.join(' / ')}`);
     await context.close();
   }
+  await tabStaysAboveFoot(browser, { base, check });
+}
+
+/** 6. 390x500 で、メニューを Tab で進んだ手元の行が、下端に留めた 2 つの下に隠れない */
+async function tabStaysAboveFoot(browser, { base, check }) {
+  const tag = '[phone 390x500 このサイト]';
+  const context = await browser.newContext({ viewport: { width: 390, height: 500 } });
+  const page = await context.newPage();
+  await page.goto(base);
+  await page.locator('.net__row').first().waitFor();
+  await page.getByRole('button', { name: 'メニューを開く' }).click();
+  await page.waitForFunction(() => [...document.querySelectorAll('dialog[open]')].some((d) => d.matches(':modal')));
+  await page.waitForTimeout(400);
+  // メニューがスクロールする高さであること (スクロールしなければ、この検査は何も確かめない)
+  const scrolls = await page.evaluate(() => {
+    const nav = document.querySelector('.mobile-nav-body')?.parentElement;
+    return nav ? nav.scrollHeight > nav.clientHeight : false;
+  });
+  check(scrolls, `${tag} メニューの一覧がスクロールする高さで確かめる`);
+  const seen = [];
+  const hidden = [];
+  for (let i = 0; i < 40; i++) {
+    await page.keyboard.press('Tab');
+    await page.waitForTimeout(50);
+    const r = await page.evaluate(() => {
+      const el = document.activeElement;
+      const body = document.querySelector('.mobile-nav-body');
+      const foot = document.querySelector('.mobile-nav-body__foot');
+      if (!el || !body || !foot || el.tagName !== 'A' || !body.contains(el)) return null;
+      if (foot.contains(el)) return { inFoot: true };
+      const box = el.getBoundingClientRect();
+      return { inFoot: false, text: el.textContent.trim(), bottom: box.bottom, footTop: foot.getBoundingClientRect().top };
+    });
+    if (!r) continue;
+    if (r.inFoot) break;
+    seen.push(r.text);
+    if (r.bottom > r.footTop + 1) hidden.push(`${r.text} (${Math.round(r.bottom)}>${Math.round(r.footTop)})`);
+  }
+  check(seen.length >= 10, `${tag} Tab でメニューの一覧の行を順に進む (${seen.length} 行)`);
+  check(hidden.length === 0, `${tag} Tab で進んだ手元の行が、下端に留めた 2 つの下に隠れない (隠れた行 ${hidden.length}: ${hidden.join(' / ')})`);
+  await context.close();
 }

@@ -110,6 +110,13 @@ code {
   background: var(--color-background-surface);
   border-top: 1px solid var(--color-border);
 }
+/* 一覧のリンクは、下端に留めた 2 つの高さ (AppMobileNav が --nav-foot-h に入れる) の分だけ上で止まる。下端の 2 つ自身は除く */
+.mobile-nav-body a {
+  scroll-margin-bottom: calc(var(--nav-foot-h, 0px) + var(--spacing-2));
+}
+.mobile-nav-body__foot a {
+  scroll-margin-bottom: 0;
+}
 
 .page {
   max-width: 64rem;
