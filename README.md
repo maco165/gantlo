@@ -1,10 +1,62 @@
-# gantlo
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/banner.png">
+  <img alt="gantlo: API と HTTP の基礎。HTTP・DNS・TLS・REST・OAuth を、問題を解いて学ぶ。計画はガントチャートで、進捗はブラウザの中だけに" src="docs/images/banner.png">
+</picture>
 
-**API と HTTP の基礎を、問題を解きながら学ぶ学習サイト。** 学ぶコースと順を選ぶとガントチャートで計画し、進捗はブラウザにだけ残します。
+**gantlo** は、API と HTTP の基礎 (HTTP・URI・JSON・DNS・TLS・REST・OAuth) を、curl や HTTP の穴埋め・4 択・並べ替えの問題で学ぶ学習サイト。学ぶコースと順を選ぶとガントチャートで計画を引き、画面を見るたびに HTTP のステータスコードとヘッダーに触れる。間違えた問題は日をおいて復習に出し、問題に出る語は一次情報の出典つきの用語集にまとめる。進捗はブラウザの localStorage にだけ残し、サーバーは持たない。名前は、ガントチャート (Gantt) と、1969 年に ARPANET で最初に届いた 2 文字「lo」から取った。
 
-サイト: https://maco165.github.io/gantlo/
+| | |
+|---|---|
+| サイト | https://maco165.github.io/gantlo/ (サイト名と副題の正本は `src/lib/site.ts`) |
+| 見た目 | Meta の [Astryx](https://github.com/meta/astryx) の **Gothic** テーマ (`@astryxdesign/theme-gothic`)。暗い画面だけ |
+| 管理 | [AI-Repository](https://github.com/maco165/AI-Repository) の PJ-029 (要件と backlog は `projects/PJ-029-api-basics/design/`) |
 
-名前は、ガントチャート (Gantt) と、1969 年に ARPANET で最初に届いた 2 文字「lo」から取りました。管理の歴史と通信の歴史を、1 つの名前で指しています。
+この README は設計書を兼ねる。作りを変えたら、同じ PR でここと図と画像を直す (画像は `npm run readme:images`)。帯の画像は Gothic が暗い画面だけなので 1 枚 (`docs/images/banner.png`) にし、明るい表示の GitHub でも同じ画像を出す。
+
+## 画面
+
+<table>
+  <tr>
+    <td width="33%"><img alt="ホーム: GET /me の 206 と、リクエストの旅の 8 段のウォーターフォール" src="docs/images/home-phone.png"></td>
+    <td width="33%"><img alt="計画: コースを選んで並べる一覧と、開始日から引いた予定の帯" src="docs/images/plan-phone.png"></td>
+    <td width="33%"><img alt="コマンドの穴埋め: 誤った答えの 400 Bad Request と X-Expected・Retry-After・出典" src="docs/images/fill-phone.png"></td>
+  </tr>
+  <tr>
+    <td>ホーム。進み具合をステータスで返し、旅の 8 段を開発者ツールのウォーターフォールの形で見せる</td>
+    <td>計画。学ぶコースと順・開始日・目安の日数を決めると予定の帯を引き、巻き・遅れを出す</td>
+    <td>穴埋めの不正解は <code>400 Bad Request</code>。正しい答え・翌日の復習・出典をヘッダーの形で出す</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="25%"><img alt="並べ替え: 正しい順に並べると帯が階段になり 200 OK" src="docs/images/order-phone.png"></td>
+    <td width="25%"><img alt="復習: GET /me/reviews?due=today の 200 と今日の問題の一覧" src="docs/images/review-phone.png"></td>
+    <td width="25%"><img alt="進捗: 正答率・この 7 日の XP・コースごとの進み具合" src="docs/images/progress-phone.png"></td>
+    <td width="25%"><img alt="用語集: 探す欄と、語の説明・出典・出てくるレッスン" src="docs/images/glossary-phone.png"></td>
+  </tr>
+  <tr>
+    <td>並べ替え。上下のボタンで動かし、正しい順なら帯が階段になる</td>
+    <td>復習。間違えた問題を翌日・3 日後・7 日後に出す</td>
+    <td>進捗。正答率・7 日の XP・コースごとの済んだレッスン</td>
+    <td>用語集。11 の規格と問題に出る語を、RFC などの出典つきで</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td width="33%"><img alt="スマホのメニュー: 左から開き、下端に「このサイトについて」と「GitHub のリポジトリ」" src="docs/images/menu-phone.png"></td>
+    <td width="33%"><img alt="このサイトについて: GET /about の 200、ソースコードと Issue のボタン" src="docs/images/about-phone.png"></td>
+    <td width="33%"></td>
+  </tr>
+  <tr>
+    <td>メニュー。左から開き、「このサイトについて」と「GitHub のリポジトリ」は下端に留める</td>
+    <td>このサイトについて。ソースコード・誤りの知らせ方・記録の置き場所・ライセンス</td>
+    <td></td>
+  </tr>
+</table>
+
+<img alt="PC のホーム: 左のメニュー (下端にこのサイトについてと GitHub)、上の帯の右端に GitHub のボタン、本文にウォーターフォール" src="docs/images/home-pc.png">
 
 ## 見せ方
 
@@ -23,9 +75,11 @@
 | 設定 (`/gantlo/settings/`) | 目標を変えると `PATCH /me/profile` の `200`、書き出しは `GET`、読み込みは `PUT /me` の `200`。1 MB を超えるファイルは `413 Content Too Large`、壊れたファイルは `422 Unprocessable Content` で読まず、理由を出す。記録を消すと `DELETE /me` の `204` |
 | 進捗 (`/gantlo/progress/`) | `GET /me/stats` への応答。ステータスはホームと同じ旅の段の進み具合 (`202` / `206` / `200`)。正答率 (レッスンと復習で答えた回数のうち正解の割合)・この 7 日の XP (日ごとの棒)・連続日数、コースごとの済んだレッスンの数と正答率、旅の 8 段の学習状況 (ウォーターフォール) を出す |
 | 用語集 (`/gantlo/glossary/`) | `GET /glossary?q=<探す語>` への応答。当たれば `200 OK` と語の数、無ければ `204 No Content`。探す語は URL の形 (パーセントエンコーディング) で見せる。11 の規格を学ぶ順に、問題に出る用語を読みの順に並べ、どの語にも短い説明・一次情報の出典 (RFC は節まで)・出てくるレッスンへのリンクを付ける。探しているときは当たりのよい順の 1 つの一覧 |
+| このサイトについて (`/gantlo/about/`) | `GET /about` への応答 (`200 OK`)。サイトの説明・ソースコード (GitHub)・Issue を書く・記録の置き場所・AI に聞く・問題の出典・ライセンス。文の正本は `src/lib/about.ts` |
 | まだ無い画面 | `501 Not Implemented` |
 | 知らない URL | `404 Not Found` |
-| メニュー | 左。PC では常に出し、スマホでは左から開く引き出し |
+| メニュー | 左。PC では常に出し、スマホでは左から開く引き出し。「このサイトについて」と「GitHub のリポジトリ」は一覧の下端に留める (PC は SideNav の `footer`、スマホは MobileNav に footer が無いので CSS の sticky。一覧のリンクは下端の 2 つの高さ (`--nav-foot-h`) を `scroll-margin-bottom` にし、Tab で進んでも隠れない) |
+| 上の帯 | 右端に GitHub のリポジトリを新しいタブで開くボタン (どの画面でも)。スマホでは左端にメニューのボタンとサイト名も置く |
 
 見た目は Meta のデザインシステム [Astryx](https://github.com/meta/astryx) の **Gothic** テーマ (`@astryxdesign/theme-gothic`) です。暗い画面だけのテーマで、飾りの見出し文字は英字にだけ使います。
 
@@ -50,6 +104,8 @@ flowchart LR
   dl["lib/download.ts<br/>Blob と a[download]"] --> settings
   app --> lesson["screens/LessonScreen.tsx<br/>/lesson/#lt;id#gt;/ を 1 問ずつ解く"]
   app --> ni["screens/StatusPage.tsx<br/>501 / 404"]
+  aboutlib["lib/about.ts<br/>このサイトについての文"] --> about["screens/About.tsx<br/>GET /about"]
+  app --> about
   stages["content/stages.ts<br/>旅の 8 段"] --> wf["components/Waterfall.tsx"]
   journey["lib/journey.ts<br/>段の学習済み"] --> wf
   planlib["lib/plan.ts<br/>帯・並べ替え・今ここ"] --> net["components/LessonNetwork.tsx<br/>Network の表"]
@@ -152,13 +208,19 @@ flowchart LR
 | `scripts/e2e-review-settings.mjs` | `scripts/e2e.mjs` から呼ぶ、復習と設定の画面の通しの検査。時計を止め、UTC と手元の日付が違う時差 (390 幅は東京、1280 幅はロサンゼルス) で、今日の復習を解くと 0 問になること・目標 10 XP がホームに出ること・書き出した JSON を読み込むと記録が戻ること・壊れたファイル (422) と 1 MB を超えるファイル (413) を読まないこと・記録を消す前に確かめること・390 幅でボタンが 44px 以上であることを見る |
 | `scripts/e2e-home-plan.mjs` | `scripts/e2e.mjs` から呼ぶ、ホームと計画の画面の通しの検査。空の状態から次のレッスンを終えて戻ると完了・段の学習済み・XP の増加が出ること (390・1280 幅)、390 幅でキーボードだけで並べ替えて保存できボタンが 44px 以上であること、1280 幅で計画の帯・済みの塗り・今ここ・次のレッスンへのリンクが出てレッスンが開くことを見る |
 | `scripts/e2e-schedule.mjs` | `scripts/e2e.mjs` から呼ぶ、予定と巻き・遅れの検査。Playwright の clock で今日を決め、問題データから選んだコースの計画を置いて、390・1280 幅で予定の帯・今日の線 (3 日目の中ほど)・遅れの `408` が出ること、目安の日数を変えるとその場で帯と判定 (予定どおり・2 日巻き) が変わること、保存すると開始日と日数が残り読み直しても同じこと、開始日を変えると帯が動くこと、ホームの `X-Schedule`、390 幅の入力欄とボタンが 44px 以上、コントラスト 4.5:1 以上を見る。`E2E_SHOT_DIR` を付けると画面の写しを置く |
-| `scripts/e2e-contrast.mjs` | `scripts/e2e.mjs` から呼ぶ、テーマと文字のコントラストの検査。390 幅と 1280 幅で、ホーム・計画・復習 (予定なしと今日の分あり)・レッスンの問題と応答 (400 / 200 / 409)・完了 (201)・404・進捗・用語集 (全角で探したあとも)・設定と記録を消す確かめの dialog を開き、テーマが Gothic (地の token が `#101314`) であることと、文字を持つ見える要素 (本文・補助の文字・ボタン・リンク・ステータスのコード・入力欄) の文字の色と実際の地の色 (根から要素まで地を塗り重ね、opacity の祖先は字と地の両方を奥の地に重ねる) のコントラスト比が WCAG の相対輝度で 4.5:1 以上であることを見る。空の入力欄は placeholder を、390 幅ではスマホのメニューを開いた状態も測る。大きな文字の 3:1 の例外は使わず、押せないボタンは数えない。測り方は合成のページ (opacity 0.5 の群で約 3.98:1) で確かめる |
+| `scripts/e2e-contrast.mjs` | `scripts/e2e.mjs` から呼ぶ、テーマと文字のコントラストの検査。390 幅と 1280 幅で、ホーム・計画・復習 (予定なしと今日の分あり)・レッスンの問題と応答 (400 / 200 / 409)・完了 (201)・404・進捗・用語集 (全角で探したあとも)・設定と記録を消す確かめの dialog・このサイトについてを開き、テーマが Gothic (地の token が `#101314`) であることと、文字を持つ見える要素 (本文・補助の文字・ボタン・リンク・ステータスのコード・入力欄) の文字の色と実際の地の色 (根から要素まで地を塗り重ね、opacity の祖先は字と地の両方を奥の地に重ねる) のコントラスト比が WCAG の相対輝度で 4.5:1 以上であることを見る。空の入力欄は placeholder を、390 幅ではスマホのメニューを開いた状態も測る。大きな文字の 3:1 の例外は使わず、押せないボタンは数えない。測り方は合成のページ (opacity 0.5 の群で約 3.98:1) で確かめる |
 | `src/styles.css` | Astryx の部品で作れない所 (ステータス行・帯・ヘッダーの行) と、狭い画面 (768px 未満) の共通の決まりだけ。狭い画面ではボタン・入力欄の高さのトークン (`--size-element-*`) と 4 択・手順の行・入力欄の消すボタン・文の中に並ぶリンク (箱に `tap-links` を付ける) を 44px にそろえ、ページごとには大きさを書かない。色はテーマのトークンだけを使う。括弧の崩れはブラウザも build も黙って読むので、`tests/styles.test.ts` が postcss で読んで見つける |
 | `src/screens/ProgressScreen.tsx`・`src/lib/stats.ts` | 進捗の画面と、その計算。正答率は問題ごとの記録 (`answers`) の正解と不正解の回数を、問題データにある問題だけ足して出す (採点しない実習は入らない)。7 日の XP は今日を含む 7 日を端末の時刻の日付で数える。コースごとに済んだレッスンの数・レッスンの数・正答率を出し、レッスンの無いコースは「準備中」 |
 | `src/content/glossary.json`・`src/content/glossary.ts` | 用語集の語 (`id`・`term`・`aliases`・11 の規格なら `standard`・`description`・`sources`・`lessons`)。様式と、問題の PR が入ったあとにレッスンへのリンクを足す手順は [docs/content-format.md](docs/content-format.md) |
 | `src/lib/glossary.ts` | 用語集の検索と検査。探す語と語の名前・別名・説明を NFKC でそろえ (全角英数・半角カナ)、大文字小文字・ひらがなとカタカナ・中黒の違いを無くして比べ、名前に当たる語を先に出す。ハイフン・「/」・「.」は英数字に挟まれたときだけ消し (`HTTP/2` と `http2`、`Content-Type` と `contenttype`)、語の頭のハイフン (`-I`) は残す。名前は空白を抜いた形でも比べる (`TLS 1.3` を `TLS1.3` で、`OAuth 2.0` を `OAuth2` で引ける)。出典の URL に空白・`"`・`<`・`>` が無いことも見る。`validateGlossary` は id の形と重なり、名前と別名の重なり (そろえた形で比べる)、https の出典、RFC が節まで指すこと、レッスンが実在すること、11 の規格がそろうことを見る (`tests/glossary.test.ts`) |
 | `src/screens/Glossary.tsx` | 用語集の画面。語ごとに `#term-<id>` を持つ。画面とデータ (`glossary.json`) は `src/App.tsx` の `React.lazy` で開いたときに読み、最初の JS に入れない (書き出した HTML には全部の語がある)。出典は新しいタブで開き、出てくるレッスンはサイトの中で開く |
 | `scripts/e2e-progress-glossary.mjs` | `scripts/e2e.mjs` から呼ぶ、進捗の画面と用語集の通しの検査。390 幅と 1280 幅で、空の記録と記録を入れたときの正答率・7 日の XP・コースの済み・旅の段・ステータス、用語集の全部の語・出典 (https)・11 の規格の順、全角 (ＨＴＴＰ) と半角カナ (ﾘｿｰｽ) で探せること、当たらないと `204`、レッスンへのリンクで開くこと、placeholder が欄に収まること、390 幅で探す欄・消すボタン・リンクが 44px 以上であることを見る |
+| `src/screens/About.tsx`・`src/lib/about.ts` | このサイトについての画面。文の正本は `about.ts` で、画面と書き出す HTML の本文 (`src/prerender/pages.ts` の `aboutBody`) が同じ文を使う。検索に載せる |
+| `src/components/AppSideNav.tsx` | 左のメニュー。PC の SideNav とスマホの MobileNav で同じ項目を使い、「このサイトについて」と「GitHub のリポジトリ」(`SiteItems`) は下端に留める |
+| `src/components/MobileBar.tsx`・`src/components/RepoLink.tsx` | 上の帯と、その右端の GitHub のボタン (`RepoLink`。GitHub の印は `GitHubMark`)。768px 以上ではメニューのボタンとサイト名を隠し、GitHub のボタンだけ残す |
+| `tests/e2e-unsorted.test.ts` | e2e で並べ替えを正しくない答えで送るときの並び (`scripts/e2e-lessons.mjs` の `unsortedTarget`) が、2〜6 項目のどの始めの並びからでも正しい順と違い `409` になり、3 項目以上では正しい位置の行も残ることを、並びをすべて試して見る |
+| `scripts/e2e-about.mjs` | `scripts/e2e.mjs` から呼ぶ、メニューの下端の 2 つ・上の帯の GitHub のボタン・このサイトについての検査。390 幅と 1280 幅で、ホーム・計画・レッスン・用語集・404・このサイトについての画面ごとに、2 つが一覧の最後のコースより下で画面の下端から 120px 以内にあること、上の帯の右端 (24px 以内) に新しいタブで開く GitHub のボタンがあること、メニューから about が開き 200 と題とボタンが出て選ばれた印になること、コースに (コースの画面が 501 の間は)「準備中」が付くこと、390 幅で 44px 以上であること、390x500 (メニューがスクロールする高さ) で Tab で進んだ手元の行が下端の 2 つの下に隠れないことを見る |
+| `scripts/readme-images.mjs` | README の画像を撮る (`npm run readme:images`)。帯の画像は組み立てたサイトから Gothic のトークンと字体を読んで描く。画面は見本の進捗を入れて 390 幅 (と PC のホームを 1280 幅) で撮る。番号は `README_IMAGES_PORT` (既定 4331、`--strictPort`) |
 | `src/lib/pageMeta.ts` | 画面の題の正本。サイトの中で移ったときの `document.title` と、書き出す HTML の `<title>` が同じ関数を使う |
 | `src/prerender/pages.ts` | 書き出すページの一覧 (ホーム・メニューの画面・全コース・全レッスン) と、ページごとの題・説明・本文。画面と同じデータ (経路・コース・レッスン・用語集) から作る。用語集のページは全部の語・説明・出典を本文に書く (検索に載せる)。リンクの href も文字と同じく escape する。レッスンの見出しは題で、本文は問題文まで (答えと解説は書かない)。一人ひとりの記録の画面 (計画・復習・進捗・設定) は noindex にして sitemap から外す。画面の JS には入らない |
 | `src/prerender/html.ts` | `dist/index.html` を型にして、title・description・canonical・og と `#root` の中身をページのものに置き換える。置き換える場所が型に無ければ止める。`sitemap.xml` も作る (検索に載せるページだけ。lastmod は付けない) |
@@ -175,6 +237,7 @@ npm test        # vitest
 npm run check:content  # 問題データの検査
 npm run build   # dist に書き出す (ページごとの HTML と sitemap.xml まで)
 npm run e2e     # 書き出してから、Playwright の Chromium で通しの操作を確かめる
+npm run readme:images  # README の画像 (docs/images/) を撮り直す
 ```
 
 `npm run e2e` は Chromium を使います。手元に無ければ先に `npx playwright install chromium` を打ちます。
@@ -182,7 +245,7 @@ npm run e2e     # 書き出してから、Playwright の Chromium で通しの�
 `main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
 ## まだ無いもの
 
-コースのレッスンの一覧 (コースの画面) は、これから作ります。メニューのコースには「準備中」と出しています。問題を足したときに用語集の「出てくるレッスン」を足す手順は [docs/content-format.md](docs/content-format.md) にあります。
+コースのレッスンの一覧 (コースの画面) は、これから作ります。今は `501 Not Implemented` を出し、メニューのコースには「準備中」と出しています (コースの画面を作るときに外します)。問題を足したときに用語集の「出てくるレッスン」を足す手順は [docs/content-format.md](docs/content-format.md) にあります。
 
 ## ライセンス
 

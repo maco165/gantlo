@@ -84,11 +84,32 @@ export async function fill(page, values) {
 }
 
 /**
+ * 並べ替えを「正しくない」答えで送るときの並び。どの始めの並びからでも、必ず正しい順と違う並びを返す。
+ * まず今の並びのまま正しい順の先頭の項目だけを一番上へ送る (正しい位置の行と違う位置の行が混ざる)。
+ * それで正しい順になってしまうとき (始めの並びが、先頭の項目の位置だけ違っていたとき) は、
+ * 正しい順の最後の 2 つを入れ替えた並びにする (3 項目以上なら、正しい位置の行も残る)
+ */
+export function unsortedTarget(current, answer) {
+  const head = answer[0];
+  const moved = [head, ...current.filter((id) => id !== head)];
+  if (moved.join('\n') !== answer.join('\n')) return moved;
+  const n = answer.length;
+  return [...answer.slice(0, n - 2), answer[n - 1], answer[n - 2]];
+}
+
+/** 並べ替えの行を target の並びにする。頭から順に、その位置の項目を上へのボタンで送る (上へだけでどの並びにもできる) */
+export async function arrangeOrder(page, q, target) {
+  for (const [t, id] of target.entries()) {
+    for (let c = (await orderIds(page)).indexOf(id); c > t; c--) await page.getByRole('button', { name: `上へ: ${orderText(q, id)}` }).click();
+  }
+}
+
+/**
  * 開いている問題に答えて送る。mode は次のどれか:
  *   right: 正しく答える (並べ替えは上下のボタンで正しい順にする。実習は全部の手順に印を付けて終える)
  *   wrong: 誤って答える (穴埋めは全部の空欄を誤り、4 択は正解でない選択肢を選ぶ)
  *   media: 穴埋めのメディアタイプの空欄だけを誤り、ほかの空欄は正しく答える
- *   unsorted: 並べ替えを、正しい順の先頭の項目だけを一番上へ送って送る (正しい位置の行と違う位置の行が混ざる)
+ *   unsorted: 並べ替えを、必ず正しい順と違う並びにして送る (409)。並びは unsortedTarget で決める
  * 答えたあとの応答の枠が出るまで待つ。次の問題へは進まない
  */
 export async function answer(page, q, mode = 'right') {
@@ -103,11 +124,7 @@ export async function answer(page, q, mode = 'right') {
     await choiceRadio(page, q, id).check();
     await send();
   } else if (q.kind === 'order') {
-    const target = mode === 'unsorted' ? q.answer.slice(0, 1) : q.answer;
-    // 正しい順の頭から 1 つずつ上へ送って並べる
-    for (const [t, id] of target.entries()) {
-      for (let c = (await orderIds(page)).indexOf(id); c > t; c--) await page.getByRole('button', { name: `上へ: ${orderText(q, id)}` }).click();
-    }
+    await arrangeOrder(page, q, mode === 'unsorted' ? unsortedTarget(await orderIds(page), q.answer) : q.answer);
     await send();
   } else if (q.kind === 'lab') {
     for (const box of await page.getByRole('checkbox').all()) await box.check();

@@ -7,7 +7,8 @@ import type { Lesson } from '../content/types';
 import type { GlossaryTerm } from '../lib/glossary';
 import { documentTitle, PAGE_TITLES, withSite } from '../lib/pageMeta';
 import { BASE, COURSES, courseHref, homeHref, lessonHref, pageHref, parseRoute, type CourseId, type PageName } from '../lib/route';
-import { REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
+import { ABOUT_ISSUE, ABOUT_LEAD, ABOUT_NOTES, ABOUT_SOURCE, LICENSE_NAME } from '../lib/about';
+import { NEW_ISSUE_URL, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
 
 /** 公開の場所 (canonical・og:url・sitemap の URL の頭) */
 export const ORIGIN = 'https://maco165.github.io';
@@ -40,6 +41,7 @@ const PAGE_DESCRIPTIONS: Record<PageName, string> = {
   progress: '正答率・この 7 日の XP・コースごとの進み具合・旅の 8 段の学習状況を見る gantlo の進捗の画面。記録はブラウザの localStorage にだけ残り、サーバーには送りません。',
   glossary: 'HTTP・URI・JSON・DNS・TLS・REST・OAuth など API の基礎の 11 の規格と、gantlo の問題に出る用語を、RFC などの一次情報の出典付きで短くまとめた用語集。',
   settings: 'gantlo の学び方の設定の画面。設定はブラウザの localStorage にだけ残り、サーバーには送りません。',
+  about: 'gantlo がどんなサイトかと、ソースコードの置き場所・問題の誤りの知らせ方・記録の置き場所・AI に聞くリンク・問題の出典・ライセンスをまとめたページ。',
 };
 
 /** コースごとの紹介 (説明と本文の頭に使う) */
@@ -76,6 +78,19 @@ export function glossaryBody(sorted: { standards: readonly GlossaryTerm[]; other
   return ['<h2>11 の規格</h2>', dl(sorted.standards), '<h2>問題に出る用語</h2>', dl(sorted.others)];
 }
 
+/** このサイトについての本文 (画面と同じ文。正本は src/lib/about.ts) */
+export function aboutBody(): string[] {
+  return [
+    ...ABOUT_LEAD.map((p) => `<p>${esc(p)}</p>`),
+    '<h2>ソースコード</h2>',
+    `<p>${esc(ABOUT_SOURCE)} ${a(REPO_URL, 'GitHub のリポジトリ')}</p>`,
+    '<h2>問題の誤りを見つけたら</h2>',
+    `<p>${esc(ABOUT_ISSUE)} ${a(NEW_ISSUE_URL, 'Issue を書く')}</p>`,
+    '<h2>知っておくこと</h2>',
+    `<dl>${ABOUT_NOTES.map((n) => `<dt>${esc(n.label)}</dt><dd>${esc(n.text)}</dd>`).join('')}<dt>ライセンス</dt><dd>${a(`${REPO_URL}/blob/main/LICENSE`, LICENSE_NAME)}</dd></dl>`,
+  ];
+}
+
 /** すべてのページ。順は sitemap の順 (ホーム → メニューの画面 → コース → レッスン)。lessons はテストで差し替える */
 export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
   const pages: SitePage[] = [];
@@ -101,7 +116,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
       path: rel(pageHref(p)),
       title: titleOfPath(pageHref(p)),
       description: PAGE_DESCRIPTIONS[p],
-      body: [`<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), back].join('\n'),
+      body: [`<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), back].join('\n'),
       noindex: PERSONAL_PAGES.includes(p),
     });
   }
