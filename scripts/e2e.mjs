@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 // ブラウザでの通しの検査。npm run e2e で、組み立てた dist を vite preview で配り、Playwright の Chromium で操作する。
-// スマホ (390 幅) と PC (1280 幅) のそれぞれで、空の localStorage から見本のレッスン (main-w1-l1) を解いて次を確かめる:
+// スマホ (390 幅) と PC (1280 幅) のそれぞれで、空の localStorage から問題データの中のレッスンを解いて次を確かめる。
+// 解くレッスンと、何問目が何の種類かは scripts/e2e-lessons.mjs でデータから探し、期待の正答数と XP もデータから数える:
 //   1. 答える前の AI に聞くリンクに問題文が入り、正解と解説が入っていない
 //   2. 不正解で 400 Bad Request・正しい答え (X-Expected)・Retry-After・解説・出典が出る
 //   3. 正解で 200 OK・X-XP・解説・出典が出る
@@ -23,6 +24,24 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { runContrast } from './e2e-contrast.mjs';
 import { runHomeAndPlan } from './e2e-home-plan.mjs';
+import {
+  XP_PER_CORRECT,
+  XP_PER_LAB,
+  answer,
+  choiceRadio,
+  coverLessons,
+  expectedOutcome,
+  expectedScore,
+  fill,
+  hasKind,
+  hasMediaBlank,
+  isPlainFill,
+  loadLessons,
+  orderIds,
+  orderText,
+  pickWalkLesson,
+  rightInputs,
+} from './e2e-lessons.mjs';
 import { runReviewAndSettings } from './e2e-review-settings.mjs';
 
 const require = createRequire(import.meta.url);
@@ -31,10 +50,25 @@ const { chromium } = require('playwright');
 const PORT = Number(process.env.E2E_PORT ?? 4328);
 const ORIGIN = `http://localhost:${PORT}`;
 const BASE = `${ORIGIN}/gantlo/`;
-const week1 = JSON.parse(readFileSync(new URL('../src/content/courses/main/week1.json', import.meta.url), 'utf8'));
-const lesson = week1.lessons.find((l) => l.id === 'main-w1-l1');
-const [qCmd, qHttp, qOrder, qChoice, qLab] = lesson.questions;
+// 解くレッスンと、何問目が何の種類かは問題データから探す (データの中身を決め打ちしない)
+const LESSONS = loadLessons();
+/** 通しで解くレッスン (並べ替え・4 択・メディアタイプの無い穴埋めを持つ) */
+const lesson = pickWalkLesson(LESSONS);
 const LESSON_URL = `${BASE}lesson/${lesson.id}/`;
+/** 不正解の 400 を確かめる問題 (最初のメディアタイプの無い穴埋め) と、並べ替え・4 択の最初の問題 */
+const qWrong = lesson.questions.find(isPlainFill);
+const qOrder = lesson.questions.find((q) => q.kind === 'order');
+const qChoice = lesson.questions.find((q) => q.kind === 'choice');
+/**
+ * 通しのレッスンに無いものを持つレッスン (メディアタイプの空欄・大文字と小文字を区別しない空欄・実習)。
+ * 1 周目は全部正しく答え (空欄は大文字と小文字を変えて入れる)、2 周目でメディアタイプを誤る
+ */
+const caseBlank = (l) => l.questions.some((q) => (q.kind === 'command' || q.kind === 'http') && q.blanks.some((b) => b.match === 'header-name' || b.match === 'media-type'));
+const extraLessons = coverLessons(LESSONS, {
+  ...(lesson.questions.some(hasMediaBlank) ? {} : { メディアタイプの空欄: (l) => l.questions.some(hasMediaBlank) }),
+  ...(caseBlank(lesson) ? {} : { 大文字と小文字を区別しない空欄: caseBlank }),
+  ...(hasKind(lesson, 'lab') ? {} : { 実習: (l) => hasKind(l, 'lab') }),
+});
 
 let failures = 0;
 function check(cond, label) {
@@ -100,9 +134,6 @@ async function noTruncatedText(page, label) {
   check(cut.length === 0, `${label}: 文が切れていない ${cut.join(' / ')}`);
 }
 
-const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-// 選択肢は出すたびに混ぜるので、記号ではなく文で選ぶ
-const choiceRadio = (page, choiceId) => page.getByRole('radio', { name: new RegExp(`^[A-D]\\. ${escapeRe(qChoice.choices.find((c) => c.id === choiceId).text)}$`) });
 /** 画面に並んだ選択肢の文 (A. から D. の行) を上から順に読む */
 const choiceOrder = async (page) => {
   const text = await page.locator('.lesson__main').innerText();
@@ -129,11 +160,6 @@ async function aiQuery(page) {
   return { claude, chatgpt, text: new URL(claude).searchParams.get('q') ?? '' };
 }
 
-async function fill(page, values) {
-  const inputs = page.locator('[data-testid="fill-code"] input');
-  for (const [i, v] of values.entries()) await inputs.nth(i).fill(v);
-}
-
 /** 答えの手がかりになる文 (正解・解説・実行結果の例・見えること・誤りの理由) */
 function secretsOf(q) {
   const out = [q.explanation];
@@ -154,7 +180,9 @@ function secretsOf(q) {
 /** 答える前の AI のリンクの文に、問題文が入り、答えの手がかりと「正解」の字が入っていないか */
 async function checkNoLeak(page, q, label) {
   const { text } = await aiQuery(page);
-  const leaked = secretsOf(q).filter((x) => text.includes(x));
+  // 問題文やコードにもともと書いてある文字 (URL の一部を答えさせる問題など) は、リンクに入っていても手がかりではない
+  const shown = [q.prompt, typeof q.code === 'string' ? q.code : (q.code?.text ?? '')];
+  const leaked = secretsOf(q).filter((x) => text.includes(x) && !shown.some((s) => s.includes(x)));
   if (text.includes('正解')) leaked.push('「正解」の字');
   check(text.includes(q.prompt) && leaked.length === 0, `${label} (${q.kind}): 答える前の AI のリンクは問題文だけで、正解・解説・見えることを含まない ${leaked.join(' / ')}`);
 }
@@ -167,9 +195,6 @@ async function checkTarget(locator, label, { width = false } = {}) {
   check(ok, `${label}: 押せる範囲が ${MIN_TARGET}px 以上 (${box ? `${Math.round(box.width)}x${Math.round(box.height)}` : '見えない'})`);
 }
 
-/** 並べ替えの行に今並んでいる項目の id (上から) */
-const orderIds = (page) => page.locator('[data-testid="order-rows"] > li').evaluateAll((ls) => ls.map((l) => l.dataset.item));
-const orderText = (id) => qOrder.items.find((it) => it.id === id).text;
 // 名前は aria-label (上下のボタン) か、無ければボタンの文字 (答えを送るボタン)
 const focusedLabel = (page) => page.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? document.activeElement?.textContent?.trim() ?? '');
 
@@ -211,6 +236,39 @@ const tokenColor = (page, token) =>
 const send = (page) => page.getByRole('button', { name: 'POST 答えを送る' }).click();
 const next = (page) => page.getByRole('button', { name: /^(次の問題へ|POST 結果を記録する)$/ }).click();
 
+/** 完了の応答 (201) の本文の JSON を読む。CodeBlock の題と言語の札も pre の文字に入るので、最初の { から最後の } までを読む */
+async function resultJson(r) {
+  const raw = (await r.locator('pre').first().textContent()) ?? '';
+  const body = raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1);
+  try {
+    return { body, parsed: JSON.parse(body) };
+  } catch {
+    return { body, parsed: null };
+  }
+}
+
+/**
+ * 開いているレッスンを 1 問目から最後まで解き、完了 (201) の応答を返す。
+ * modeOf(q) が答え方 (e2e-lessons.mjs の answer の mode)。before(q, i) は答える前の検査で、true を返せば自分で答えたものとする。
+ * after(q, i, mode, r) は応答の枠 (r) が出たあとの検査
+ */
+async function walk(page, l, modeOf, { before = async () => false, after = async () => {} } = {}) {
+  const outcomes = [];
+  const codes = [];
+  for (const [i, q] of l.questions.entries()) {
+    await page.getByRole('heading', { name: q.prompt }).waitFor();
+    const mode = modeOf(q);
+    if (!(await before(q, i, mode))) await answer(page, q, mode);
+    const want = expectedOutcome(q, mode);
+    const r = await response(page, want.code);
+    outcomes.push(want.outcome);
+    codes.push(String(want.code));
+    await after(q, i, mode, r);
+    await next(page);
+  }
+  return { r: await response(page, 201), outcomes, codes };
+}
+
 async function run(browser, name, width, height) {
   const context = await browser.newContext({ viewport: { width, height } });
   // 4 択の並びを毎回同じにするため、決まった種から乱数を作る (開くたび・やり直すたびに違う並びになることは確かめる)
@@ -234,291 +292,241 @@ async function run(browser, name, width, height) {
     outside.push(`${req.method()} ${req.url()}`);
   });
   const tag = `[${name}]`;
-
-  // 1 問目: コマンドの穴埋め。答える前の AI のリンク、不正解 (400)
-  await page.goto(LESSON_URL);
-  await page.getByRole('heading', { name: qCmd.prompt }).waitFor();
-  check((await page.title()).startsWith(lesson.title), `${tag} ページの題がレッスン名で始まる`);
-  check(await page.getByText(`1 / ${lesson.questions.length} 問`).first().isVisible(), `${tag} 何問目かが出る`);
-  const before = await aiQuery(page);
-  check(before.claude.startsWith('https://claude.ai/new?q=') && before.chatgpt.startsWith('https://chatgpt.com/?q='), `${tag} AI に聞くリンクは claude.ai/new?q= と chatgpt.com/?q=`);
-  await checkNoLeak(page, qCmd, `${tag} 1 問目`);
-  check((await page.getByRole('link', { name: 'Claude' }).first().getAttribute('target')) === '_blank', `${tag} AI に聞くリンクは別のタブで開く`);
-  await noHorizontalOverflow(page, width, `${tag} 問題 (コマンドの穴埋め)`);
   const phone = width < 768;
+  const n = lesson.questions.length;
+  // 種類ごとの検査は、最初に出会った 1 回だけ深く行う。最後に、どれも 1 回は行ったことを確かめる (データが変わって黙って抜けないように)
+  const seen = new Set();
+  const once = (key) => !seen.has(key) && Boolean(seen.add(key));
+
+  // 1 問目: ページの題・何問目か・AI に聞くリンク・押せる範囲
+  const q0 = lesson.questions[0];
+  await page.goto(LESSON_URL);
+  await page.getByRole('heading', { name: q0.prompt }).waitFor();
+  check((await page.title()).startsWith(lesson.title), `${tag} ページの題がレッスン名で始まる (${lesson.id})`);
+  check(await page.getByText(`1 / ${n} 問`).first().isVisible(), `${tag} 何問目かが出る`);
+  const aiBefore = await aiQuery(page);
+  check(aiBefore.claude.startsWith('https://claude.ai/new?q=') && aiBefore.chatgpt.startsWith('https://chatgpt.com/?q='), `${tag} AI に聞くリンクは claude.ai/new?q= と chatgpt.com/?q=`);
+  check((await page.getByRole('link', { name: 'Claude' }).first().getAttribute('target')) === '_blank', `${tag} AI に聞くリンクは別のタブで開く`);
   if (phone) {
     await checkTarget(page.getByRole('link', { name: 'レッスンを閉じる' }), `${tag} 閉じるボタン`, { width: true });
-    await checkTarget(page.getByRole('button', { name: 'POST 答えを送る' }), `${tag} 答えを送るボタン`);
     await checkTarget(page.getByRole('link', { name: 'Claude' }), `${tag} AI に聞くリンク (Claude)`, { width: true });
     await checkTarget(page.getByRole('link', { name: 'ChatGPT' }), `${tag} AI に聞くリンク (ChatGPT)`, { width: true });
-    // 390 幅でも styles.css のレッスンの画面の決まりが効いている (括弧の崩れで @media の中に入ると、穴埋めの枠が消える)
-    const frame = await page.locator('[data-testid="fill-code"]').evaluate((el) => {
-      const cs = getComputedStyle(el);
-      return `${cs.borderTopWidth} ${cs.borderTopStyle}`;
-    });
-    check(frame === '1px solid', `${tag} 390 幅でもレッスンの画面の決まりが効いている (穴埋めの枠 ${frame})`);
-    const field = page.locator('[data-testid="fill-code"] .astryx-text-input').first();
-    await checkTarget(field, `${tag} 空欄の入力`);
-    // 入力欄の枠の端を押しても、文字を打てる状態になる
-    const fb = await field.boundingBox();
-    await page.mouse.click(fb.x + fb.width - 3, fb.y + 3);
-    check(await page.evaluate(() => document.activeElement?.closest('[data-testid="fill-code"]') !== null && document.activeElement?.tagName === 'INPUT'), `${tag} 空欄の枠の端を押しても入力できる`);
   }
-  await fill(page, ['-v']);
-  await send(page);
-  let r = await response(page, 400);
-  check(await r.getByText('Bad Request').isVisible(), `${tag} 不正解は 400 Bad Request`);
-  check(await r.getByText(/^不正解です/).isVisible(), `${tag} 400 に日本語の説明が付く`);
-  check(await r.getByText(qCmd.blanks[0].answers[0], { exact: true }).isVisible(), `${tag} 不正解のとき X-Expected に正しい答えが出る`);
-  check(await r.getByText('86400', { exact: true }).isVisible(), `${tag} 不正解のとき Retry-After: 86400 が出る`);
-  check(await r.getByText(qCmd.explanation).isVisible(), `${tag} 不正解のとき解説が出る`);
-  check(await sourcesShown(r, qCmd.sources), `${tag} 不正解のとき出典 (X-Source) がリンクで出る`);
-  const after = await aiQuery(page);
-  check(after.text.includes('不正解') && after.text.includes(qCmd.blanks[0].answers[0]), `${tag} 答えたあとの AI のリンクには自分の答えと正解が入る`);
-  await noHorizontalOverflow(page, width, `${tag} 応答 400`);
-  if (phone) await checkTarget(page.getByRole('button', { name: '次の問題へ' }), `${tag} 次へのボタン`);
-  await next(page);
 
-  // 2 問目: HTTP の穴埋め。正解 (200)。ヘッダー名とメディアタイプは大文字と小文字を区別しない
-  await page.getByRole('heading', { name: qHttp.prompt }).waitFor();
-  await checkNoLeak(page, qHttp, `${tag} 2 問目`);
-  // 途中で本文へ飛ぶリンク (AppShell の skip link) を押しても、レッスンは 1 問目に戻らない
-  const skip = page.locator('[data-testid="skip-to-content"]');
-  check((await skip.count()) === 1, `${tag} 本文へ飛ぶリンクがある`);
-  await skip.focus();
-  await page.keyboard.press('Enter');
-  await page.waitForTimeout(300);
-  check(
-    (await page.getByText(`2 / ${lesson.questions.length} 問`).first().isVisible()) && (await page.getByRole('heading', { name: qHttp.prompt }).isVisible()) && new URL(page.url()).pathname === new URL(LESSON_URL).pathname,
-    `${tag} 途中で本文へ飛ぶリンクを押しても何問目かが変わらない`,
-  );
-  if (phone) {
-    // # が付いた状態でメニューを開き、戻る (# だけが外れる) と、メニューは閉じ、レッスンはそのまま
-    const menuOpen = () => page.evaluate(() => [...document.querySelectorAll('dialog')].some((d) => d.open));
-    await page.getByRole('button', { name: 'メニューを開く' }).click();
-    await page.waitForFunction(() => [...document.querySelectorAll('dialog')].some((d) => d.open));
-    check(new URL(page.url()).hash !== '' && (await menuOpen()), `${tag} # が付いた状態でメニューが開く`);
-    await page.goBack();
-    await page.waitForTimeout(600);
-    check(
-      !(await menuOpen()) && new URL(page.url()).hash === '' && (await page.getByText(`2 / ${lesson.questions.length} 問`).first().isVisible()),
-      `${tag} # だけが変わる戻るでもメニューが閉じ、何問目かは変わらない`,
-    );
-  }
-  await fill(page, ['content-type', 'Application/JSON']);
-  await send(page);
-  r = await response(page, 200);
-  check(await r.getByText('OK', { exact: true }).isVisible(), `${tag} 正解は 200 OK`);
-  check(await r.getByText('正解です').isVisible(), `${tag} 200 に日本語の説明が付く`);
-  check(await r.getByText('+3', { exact: true }).isVisible(), `${tag} 正解のとき X-XP: +3 が出る`);
-  check(await r.getByText(qHttp.explanation).isVisible(), `${tag} 正解のとき解説が出る`);
-  check(await sourcesShown(r, qHttp.sources), `${tag} 正解のとき出典 (X-Source) がリンクで出る`);
-  await noHorizontalOverflow(page, width, `${tag} 応答 200`);
-  await next(page);
+  // 1 周目: 最初のメディアタイプの無い穴埋めだけを誤り (400)、ほかは正しく答える
+  let choiceOrder1 = [];
+  const pass1 = await walk(page, lesson, (q) => (q === qWrong ? 'wrong' : 'right'), {
+    before: async (q, i) => {
+      // どの問題でも、答える前の AI のリンクは問題文だけ
+      await checkNoLeak(page, q, `${tag} ${i + 1} 問目`);
+      if (i === 1) {
+        // 途中で本文へ飛ぶリンク (AppShell の skip link) を押しても、レッスンは 1 問目に戻らない
+        const skip = page.locator('[data-testid="skip-to-content"]');
+        check((await skip.count()) === 1, `${tag} 本文へ飛ぶリンクがある`);
+        await skip.focus();
+        await page.keyboard.press('Enter');
+        await page.waitForTimeout(300);
+        check(
+          (await page.getByText(`2 / ${n} 問`).first().isVisible()) && (await page.getByRole('heading', { name: q.prompt }).isVisible()) && new URL(page.url()).pathname === new URL(LESSON_URL).pathname,
+          `${tag} 途中で本文へ飛ぶリンクを押しても何問目かが変わらない`,
+        );
+        if (phone) {
+          // # が付いた状態でメニューを開き、戻る (# だけが外れる) と、メニューは閉じ、レッスンはそのまま
+          const menuOpen = () => page.evaluate(() => [...document.querySelectorAll('dialog')].some((d) => d.open));
+          await page.getByRole('button', { name: 'メニューを開く' }).click();
+          await page.waitForFunction(() => [...document.querySelectorAll('dialog')].some((d) => d.open));
+          check(new URL(page.url()).hash !== '' && (await menuOpen()), `${tag} # が付いた状態でメニューが開く`);
+          await page.goBack();
+          await page.waitForTimeout(600);
+          check(!(await menuOpen()) && new URL(page.url()).hash === '' && (await page.getByText(`2 / ${n} 問`).first().isVisible()), `${tag} # だけが変わる戻るでもメニューが閉じ、何問目かは変わらない`);
+        }
+      }
+      if ((q.kind === 'command' || q.kind === 'http') && once('fill-ui')) {
+        await noHorizontalOverflow(page, width, `${tag} 問題 (穴埋め)`);
+        if (phone) {
+          await checkTarget(page.getByRole('button', { name: 'POST 答えを送る' }), `${tag} 答えを送るボタン`);
+          // 390 幅でも styles.css のレッスンの画面の決まりが効いている (括弧の崩れで @media の中に入ると、穴埋めの枠が消える)
+          const frame = await page.locator('[data-testid="fill-code"]').evaluate((el) => {
+            const cs = getComputedStyle(el);
+            return `${cs.borderTopWidth} ${cs.borderTopStyle}`;
+          });
+          check(frame === '1px solid', `${tag} 390 幅でもレッスンの画面の決まりが効いている (穴埋めの枠 ${frame})`);
+          const field = page.locator('[data-testid="fill-code"] .astryx-text-input').first();
+          await checkTarget(field, `${tag} 空欄の入力`);
+          // 入力欄の枠の端を押しても、文字を打てる状態になる
+          const fb = await field.boundingBox();
+          await page.mouse.click(fb.x + fb.width - 3, fb.y + 3);
+          check(await page.evaluate(() => document.activeElement?.closest('[data-testid="fill-code"]') !== null && document.activeElement?.tagName === 'INPUT'), `${tag} 空欄の枠の端を押しても入力できる`);
+        }
+      }
+      if (q === qOrder) return await solveOrderByKeyboard(page, q, tag, width, phone);
+      if (q === qChoice) {
+        choiceOrder1 = await choiceOrder(page);
+        const dataOrder = q.choices.map((c, k) => `${String.fromCharCode(65 + k)}. ${c.text}`);
+        check(choiceOrder1.length === 4 && choiceOrder1.join('|') !== dataOrder.join('|'), `${tag} 4 択の選択肢は開いたときに混ぜてある (${choiceOrder1.map((t) => t.slice(3, 6)).join(',')})`);
+        await noHorizontalOverflow(page, width, `${tag} 問題 (4 択)`);
+        await wrapsText(page, '.astryx-radio-list', `${tag} 4 択の選択肢`);
+        if (phone) {
+          const rows = page.locator('.astryx-radio-list-item');
+          for (let k = 0; k < (await rows.count()); k++) await checkTarget(rows.nth(k), `${tag} 4 択の行 ${k + 1}`);
+          // 行の右端を押しても、その選択肢が選ばれる
+          const rb = await rows.nth(2).boundingBox();
+          await page.mouse.click(rb.x + rb.width - 4, rb.y + 3);
+          check(await page.getByRole('radio').nth(2).isChecked(), `${tag} 4 択の行の端を押しても選べる`);
+        }
+      }
+      if (q.kind === 'lab' && once('lab-ui')) return await finishLabChecked(page, q, tag, width, phone);
+      return false;
+    },
+    after: async (q, i, mode, r) => {
+      if (q === qWrong) {
+        seen.add('400');
+        check(await r.getByText('Bad Request').isVisible(), `${tag} 不正解は 400 Bad Request`);
+        check(await r.getByText(/^不正解です/).isVisible(), `${tag} 400 に日本語の説明が付く`);
+        const expected = q.blanks.map((b) => b.answers[0]).join(' / ');
+        check(await r.getByText(expected, { exact: true }).isVisible(), `${tag} 不正解のとき X-Expected に正しい答え (${expected}) が出る`);
+        check(await r.getByText('86400', { exact: true }).isVisible(), `${tag} 不正解のとき Retry-After: 86400 が出る`);
+        check(await r.getByText(q.explanation).isVisible(), `${tag} 不正解のとき解説が出る`);
+        check(await sourcesShown(r, q.sources), `${tag} 不正解のとき出典 (X-Source) がリンクで出る`);
+        const after = await aiQuery(page);
+        check(after.text.includes('不正解') && q.blanks.every((b) => after.text.includes(b.answers[0])), `${tag} 答えたあとの AI のリンクには自分の答えと正解が入る`);
+        await noHorizontalOverflow(page, width, `${tag} 応答 400`);
+        if (phone && i < n - 1) await checkTarget(page.getByRole('button', { name: '次の問題へ' }), `${tag} 次へのボタン`);
+      } else if ((q.kind === 'command' || q.kind === 'http') && once('fill-200')) {
+        check(await r.getByText('OK', { exact: true }).isVisible(), `${tag} 正解は 200 OK`);
+        check(await r.getByText('正解です').isVisible(), `${tag} 200 に日本語の説明が付く`);
+        check(await r.getByText(`+${XP_PER_CORRECT}`, { exact: true }).isVisible(), `${tag} 正解のとき X-XP: +${XP_PER_CORRECT} が出る`);
+        check(await r.getByText(q.explanation).isVisible(), `${tag} 正解のとき解説が出る`);
+        check(await sourcesShown(r, q.sources), `${tag} 正解のとき出典 (X-Source) がリンクで出る`);
+        await noHorizontalOverflow(page, width, `${tag} 応答 200`);
+      } else if (q === qOrder) {
+        check(await r.getByText('OK', { exact: true }).isVisible(), `${tag} 並べ替えの正解は 200 OK`);
+        check(await r.getByText(`+${XP_PER_CORRECT}`, { exact: true }).isVisible(), `${tag} 並べ替えの正解で X-XP: +${XP_PER_CORRECT}`);
+        check(await r.getByText(q.explanation).isVisible(), `${tag} 並べ替えの正解で解説が出る`);
+        check(await sourcesShown(r, q.sources), `${tag} 並べ替えの正解で出典 (X-Source) が出る`);
+        const stairs = await orderBars(page);
+        check(
+          stairs.length === q.items.length && stairs.every((b, k) => b.ok && !b.wrongClass && (k === 0 || b.left > stairs[k - 1].left)),
+          `${tag} 正しい順なら、並べた順に帯が階段に描かれる (${stairs.map((b) => Math.round(b.left)).join(',')})`,
+        );
+        await noHorizontalOverflow(page, width, `${tag} 応答 (並べ替え 200)`);
+      } else if (q === qChoice) {
+        seen.add('choice-200');
+        check(await r.getByText(q.explanation).isVisible(), `${tag} 4 択の正解で解説が出る`);
+      }
+    },
+  });
 
-  // 3 問目: 並べ替え。上下のボタンとキーボード (Tab と Enter) だけで正解にする (200)。帯は階段
-  await page.getByRole('heading', { name: qOrder.prompt }).waitFor();
-  const start = await orderIds(page);
-  check(start.length === qOrder.items.length && start.join(',') !== qOrder.answer.join(','), `${tag} 並べ替えは正解と違う並びから始まる (${start.join(',')})`);
-  await checkNoLeak(page, qOrder, `${tag} 3 問目`);
-  await noHorizontalOverflow(page, width, `${tag} 問題 (並べ替え)`);
-  await wrapsText(page, '[data-testid="order-rows"]', `${tag} 並べ替えの項目`);
-  if (phone) {
-    for (const id of start) {
-      await checkTarget(page.getByRole('button', { name: `上へ: ${orderText(id)}` }), `${tag} 並べ替えの上へのボタン (${id})`, { width: true });
-      await checkTarget(page.getByRole('button', { name: `下へ: ${orderText(id)}` }), `${tag} 並べ替えの下へのボタン (${id})`, { width: true });
-    }
-  }
-  // マウスを使わない。手元を外してから、Tab で目当てのボタンへ運び Enter で押す
-  await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
-  // 端の扱い: 下から 2 行目を下へ送ると最後の行になり、下へは押せないので手元は同じ行の上へのボタンへ移る
-  {
-    const ids = await orderIds(page);
-    const id = ids[ids.length - 2];
-    check(await tabTo(page, `下へ: ${orderText(id)}`), `${tag} Tab だけで下へのボタンに届く`);
-    await pressEnter(page);
-    const now = await orderIds(page);
-    check(now.at(-1) === id, `${tag} Enter で行が 1 つ下へ動く`);
-    check((await focusedLabel(page)) === `上へ: ${orderText(id)}`, `${tag} 最後の行に着くと、手元は同じ行の上へのボタンへ移る (${await focusedLabel(page)})`);
-  }
-  // 2 行目を上へ送ると最初の行になり、手元は同じ行の下へのボタンへ移る
-  {
-    const id = (await orderIds(page))[1];
-    check(await tabTo(page, `上へ: ${orderText(id)}`), `${tag} Tab だけで上へのボタンに届く`);
-    await pressEnter(page);
-    check((await orderIds(page))[0] === id, `${tag} Enter で行が 1 つ上へ動く`);
-    check((await focusedLabel(page)) === `下へ: ${orderText(id)}`, `${tag} 最初の行に着くと、手元は同じ行の下へのボタンへ移る (${await focusedLabel(page)})`);
-  }
-  // 正しい順の頭から、1 つずつ上へ送って並べる。押し続ける間、手元は動かした行のボタンに残る
-  let kept = true;
-  let reached = true;
-  for (const [t, id] of qOrder.answer.entries()) {
-    const c = (await orderIds(page)).indexOf(id);
-    if (c === t) continue;
-    reached = (await tabTo(page, `上へ: ${orderText(id)}`)) && reached;
-    for (let k = 0; k < c - t; k++) {
-      await pressEnter(page);
-      const atTop = (await orderIds(page)).indexOf(id) === 0;
-      const want = `${atTop ? '下へ' : '上へ'}: ${orderText(id)}`;
-      if ((await focusedLabel(page)) !== want) kept = false;
-    }
-  }
-  check(reached, `${tag} Tab だけで各行の上へのボタンに届く`);
-  check(kept, `${tag} 上下のボタンで動かしたあとも、手元は動かした行のボタンに残る`);
-  check((await orderIds(page)).join(',') === qOrder.answer.join(','), `${tag} 上下のボタンとキーボードだけで正しい順に並べられる`);
-  check(await tabTo(page, 'POST 答えを送る'), `${tag} Tab だけで答えを送るボタンに届く`);
-  await page.keyboard.press('Enter');
-  r = await response(page, 200);
-  check(await r.getByText('OK', { exact: true }).isVisible(), `${tag} 並べ替えの正解は 200 OK`);
-  check(await r.getByText('+3', { exact: true }).isVisible(), `${tag} 並べ替えの正解で X-XP: +3`);
-  check(await r.getByText(qOrder.explanation).isVisible(), `${tag} 並べ替えの正解で解説が出る`);
-  check(await sourcesShown(r, qOrder.sources), `${tag} 並べ替えの正解で出典 (X-Source) が出る`);
-  const stairs = await orderBars(page);
-  check(
-    stairs.every((b, i) => b.ok && !b.wrongClass && (i === 0 || b.left > stairs[i - 1].left)),
-    `${tag} 正しい順なら、並べた順に帯が階段に描かれる (${stairs.map((b) => Math.round(b.left)).join(',')})`,
-  );
-  await noHorizontalOverflow(page, width, `${tag} 応答 (並べ替え 200)`);
-  await next(page);
-
-  // 4 問目: 4 択。開いたときに混ぜてある。正解 (200)
-  await page.getByRole('heading', { name: qChoice.prompt }).waitFor();
-  const order1 = await choiceOrder(page);
-  const dataOrder = qChoice.choices.map((c, i) => `${String.fromCharCode(65 + i)}. ${c.text}`);
-  check(order1.length === 4 && order1.join('|') !== dataOrder.join('|'), `${tag} 4 択の選択肢は開いたときに混ぜてある (${order1.map((t) => t.slice(3, 6)).join(',')})`);
-  await checkNoLeak(page, qChoice, `${tag} 4 問目`);
-  await noHorizontalOverflow(page, width, `${tag} 問題 (4 択)`);
-  await wrapsText(page, '.astryx-radio-list', `${tag} 4 択の選択肢`);
-  if (phone) {
-    const rows = page.locator('.astryx-radio-list-item');
-    for (let i = 0; i < (await rows.count()); i++) await checkTarget(rows.nth(i), `${tag} 4 択の行 ${i + 1}`);
-    // 行の右端を押しても、その選択肢が選ばれる
-    const rb = await rows.nth(2).boundingBox();
-    await page.mouse.click(rb.x + rb.width - 4, rb.y + 3);
-    check(await page.getByRole('radio').nth(2).isChecked(), `${tag} 4 択の行の端を押しても選べる`);
-  }
-  await choiceRadio(page, qChoice.answer).check();
-  await send(page);
-  r = await response(page, 200);
-  check(await r.getByText(qChoice.explanation).isVisible(), `${tag} 4 択の正解で解説が出る`);
-  await next(page);
-
-  // 5 問目: 実習。全部の手順に印を付けるまで終えられない
-  await page.getByRole('heading', { name: qLab.prompt }).waitFor();
-  await checkNoLeak(page, qLab, `${tag} 5 問目`);
-  await noHorizontalOverflow(page, width, `${tag} 問題 (実習)`);
-  await wrapsText(page, '.astryx-checkbox-list', `${tag} 実習の手順`);
-  if (phone) {
-    const steps = page.locator('.astryx-checkbox-list .astryx-item');
-    for (let i = 0; i < (await steps.count()); i++) await checkTarget(steps.nth(i), `${tag} 実習の手順の行 ${i + 1}`);
-  }
-  const finishLab = page.getByRole('button', { name: 'POST 実習を終える' });
-  check(await finishLab.isDisabled(), `${tag} 実習は手順に印を付けるまで終えられない`);
-  for (const box of await page.getByRole('checkbox').all()) await box.check();
-  await finishLab.click();
-  r = await response(page, 200);
-  check(await r.getByText('+10', { exact: true }).isVisible(), `${tag} 実習を終えると X-XP: +10`);
-  await noHorizontalOverflow(page, width, `${tag} 応答 (実習)`);
-  check(await r.getByText(qLab.expected, { exact: false }).isVisible(), `${tag} 実習を終えると見えるはずのことが出る`);
-  await next(page);
-
-  // 完了: 201 Created・正答数・JSON・Location
-  r = await response(page, 201);
+  // 完了: 201 Created・正答数・JSON・Location。期待の値は答え方とデータから数える
+  const want1 = expectedScore(lesson.questions, pass1.outcomes);
+  let r = pass1.r;
   check(await r.getByText('Created', { exact: true }).isVisible(), `${tag} 完了は 201 Created`);
-  check(await r.getByText('4 問のうち 3 問が正解').isVisible(), `${tag} 201 の説明に正答数が出る (並べ替えを含む)`);
-  check(await page.getByText('3 / 4', { exact: true }).isVisible(), `${tag} 完了画面に正答数 3 / 4 が出る`);
+  check(await r.getByText(`${want1.total} 問のうち ${want1.correct} 問が正解`).isVisible(), `${tag} 201 の説明に正答数 (${want1.correct} / ${want1.total}) が出る (並べ替えを含む)`);
+  check(await page.getByText(`${want1.correct} / ${want1.total}`, { exact: true }).isVisible(), `${tag} 完了画面に正答数 ${want1.correct} / ${want1.total} が出る`);
   check(await r.getByText(`/me/lessons/${lesson.id}`, { exact: true }).isVisible(), `${tag} Location: /me/lessons/<id> が出る`);
-  // CodeBlock の題と言語の札も pre の文字に入るので、最初の { から最後の } までを読む
-  const raw = (await r.locator('pre').first().textContent()) ?? '';
-  const body = raw.slice(raw.indexOf('{'), raw.lastIndexOf('}') + 1);
-  let parsed = null;
-  try {
-    parsed = JSON.parse(body);
-  } catch {
-    // 下の check で落とす
+  {
+    const { body, parsed } = await resultJson(r);
+    check(JSON.stringify(parsed) === JSON.stringify({ lesson: lesson.id, ...want1 }), `${tag} 結果の JSON は lesson・correct・total・xp (${body.replace(/\s+/g, ' ')})`);
   }
-  check(JSON.stringify(parsed) === JSON.stringify({ lesson: lesson.id, correct: 3, total: 4, xp: 19 }), `${tag} 結果の JSON は lesson・correct・total・xp (${body.replace(/\s+/g, ' ')})`);
   await noHorizontalOverflow(page, width, `${tag} 完了 201`);
   const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gantlo.v1') ?? 'null'));
-  check(saved?.lessons?.[lesson.id]?.done === true && Math.abs(saved.lessons[lesson.id].best - 3 / 4) < 1e-9, `${tag} 進捗にレッスンの完了と最高の正答率 (3/4) が残る`);
-  check(saved?.xp?.total === 19, `${tag} 進捗に XP (19) が残る (${saved?.xp?.total})`);
+  check(saved?.lessons?.[lesson.id]?.done === true && Math.abs(saved.lessons[lesson.id].best - want1.correct / want1.total) < 1e-9, `${tag} 進捗にレッスンの完了と最高の正答率 (${want1.correct}/${want1.total}) が残る`);
+  check(saved?.xp?.total === want1.xp, `${tag} 進捗に XP (${want1.xp}) が残る (${saved?.xp?.total})`);
   check(
-    saved?.answers?.[qCmd.id]?.wrong === 1 && saved?.answers?.[qHttp.id]?.right === 1 && saved?.answers?.[qOrder.id]?.right === 1 && saved?.answers?.[qChoice.id]?.right === 1,
+    lesson.questions.every((q, i) => q.kind === 'lab' || (pass1.outcomes[i] === 'wrong' ? saved?.answers?.[q.id]?.wrong === 1 : saved?.answers?.[q.id]?.right === 1)),
     `${tag} 進捗に問題ごとの正誤の回数が残る (並べ替えを含む)`,
   );
-  check(saved?.answers?.[qLab.id] === undefined, `${tag} 採点しない実習は正誤を残さない`);
 
-  // もう一度解く: 1 問目に戻る。メディアタイプを誤ると 415。4 択は混ぜ直す
+  // もう一度解く: 1 問目に戻る。並べ替えを並べ替えきらずに送ると 409。4 択は混ぜ直す
   await page.getByRole('button', { name: 'もう一度解く' }).click();
-  await page.getByRole('heading', { name: qCmd.prompt }).waitFor();
-  check(await page.getByText(`1 / ${lesson.questions.length} 問`).first().isVisible(), `${tag} もう一度解くと 1 問目に戻る`);
-  await fill(page, ['--head']);
-  await send(page);
-  await response(page, 200);
-  await next(page);
-  await page.getByRole('heading', { name: qHttp.prompt }).waitFor();
-  await fill(page, ['Content-Type', 'text/plain']);
-  await send(page);
-  r = await response(page, 415);
-  check(await r.getByText('Unsupported Media Type').isVisible(), `${tag} メディアタイプの空欄を誤ると 415 Unsupported Media Type`);
-  check(await r.getByText(/^メディアタイプが違います/).isVisible(), `${tag} 415 に日本語の説明が付く`);
-  await next(page);
-  // 並べ替えを並べ替えずに送る (始めの並びは正解と違う) と 409 Conflict。違う位置の行は誤りの色
-  await page.getByRole('heading', { name: qOrder.prompt }).waitFor();
-  const restartOrder = await orderIds(page);
-  check(restartOrder.join(',') !== qOrder.answer.join(','), `${tag} もう一度解いても並べ替えは正解と違う並びから始まる (${restartOrder.join(',')})`);
-  // 正しい位置の行と違う位置の行を混ぜるため、正しい順の先頭の項目だけを一番上へ送る (ここは押すだけなのでマウスでよい)
-  const head0 = qOrder.answer[0];
-  while ((await orderIds(page)).indexOf(head0) > 0) await page.getByRole('button', { name: `上へ: ${orderText(head0)}` }).click();
-  const mixedOrder = await orderIds(page);
-  await send(page);
-  r = await response(page, 409);
-  const wrongRows = mixedOrder.filter((id, i) => qOrder.answer[i] !== id).length;
-  check(await r.getByText('Conflict', { exact: true }).isVisible(), `${tag} 順が違えば 409 Conflict`);
-  check(await r.getByText(new RegExp(`^${wrongRows} 行が違う位置です`)).isVisible(), `${tag} 409 に「${wrongRows} 行が違う位置です」の説明が付く`);
-  check(await r.getByText(qOrder.answer.map(orderText).join(' → '), { exact: true }).isVisible(), `${tag} 409 のとき X-Expected に正しい順が出る`);
-  check(await r.getByText('86400', { exact: true }).isVisible(), `${tag} 409 のとき Retry-After: 86400 が出る`);
-  const errorColor = await tokenColor(page, '--color-text-error');
-  const successColor = await tokenColor(page, '--color-text-success');
-  const bars = await orderBars(page);
-  check(bars.map((b) => b.id).join(',') === mixedOrder.join(','), `${tag} 帯は並べた順の行に描かれる`);
-  check(wrongRows > 0 && wrongRows < mixedOrder.length, `${tag} 確かめる並びに正しい位置の行と違う位置の行が両方ある (${mixedOrder.join(',')})`);
+  await page.getByRole('heading', { name: q0.prompt }).waitFor();
+  check(await page.getByText(`1 / ${n} 問`).first().isVisible(), `${tag} もう一度解くと 1 問目に戻る`);
+  let mixedOrder = [];
+  const pass2 = await walk(page, lesson, (q) => (q === qOrder ? 'unsorted' : 'right'), {
+    before: async (q) => {
+      if (q === qOrder) {
+        const restartOrder = await orderIds(page);
+        check(restartOrder.join(',') !== q.answer.join(','), `${tag} もう一度解いても並べ替えは正解と違う並びから始まる (${restartOrder.join(',')})`);
+        // 正しい位置の行と違う位置の行を混ぜるため、正しい順の先頭の項目だけを一番上へ送る (ここは押すだけなのでマウスでよい)
+        const head0 = q.answer[0];
+        while ((await orderIds(page)).indexOf(head0) > 0) await page.getByRole('button', { name: `上へ: ${orderText(q, head0)}` }).click();
+        mixedOrder = await orderIds(page);
+        await send(page);
+        return true;
+      }
+      if (q === qChoice) {
+        const order2 = await choiceOrder(page);
+        check(order2.join('|') !== choiceOrder1.join('|'), `${tag} もう一度解くと 4 択の並びが混ぜ直される (${order2.map((t) => t.slice(3, 6)).join(',')})`);
+      }
+      return false;
+    },
+    after: async (q, i, mode, res) => {
+      if (q !== qOrder) return;
+      seen.add('409');
+      const wrongRows = mixedOrder.filter((id, k) => q.answer[k] !== id).length;
+      check(await res.getByText('Conflict', { exact: true }).isVisible(), `${tag} 順が違えば 409 Conflict`);
+      check(await res.getByText(new RegExp(`^${wrongRows} 行が違う位置です`)).isVisible(), `${tag} 409 に「${wrongRows} 行が違う位置です」の説明が付く`);
+      check(await res.getByText(q.answer.map((id) => orderText(q, id)).join(' → '), { exact: true }).isVisible(), `${tag} 409 のとき X-Expected に正しい順が出る`);
+      check(await res.getByText('86400', { exact: true }).isVisible(), `${tag} 409 のとき Retry-After: 86400 が出る`);
+      const errorColor = await tokenColor(page, '--color-text-error');
+      const successColor = await tokenColor(page, '--color-text-success');
+      const bars = await orderBars(page);
+      check(bars.map((b) => b.id).join(',') === mixedOrder.join(','), `${tag} 帯は並べた順の行に描かれる`);
+      check(wrongRows > 0 && wrongRows < mixedOrder.length, `${tag} 確かめる並びに正しい位置の行と違う位置の行が両方ある (${mixedOrder.join(',')})`);
+      check(
+        bars.every((b) => (b.ok ? !b.wrongClass && b.color === successColor : b.wrongClass && b.color === errorColor)) && bars.filter((b) => !b.ok).length === wrongRows,
+        `${tag} 違う位置の行 (${wrongRows} 行) は誤りの色、正しい位置の行は成功の色 (${bars.map((b) => (b.ok ? 'o' : 'x')).join('')}; ${bars.map((b) => b.color).join(' / ')}; 誤り ${errorColor}・成功 ${successColor})`,
+      );
+      check(
+        bars.every((b) => (b.ok ? b.mark.includes('正しい位置') : b.mark.includes(`正しくは ${q.answer.indexOf(b.id) + 1} 行目`))),
+        `${tag} 違う位置の行に「正しくは <正しい順での位置> 行目」が出る (${bars.map((b) => b.mark).join(' / ')})`,
+      );
+      check(bars.every((b) => Math.abs(b.left - (q.answer.indexOf(b.id) / q.answer.length) * 100) < 0.01), `${tag} 帯はその項目の正しい順での位置に描かれる`);
+      await noHorizontalOverflow(page, width, `${tag} 応答 (並べ替え 409)`);
+      const savedAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('gantlo.v1') ?? 'null'));
+      check(savedAfter?.answers?.[q.id]?.wrong === 1, `${tag} 並べ替えの誤りも正誤の回数に残る`);
+    },
+  });
+  {
+    // 完了画面の一覧のコードが答えの画面と同じ (並べ替えの誤り 409 など)
+    const listCodes = await page.locator('.result__code').allInnerTexts();
+    check(listCodes.join(',') === pass2.codes.join(','), `${tag} 完了画面の一覧は答えの画面と同じコード (${listCodes.join(',')} = ${pass2.codes.join(',')})`);
+    await noHorizontalOverflow(page, width, `${tag} 完了 201 (2 周目)`);
+  }
+
+  // ほかのレッスン: 1 周目は全部正しく (大文字と小文字を変えた空欄・実習)、2 周目でメディアタイプを誤る (415)
+  for (const extra of extraLessons) {
+    await page.goto(`${BASE}lesson/${extra.id}/`);
+    const e1 = await walk(page, extra, () => 'right', {
+      before: async (q) => (q.kind === 'lab' && once('lab-ui') ? await finishLabChecked(page, q, tag, width, phone) : false),
+      after: async (q) => {
+        const caseInsensitive = (q.kind === 'command' || q.kind === 'http') && rightInputs(q).some((v, k) => v !== q.blanks[k].answers[0]);
+        if (caseInsensitive) seen.add('case');
+      },
+    });
+    const wantE = expectedScore(extra.questions, e1.outcomes);
+    const { parsed } = await resultJson(e1.r);
+    check(JSON.stringify(parsed) === JSON.stringify({ lesson: extra.id, ...wantE }), `${tag} ${extra.id} を全部正しく答えると、結果の JSON が全問正解 (${JSON.stringify(parsed)})`);
+    if (!extra.questions.some(hasMediaBlank)) continue;
+    await page.getByRole('button', { name: 'もう一度解く' }).click();
+    let mediaDone = false;
+    const e2 = await walk(page, extra, (q) => (hasMediaBlank(q) && !mediaDone ? ((mediaDone = true), 'media') : 'right'), {
+      after: async (q, i, mode, res) => {
+        if (mode !== 'media') return;
+        seen.add('415');
+        check(await res.getByText('Unsupported Media Type').isVisible(), `${tag} メディアタイプの空欄を誤ると 415 Unsupported Media Type`);
+        check(await res.getByText(/^メディアタイプが違います/).isVisible(), `${tag} 415 に日本語の説明が付く`);
+      },
+    });
+    const listCodes = await page.locator('.result__code').allInnerTexts();
+    check(listCodes.join(',') === e2.codes.join(','), `${tag} 完了画面の一覧は答えの画面と同じコード (メディアタイプの誤り 415 を含む) (${listCodes.join(',')} = ${e2.codes.join(',')})`);
+  }
+  check(seen.has('case'), `${tag} ヘッダー名とメディアタイプは、大文字と小文字を変えて入れても正解になる`);
+  const must = ['fill-ui', 'fill-200', '400', 'choice-200', '409', 'lab-ui', 'case', '415'];
   check(
-    bars.every((b) => (b.ok ? !b.wrongClass && b.color === successColor : b.wrongClass && b.color === errorColor)) && bars.filter((b) => !b.ok).length === wrongRows,
-    `${tag} 違う位置の行 (${wrongRows} 行) は誤りの色、正しい位置の行は成功の色 (${bars.map((b) => (b.ok ? 'o' : 'x')).join('')}; ${bars.map((b) => b.color).join(' / ')}; 誤り ${errorColor}・成功 ${successColor})`,
+    must.every((k) => seen.has(k)),
+    `${tag} 種類ごとの検査を全部行った (無いもの: ${must.filter((k) => !seen.has(k)).join(',') || 'なし'}; ${[lesson.id, ...extraLessons.map((l) => l.id)].join(',')})`,
   );
-  check(
-    bars.every((b) => (b.ok ? b.mark.includes('正しい位置') : b.mark.includes(`正しくは ${qOrder.answer.indexOf(b.id) + 1} 行目`))),
-    `${tag} 違う位置の行に「正しくは <正しい順での位置> 行目」が出る (${bars.map((b) => b.mark).join(' / ')})`,
-  );
-  check(
-    bars.every((b) => Math.abs(b.left - (qOrder.answer.indexOf(b.id) / qOrder.answer.length) * 100) < 0.01),
-    `${tag} 帯はその項目の正しい順での位置に描かれる`,
-  );
-  await noHorizontalOverflow(page, width, `${tag} 応答 (並べ替え 409)`);
-  const savedAfter = await page.evaluate(() => JSON.parse(localStorage.getItem('gantlo.v1') ?? 'null'));
-  check(savedAfter?.answers?.[qOrder.id]?.wrong === 1, `${tag} 並べ替えの誤りも正誤の回数に残る`);
-  await next(page);
-  await page.getByRole('heading', { name: qChoice.prompt }).waitFor();
-  const order2 = await choiceOrder(page);
-  check(order2.join('|') !== order1.join('|'), `${tag} もう一度解くと 4 択の並びが混ぜ直される (${order2.map((t) => t.slice(3, 6)).join(',')})`);
-  // 2 周目を終え、完了画面の一覧のコードが答えの画面と同じ (415・409) か
-  await choiceRadio(page, qChoice.answer).check();
-  await send(page);
-  await response(page, 200);
-  await next(page);
-  await page.getByRole('heading', { name: qLab.prompt }).waitFor();
-  for (const box of await page.getByRole('checkbox').all()) await box.check();
-  await page.getByRole('button', { name: 'POST 実習を終える' }).click();
-  await response(page, 200);
-  await next(page);
-  await response(page, 201);
-  const listCodes = await page.locator('.result__code').allInnerTexts();
-  check(
-    listCodes.join(',') === '200,415,409,200,200',
-    `${tag} 完了画面の一覧は答えの画面と同じコード (コマンド 200・メディアタイプの誤り 415・並べ替えの誤り 409・4 択 200・実習 200) (${listCodes.join(',')})`,
-  );
-  await noHorizontalOverflow(page, width, `${tag} 完了 201 (2 周目)`);
 
   // 知らないレッスンは 404。左のメニューはそのまま
   await page.goto(`${BASE}lesson/no-such-lesson/`);
@@ -534,8 +542,8 @@ async function run(browser, name, width, height) {
     // 引き出しが動き終わるまで待ってから位置を測る
     await page.waitForFunction(() => {
       const links = [...document.querySelectorAll('a')].filter((a) => a.textContent?.trim() === '学習');
-      const r = links.at(-1)?.getBoundingClientRect();
-      return r !== undefined && r.x >= 0;
+      const rect = links.at(-1)?.getBoundingClientRect();
+      return rect !== undefined && rect.x >= 0;
     });
     const box = await item.boundingBox();
     check(box !== null && box.x >= 0 && box.x < width / 2, `${tag} スマホのメニューは左から開く (x=${box?.x})`);
@@ -544,6 +552,81 @@ async function run(browser, name, width, height) {
   check(outside.length === 0, `${tag} サイトの外へは何も送らない (字の GET のほかに外への要求が無い) ${outside.join(' ')}`);
   check(errors.length === 0, `${tag} ページのエラーが無い ${errors.join(' / ')}`);
   await context.close();
+}
+
+/** 並べ替えを、上下のボタンとキーボード (Tab と Enter) だけで正しい順にして送る。帯は階段 */
+async function solveOrderByKeyboard(page, q, tag, width, phone) {
+  const start = await orderIds(page);
+  check(start.length === q.items.length && start.join(',') !== q.answer.join(','), `${tag} 並べ替えは正解と違う並びから始まる (${start.join(',')})`);
+  await noHorizontalOverflow(page, width, `${tag} 問題 (並べ替え)`);
+  await wrapsText(page, '[data-testid="order-rows"]', `${tag} 並べ替えの項目`);
+  if (phone) {
+    for (const id of start) {
+      await checkTarget(page.getByRole('button', { name: `上へ: ${orderText(q, id)}` }), `${tag} 並べ替えの上へのボタン (${id})`, { width: true });
+      await checkTarget(page.getByRole('button', { name: `下へ: ${orderText(q, id)}` }), `${tag} 並べ替えの下へのボタン (${id})`, { width: true });
+    }
+  }
+  // マウスを使わない。手元を外してから、Tab で目当てのボタンへ運び Enter で押す
+  await page.evaluate(() => document.activeElement instanceof HTMLElement && document.activeElement.blur());
+  // 端の扱い: 下から 2 行目を下へ送ると最後の行になり、下へは押せないので手元は同じ行の上へのボタンへ移る
+  {
+    const ids = await orderIds(page);
+    const id = ids[ids.length - 2];
+    check(await tabTo(page, `下へ: ${orderText(q, id)}`), `${tag} Tab だけで下へのボタンに届く`);
+    await pressEnter(page);
+    const now = await orderIds(page);
+    check(now.at(-1) === id, `${tag} Enter で行が 1 つ下へ動く`);
+    check((await focusedLabel(page)) === `上へ: ${orderText(q, id)}`, `${tag} 最後の行に着くと、手元は同じ行の上へのボタンへ移る (${await focusedLabel(page)})`);
+  }
+  // 2 行目を上へ送ると最初の行になり、手元は同じ行の下へのボタンへ移る
+  {
+    const id = (await orderIds(page))[1];
+    check(await tabTo(page, `上へ: ${orderText(q, id)}`), `${tag} Tab だけで上へのボタンに届く`);
+    await pressEnter(page);
+    check((await orderIds(page))[0] === id, `${tag} Enter で行が 1 つ上へ動く`);
+    check((await focusedLabel(page)) === `下へ: ${orderText(q, id)}`, `${tag} 最初の行に着くと、手元は同じ行の下へのボタンへ移る (${await focusedLabel(page)})`);
+  }
+  // 正しい順の頭から、1 つずつ上へ送って並べる。押し続ける間、手元は動かした行のボタンに残る
+  let kept = true;
+  let reached = true;
+  for (const [t, id] of q.answer.entries()) {
+    const c = (await orderIds(page)).indexOf(id);
+    if (c === t) continue;
+    reached = (await tabTo(page, `上へ: ${orderText(q, id)}`)) && reached;
+    for (let k = 0; k < c - t; k++) {
+      await pressEnter(page);
+      const atTop = (await orderIds(page)).indexOf(id) === 0;
+      const want = `${atTop ? '下へ' : '上へ'}: ${orderText(q, id)}`;
+      if ((await focusedLabel(page)) !== want) kept = false;
+    }
+  }
+  check(reached, `${tag} Tab だけで各行の上へのボタンに届く`);
+  check(kept, `${tag} 上下のボタンで動かしたあとも、手元は動かした行のボタンに残る`);
+  check((await orderIds(page)).join(',') === q.answer.join(','), `${tag} 上下のボタンとキーボードだけで正しい順に並べられる`);
+  check(await tabTo(page, 'POST 答えを送る'), `${tag} Tab だけで答えを送るボタンに届く`);
+  await page.keyboard.press('Enter');
+  return true;
+}
+
+/** 実習: 全部の手順に印を付けるまで終えられない。終えると X-XP: +10 と、見えるはずのことが出る */
+async function finishLabChecked(page, q, tag, width, phone) {
+  await noHorizontalOverflow(page, width, `${tag} 問題 (実習)`);
+  await wrapsText(page, '.astryx-checkbox-list', `${tag} 実習の手順`);
+  if (phone) {
+    const steps = page.locator('.astryx-checkbox-list .astryx-item');
+    for (let i = 0; i < (await steps.count()); i++) await checkTarget(steps.nth(i), `${tag} 実習の手順の行 ${i + 1}`);
+  }
+  const finishLab = page.getByRole('button', { name: 'POST 実習を終える' });
+  check(await finishLab.isDisabled(), `${tag} 実習は手順に印を付けるまで終えられない`);
+  for (const box of await page.getByRole('checkbox').all()) await box.check();
+  await finishLab.click();
+  const r = await response(page, 200);
+  check(await r.getByText(`+${XP_PER_LAB}`, { exact: true }).isVisible(), `${tag} 実習を終えると X-XP: +${XP_PER_LAB}`);
+  await noHorizontalOverflow(page, width, `${tag} 応答 (実習)`);
+  check(await r.getByText(q.expected, { exact: false }).isVisible(), `${tag} 実習を終えると見えるはずのことが出る`);
+  const saved = await page.evaluate(() => JSON.parse(localStorage.getItem('gantlo.v1') ?? 'null'));
+  check(saved?.answers?.[q.id] === undefined, `${tag} 採点しない実習は正誤を残さない`);
+  return true;
 }
 
 // npx の子の vite まで止められるよう、別のプロセスグループで立てる

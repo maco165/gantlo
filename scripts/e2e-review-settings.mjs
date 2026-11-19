@@ -9,14 +9,23 @@
 //   7. 壊れたファイル (JSON でない・形が違う) は 422、1 MB を超えるファイルは 413 で読み込まず理由を出し、記録は変わらない
 //   8. 書き出した JSON を読み込み、確かめて置き換えると記録が戻り、読み直しても残る
 //   9. 横にはみ出さず、文が切れない。390 幅では設定と復習のボタンの押せる範囲が 44px 以上。外へ何も送らず、ページのエラーが無い
-import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
+import { answer, loadLessons } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 const KEY = 'gantlo.v1';
-const week1 = JSON.parse(readFileSync(new URL('../src/content/courses/main/week1.json', import.meta.url), 'utf8'));
-const lesson = week1.lessons.find((l) => l.id === 'main-w1-l1');
-const [qCmd, qHttp, , qChoice] = lesson.questions;
+// 復習に入れる問題は、問題データから種類で選ぶ (今日の分はコマンドの穴埋めと 4 択、明日の分は HTTP の穴埋め)
+const allQuestions = loadLessons().flatMap((l) => l.questions);
+const firstOf = (kind) => {
+  const q = allQuestions.find((x) => x.kind === kind);
+  if (!q) throw new Error(`問題データに ${kind} の問題がありません`);
+  return q;
+};
+const qCmd = firstOf('command');
+const qChoice = firstOf('choice');
+const qHttp = firstOf('http');
+// 復習は id の順に出る (src/lib/progress.ts の dueReviewIds)
+const [qToday1, qToday2] = [qCmd, qChoice].sort((a, b) => (a.id < b.id ? -1 : 1));
 
 /** YYYY-MM-DD に n 日を足す (暦の上で) */
 function addDays(day, n) {
@@ -25,7 +34,6 @@ function addDays(day, n) {
   return t.toISOString().slice(0, 10);
 }
 const md = (day) => day.split('-').slice(1).map(Number).join('/');
-const escapeRe = (t) => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 /**
  * 走らせる 2 つの組。now は UTC の時刻で、local はその時刻の手元の日付、utc は UTC の日付 (local と違う日にしてある)
@@ -91,18 +99,14 @@ export async function runReviewAndSettings(browser, { base, check, noHorizontalO
 
     // 2. 2 問とも正解する
     await start.click();
-    await page.getByRole('heading', { name: qCmd.prompt }).waitFor();
+    await page.getByRole('heading', { name: qToday1.prompt }).waitFor();
     check(await page.getByText('今日の復習 · 1 / 2 問').isVisible(), `${tag} 復習は今日の 2 問を 1 問ずつ出す`);
-    const inputs = page.locator('[data-testid="fill-code"] input');
-    for (const [i, b] of qCmd.blanks.entries()) await inputs.nth(i).fill(b.answers[0]);
-    await page.getByRole('button', { name: 'POST 答えを送る' }).click();
+    await answer(page, qToday1, 'right');
     await page.locator('section.response[data-status="200"]').waitFor();
     check(await page.getByText('POST /me/reviews/answers/1', { exact: true }).isVisible(), `${tag} 復習の答えは POST /me/reviews/answers/1 に送る (レッスンの道ではない)`);
     await page.getByRole('button', { name: '次の問題へ' }).click();
-    await page.getByRole('heading', { name: qChoice.prompt }).waitFor();
-    const right = qChoice.choices.find((c) => c.id === qChoice.answer).text;
-    await page.getByRole('radio', { name: new RegExp(`^[A-D]\\. ${escapeRe(right)}$`) }).check();
-    await page.getByRole('button', { name: 'POST 答えを送る' }).click();
+    await page.getByRole('heading', { name: qToday2.prompt }).waitFor();
+    await answer(page, qToday2, 'right');
     await page.locator('section.response[data-status="200"]').waitFor();
     await page.getByRole('button', { name: 'POST 結果を記録する' }).click();
     await page.getByRole('heading', { name: '復習完了' }).waitFor();
