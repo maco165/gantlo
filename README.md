@@ -18,12 +18,12 @@
 <table>
   <tr>
     <td width="33%"><img alt="ホーム: GET /me の 206 と、リクエストの旅の 8 段のウォーターフォール" src="docs/images/home-phone.png"></td>
-    <td width="33%"><img alt="計画: コースを選んで並べる一覧と、レッスンの数を帯にしたガントチャート" src="docs/images/plan-phone.png"></td>
+    <td width="33%"><img alt="計画: コースを選んで並べる一覧と、開始日から引いた予定の帯" src="docs/images/plan-phone.png"></td>
     <td width="33%"><img alt="コマンドの穴埋め: 誤った答えの 400 Bad Request と X-Expected・Retry-After・出典" src="docs/images/fill-phone.png"></td>
   </tr>
   <tr>
     <td>ホーム。進み具合をステータスで返し、旅の 8 段を開発者ツールのウォーターフォールの形で見せる</td>
-    <td>計画。学ぶコースと順を選ぶと、レッスンの数に比例した帯を引く。期限は持たない</td>
+    <td>計画。学ぶコースと順・開始日・目安の日数を決めると予定の帯を引き、巻き・遅れを出す</td>
     <td>穴埋めの不正解は <code>400 Bad Request</code>。正しい答え・翌日の復習・出典をヘッダーの形で出す</td>
   </tr>
 </table>
@@ -78,7 +78,7 @@
 | このサイトについて (`/gantlo/about/`) | `GET /about` への応答 (`200 OK`)。サイトの説明・ソースコード (GitHub)・Issue を書く・記録の置き場所・AI に聞く・問題の出典・ライセンス。文の正本は `src/lib/about.ts` |
 | まだ無い画面 | `501 Not Implemented` |
 | 知らない URL | `404 Not Found` |
-| メニュー | 左。PC では常に出し、スマホでは左から開く引き出し。「このサイトについて」と「GitHub のリポジトリ」は一覧の下端に留める (PC は SideNav の `footer`、スマホは MobileNav に footer が無いので CSS の sticky) |
+| メニュー | 左。PC では常に出し、スマホでは左から開く引き出し。「このサイトについて」と「GitHub のリポジトリ」は一覧の下端に留める (PC は SideNav の `footer`、スマホは MobileNav に footer が無いので CSS の sticky。一覧のリンクは下端の 2 つの高さ (`--nav-foot-h`) を `scroll-margin-bottom` にし、Tab で進んでも隠れない) |
 | 上の帯 | 右端に GitHub のリポジトリを新しいタブで開くボタン (どの画面でも)。スマホでは左端にメニューのボタンとサイト名も置く |
 
 見た目は Meta のデザインシステム [Astryx](https://github.com/meta/astryx) の **Gothic** テーマ (`@astryxdesign/theme-gothic`) です。暗い画面だけのテーマで、飾りの見出し文字は英字にだけ使います。
@@ -218,7 +218,7 @@ flowchart LR
 | `src/components/AppSideNav.tsx` | 左のメニュー。PC の SideNav とスマホの MobileNav で同じ項目を使い、「このサイトについて」と「GitHub のリポジトリ」(`SiteItems`) は下端に留める |
 | `src/components/MobileBar.tsx`・`src/components/RepoLink.tsx` | 上の帯と、その右端の GitHub のボタン (`RepoLink`。GitHub の印は `GitHubMark`)。768px 以上ではメニューのボタンとサイト名を隠し、GitHub のボタンだけ残す |
 | `tests/e2e-unsorted.test.ts` | e2e で並べ替えを正しくない答えで送るときの並び (`scripts/e2e-lessons.mjs` の `unsortedTarget`) が、2〜6 項目のどの始めの並びからでも正しい順と違い `409` になり、3 項目以上では正しい位置の行も残ることを、並びをすべて試して見る |
-| `scripts/e2e-about.mjs` | `scripts/e2e.mjs` から呼ぶ、メニューの下端の 2 つ・上の帯の GitHub のボタン・このサイトについての検査。390 幅と 1280 幅で、ホーム・計画・レッスン・用語集・404・このサイトについての画面ごとに、2 つが一覧の最後のコースより下で画面の下端から 120px 以内にあること、上の帯の右端 (24px 以内) に新しいタブで開く GitHub のボタンがあること、メニューから about が開き 200 と題とボタンが出て選ばれた印になること、コースに「準備中」が付かないこと、390 幅で 44px 以上であることを見る |
+| `scripts/e2e-about.mjs` | `scripts/e2e.mjs` から呼ぶ、メニューの下端の 2 つ・上の帯の GitHub のボタン・このサイトについての検査。390 幅と 1280 幅で、ホーム・計画・レッスン・用語集・404・このサイトについての画面ごとに、2 つが一覧の最後のコースより下で画面の下端から 120px 以内にあること、上の帯の右端 (24px 以内) に新しいタブで開く GitHub のボタンがあること、メニューから about が開き 200 と題とボタンが出て選ばれた印になること、コースに (コースの画面が 501 の間は)「準備中」が付くこと、390 幅で 44px 以上であること、390x500 (メニューがスクロールする高さ) で Tab で進んだ手元の行が下端の 2 つの下に隠れないことを見る |
 | `scripts/readme-images.mjs` | README の画像を撮る (`npm run readme:images`)。帯の画像は組み立てたサイトから Gothic のトークンと字体を読んで描く。画面は見本の進捗を入れて 390 幅 (と PC のホームを 1280 幅) で撮る。番号は `README_IMAGES_PORT` (既定 4331、`--strictPort`) |
 | `src/lib/pageMeta.ts` | 画面の題の正本。サイトの中で移ったときの `document.title` と、書き出す HTML の `<title>` が同じ関数を使う |
 | `src/prerender/pages.ts` | 書き出すページの一覧 (ホーム・メニューの画面・全コース・全レッスン) と、ページごとの題・説明・本文。画面と同じデータ (経路・コース・レッスン・用語集) から作る。用語集のページは全部の語・説明・出典を本文に書く (検索に載せる)。リンクの href も文字と同じく escape する。レッスンの見出しは題で、本文は問題文まで (答えと解説は書かない)。一人ひとりの記録の画面 (計画・復習・進捗・設定) は noindex にして sitemap から外す。画面の JS には入らない |
@@ -244,7 +244,7 @@ npm run readme:images  # README の画像 (docs/images/) を撮り直す
 `main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
 ## まだ無いもの
 
-コースのレッスンの一覧 (コースの画面) は、これから作ります。今は `501 Not Implemented` を出します (どのコースにもレッスンはあるので、メニューのコースに「準備中」は付けません)。問題を足したときに用語集の「出てくるレッスン」を足す手順は [docs/content-format.md](docs/content-format.md) にあります。
+コースのレッスンの一覧 (コースの画面) は、これから作ります。今は `501 Not Implemented` を出し、メニューのコースには「準備中」と出しています (コースの画面を作るときに外します)。問題を足したときに用語集の「出てくるレッスン」を足す手順は [docs/content-format.md](docs/content-format.md) にあります。
 
 ## ライセンス
 

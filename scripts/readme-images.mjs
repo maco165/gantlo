@@ -69,7 +69,7 @@ function bannerHtml(t) {
 </div>`;
 }
 
-/** 見本の進捗: 本編の 2 レッスン完了、今日 21 XP、3 日連続、今日の復習が 2 問 */
+/** 見本の進捗: 本編の 2 レッスン完了、今日 21 XP、3 日連続、今日の復習が 2 問。計画は昨日から本編 → Spring Boot → 技術の歴史 */
 function seedProgress() {
   const d = new Date();
   const key = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
@@ -77,6 +77,7 @@ function seedProgress() {
   const ago = (n) => key(new Date(d.getFullYear(), d.getMonth(), d.getDate() - n));
   const progress = {
     v: 1,
+    plan: { courses: ['main', 'spring', 'tech-history'], start: ago(1) },
     streak: { count: 3, lastDay: today },
     xp: { total: 60, byDay: { [ago(4)]: 12, [ago(2)]: 9, [ago(1)]: 18, [today]: 21 } },
     lessons: {
@@ -166,7 +167,14 @@ try {
   const phone = { width: 390, height: 844 };
   await shoot('home-pc', { width: 1280, height: 800 }, '');
   await shoot('home-phone', phone, '');
-  await shoot('plan-phone', phone, 'plan/', (page) => page.locator('.gantt__row').first().waitFor());
+  await shoot('plan-phone', phone, 'plan/', async (page) => {
+    await page.locator('.gantt__row').first().waitFor();
+    // 予定の帯と巻き・遅れが見えるよう、ガントチャートの見出しを上の帯のすぐ下に合わせる
+    await page.locator('section.gantt').evaluate((el) => {
+      el.scrollIntoView({ block: 'start' });
+      document.getElementById('astryx-app-shell-main')?.scrollBy(0, -(document.querySelector('.mobile-bar')?.getBoundingClientRect().height ?? 0) - 16);
+    });
+  });
   await shoot('fill-phone', phone, `lesson/${FILL_LESSON.id}/`, async (page) => {
     // ありそうな誤り (-d) を入れて 400 を出す
     await page.locator('[data-testid="fill-code"] input').first().fill('-d');
