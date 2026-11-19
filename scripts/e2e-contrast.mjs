@@ -263,6 +263,17 @@ export async function runContrast(browser, { base, check }) {
     await page.getByRole('button', { name: '復習を始める' }).waitFor();
     await measure('復習 (今日の分あり)', ['復習を始める']);
 
+    // 進捗 (レッスンを解いたあとの記録で) と用語集 (全部の語と、全角で探したあと)
+    await page.goto(`${base}progress/`);
+    await page.locator('.prog__table tbody tr').first().waitFor();
+    await measure('進捗', ['正答率', '7 日の XP', 'コースごとの進み具合', '今日']);
+    await page.goto(`${base}glossary/`);
+    await page.locator('article.gloss').first().waitFor();
+    await measure('用語集', ['HTTP', '11 の規格 (12 語)', '用語・別名・説明から探す']);
+    await page.getByRole('searchbox', { name: '用語を探す' }).fill('ＨＴＴＰ');
+    await page.waitForFunction(() => document.querySelector('article.gloss')?.getAttribute('data-term') === 'http');
+    await measure('用語集 (全角で探したあと)', ['ＨＴＴＰ', '200']);
+
     // 設定と、記録を消す前の確かめ (画面の中の dialog)
     await page.goto(`${base}settings/`);
     await page.getByRole('button', { name: 'DELETE 記録を消す' }).waitFor();

@@ -1,8 +1,10 @@
 // 書き出すページの一覧 (道・題・説明・本文)。画面と同じデータ (経路・コース・レッスン・題の正本) から作る。
 // scripts/prerender.mjs が npm run build のあとに読み、dist/<道>/index.html を書く。tests/meta.test.ts も同じものを見る。
 // 画面の JS には入らない (src/main.tsx からは読まない)。
+import { SORTED } from '../content/glossary';
 import { LESSONS } from '../content/index';
 import type { Lesson } from '../content/types';
+import type { GlossaryTerm } from '../lib/glossary';
 import { documentTitle, PAGE_TITLES, withSite } from '../lib/pageMeta';
 import { BASE, COURSES, courseHref, homeHref, lessonHref, pageHref, parseRoute, type CourseId, type PageName } from '../lib/route';
 import { REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
@@ -35,8 +37,8 @@ export const PERSONAL_PAGES: readonly PageName[] = ['plan', 'review', 'progress'
 const PAGE_DESCRIPTIONS: Record<PageName, string> = {
   plan: '学ぶコースを選んで学ぶ順に並べると、レッスンの数を帯の長さにしたガントチャートで計画を引く gantlo の画面。期限は持たず、済んだ記録は組み直しても残ります。',
   review: '間違えた問題を、日をおいて解き直す gantlo の復習の画面。答えの記録はブラウザの localStorage にだけ残り、サーバーには送りません。',
-  progress: 'レッスンの完了・XP・連続日数など、gantlo で学んだ記録を見る進捗の画面。記録はブラウザの localStorage にだけ残り、サーバーには送りません。',
-  glossary: 'HTTP・URI・JSON・DNS・TLS・REST・OAuth など、gantlo の問題に出てくる API と HTTP の用語を短くまとめる用語集。',
+  progress: '正答率・この 7 日の XP・コースごとの進み具合・旅の 8 段の学習状況を見る gantlo の進捗の画面。記録はブラウザの localStorage にだけ残り、サーバーには送りません。',
+  glossary: 'HTTP・URI・JSON・DNS・TLS・REST・OAuth など API の基礎の 11 の規格と、gantlo の問題に出る用語を、RFC などの一次情報の出典付きで短くまとめた用語集。',
   settings: 'gantlo の学び方の設定の画面。設定はブラウザの localStorage にだけ残り、サーバーには送りません。',
 };
 
@@ -55,11 +57,24 @@ const HOME_DESCRIPTION =
 export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 /** 説明は検索の結果で切られない長さに収める (末尾は …) */
 export const clip = (s: string, n = 120) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
-const a = (href: string, text: string) => `<a href="${href}">${esc(text)}</a>`;
+// href も escape する (用語集の出典の URL などデータから来る値が属性を閉じないように)
+const a = (href: string, text: string) => `<a href="${esc(href)}">${esc(text)}</a>`;
 const back = `<p>${a(homeHref, `${SITE_NAME} のホーム`)}</p>`;
 /** BASE からの相対の道 (ディレクトリの名前に使う) */
 const rel = (href: string) => href.slice(BASE.length);
 const titleOfPath = (href: string) => documentTitle(parseRoute(href));
+
+/** 用語集の本文 (検索に載せるので、画面と同じ語・説明・出典を書く。画面を描くと React が置き換える) */
+export function glossaryBody(sorted: { standards: readonly GlossaryTerm[]; others: readonly GlossaryTerm[] } = SORTED): string[] {
+  const dl = (terms: readonly GlossaryTerm[]) =>
+    `<dl>${terms
+      .map(
+        (t) =>
+          `<dt id="term-${t.id}">${esc(t.term)}${t.aliases?.length ? ` (${esc(t.aliases.join(' · '))})` : ''}</dt><dd>${esc(t.description)} 出典: ${t.sources.map((s) => a(s.url, s.label)).join('・')}</dd>`,
+      )
+      .join('')}</dl>`;
+  return ['<h2>11 の規格</h2>', dl(sorted.standards), '<h2>問題に出る用語</h2>', dl(sorted.others)];
+}
 
 /** すべてのページ。順は sitemap の順 (ホーム → メニューの画面 → コース → レッスン)。lessons はテストで差し替える */
 export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
@@ -86,7 +101,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
       path: rel(pageHref(p)),
       title: titleOfPath(pageHref(p)),
       description: PAGE_DESCRIPTIONS[p],
-      body: [`<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, back].join('\n'),
+      body: [`<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), back].join('\n'),
       noindex: PERSONAL_PAGES.includes(p),
     });
   }

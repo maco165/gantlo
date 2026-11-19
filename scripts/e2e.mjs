@@ -18,6 +18,7 @@
 //  13. 390 幅で、# だけが変わる戻るでもスマホのメニューが閉じ、レッスンは何問目かが変わらない
 // ホームと計画の画面 (R-6・R-17・R-18) は scripts/e2e-home-plan.mjs が確かめる。
 // 復習と設定の画面 (R-13) は scripts/e2e-review-settings.mjs が確かめる。
+// 進捗の画面と用語集 (R-14) は scripts/e2e-progress-glossary.mjs が確かめる。
 // テーマが Gothic であることと、文字と地のコントラスト (4.5:1 以上) は scripts/e2e-contrast.mjs が確かめる。
 import { spawn } from 'node:child_process';
 import { readFileSync } from 'node:fs';
@@ -42,6 +43,7 @@ import {
   pickWalkLesson,
   rightInputs,
 } from './e2e-lessons.mjs';
+import { runProgressAndGlossary } from './e2e-progress-glossary.mjs';
 import { runReviewAndSettings } from './e2e-review-settings.mjs';
 
 const require = createRequire(import.meta.url);
@@ -644,6 +646,8 @@ try {
   await runHomeAndPlan(browser, { base: BASE, check, noHorizontalOverflow });
   // 復習と設定の画面 (R-13)
   await runReviewAndSettings(browser, { base: BASE, check, noHorizontalOverflow });
+  // 進捗の画面と用語集 (R-14)
+  await runProgressAndGlossary(browser, { base: BASE, check, noHorizontalOverflow });
   // テーマと文字のコントラスト (R-16)
   await runContrast(browser, { base: BASE, check });
 } catch (e) {

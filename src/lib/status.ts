@@ -97,3 +97,9 @@ export const SAVE_FAILED: Status = { code: 507, reason: 'Insufficient Storage', 
 
 /** 記録を消した (DELETE /me)。本文は無いので 204 */
 export const RESET_DONE: Status = { code: 204, reason: 'No Content', ja: '記録を消しました。目標と計画は残しています' };
+
+/** 用語集を探した (GET /glossary?q=)。当たれば 200 と語の数、1 つも無ければ本文の無い 204 */
+export function glossaryStatus(hits: number, query: string): Status {
+  if (hits > 0) return { code: 200, reason: 'OK', ja: query.trim() ? `${hits} 語が見つかりました` : `${hits} 語を載せています` };
+  return { code: 204, reason: 'No Content', ja: '見つかりませんでした。英語・略語・別の言い方でも探せます' };
+}
