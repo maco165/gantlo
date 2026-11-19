@@ -10,6 +10,7 @@ import { stageStates } from '../lib/journey';
 import { currentLesson, planLessons, planOrder } from '../lib/plan';
 import { currentStreak, goalXp, todayXp, type Progress } from '../lib/progress';
 import { COURSES, lessonHref, pageHref } from '../lib/route';
+import { buildSchedule, planStart, scheduleStatus, verdictLabel } from '../lib/schedule';
 import { SITE_NAME, SITE_TAGLINE } from '../lib/site';
 import { progressStatus } from '../lib/status';
 
@@ -25,9 +26,12 @@ export default function Home({ progress, now = new Date(), lessons = LESSONS }: 
   const here = currentLesson(order, progress, lessons);
   const hasLessons = planLessons(order, lessons).length > 0;
   const extra = COURSES.filter((c) => c.id !== 'main');
+  // 計画の予定と比べた巻き・遅れ (計画の画面と同じ数え方)。取り戻し方は出さず、一言だけ
+  const schedule = buildSchedule({ courses: order, start: planStart(progress, now), days: progress.plan?.days }, progress, now, lessons);
   const headers: [string, string][] = [
     ['X-Today-XP', `${todayXp(progress, now)} / ${goalXp(progress)}`],
     ['X-Streak', `${currentStreak(progress, now)} 日連続`],
+    ['X-Schedule', `${scheduleStatus(schedule).code} ${verdictLabel(schedule.verdict)}`],
     ['Retry-After', `今日の復習 ${dueReviewCount(progress, now)} 問`],
     ['Link', `追加のコース ${extra.length} つ (${extra.map((c) => `${c.title} ${lessons.filter((l) => l.course === c.id).length}`).join('・')} レッスン)`],
   ];

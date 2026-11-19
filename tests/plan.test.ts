@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Lesson } from '../src/content/types';
 import * as plan from '../src/lib/plan';
-import { DEFAULT_ORDER, canSavePlan, currentLesson, moveCourse, planBars, planLessons, planOrder, savePlan, toggleCourse } from '../src/lib/plan';
-import { STORAGE_KEY, completeLesson, emptyProgress, loadProgress, saveProgress, type Progress } from '../src/lib/progress';
+import { DEFAULT_ORDER, canSavePlan, currentLesson, moveCourse, planLessons, planOrder, savePlan, toggleCourse } from '../src/lib/plan';
+import { STORAGE_KEY, addDays, completeLesson, emptyProgress, loadProgress, saveProgress, type Progress } from '../src/lib/progress';
 import type { CourseId } from '../src/lib/route';
+import { buildSchedule } from '../src/lib/schedule';
 
 function memoryStorage(initial: Record<string, string> = {}) {
   const data = { ...initial };
@@ -25,6 +26,11 @@ const SAMPLE: Lesson[] = [
 ];
 const at = new Date('2026-11-23T09:00:00');
 const finish = (p: Progress, ...ids: string[]) => ids.reduce((acc, id) => completeLesson(acc, id, { correct: 5, total: 5 }, 10, at), p);
+/**
+ * 計画の帯 (R-20 から日付の軸。目安の日数の既定は 1 レッスン 1 日なので、開始日の当日に見ると帯の長さはレッスンの数に比例する)。
+ * 予定と巻き・遅れは tests/schedule.test.ts で確かめる
+ */
+const planBars = (courses: CourseId[], p: Progress, lessons: Lesson[]) => buildSchedule({ courses, start: '2026-11-23' }, p, at, lessons).bars;
 
 afterEach(() => {
   vi.useRealTimers();
@@ -41,7 +47,8 @@ describe('計画を組む (R-17)', () => {
     expect(bars[0].left).toBe(0);
     for (let i = 1; i < bars.length; i++) {
       expect(bars[i].left).toBeCloseTo(bars[i - 1].left + bars[i - 1].width, 10);
-      expect(bars[i].start).toBe(bars[i - 1].start + bars[i - 1].count);
+      // 前の帯の最後の日の次の日から始まる
+      expect(bars[i].first).toBe(addDays(bars[i - 1].last!, 1));
     }
     const last = bars[bars.length - 1];
     expect(last.left + last.width).toBeCloseTo(100, 10);
@@ -78,17 +85,14 @@ describe('計画を組む (R-17)', () => {
     expect(canSavePlan(['spring'])).toBe(true);
   });
 
-  it('計画は日付と期間を持たない (保存した計画はコースの並びだけ)', () => {
+  it('計画は期限と期間を持たない (保存した計画はコースの並びと、おおよその予定の開始日・目安の日数だけ)', () => {
     const saved = savePlan(emptyProgress(), ['spring', 'main']);
     expect(saved?.plan).toEqual({ courses: ['spring', 'main'] });
-    // 外から期限や期間の欄が入っていても、読み込むと落ちる
+    // 外から期限や期間の欄が入っていても、読み込むと落ちる。開始日 (R-20) は残る
     const storage = memoryStorage({
       [STORAGE_KEY]: JSON.stringify({ ...emptyProgress(), plan: { courses: ['main'], start: '2026-11-23', deadline: '2026-12-31', weeks: 4 } }),
     });
-    expect(loadProgress(storage).plan).toEqual({ courses: ['main'] });
-    // 帯は日付ではなくレッスンの数で測る
-    const keys = Object.keys(planBars(['main'], emptyProgress(), SAMPLE)[0]).sort();
-    expect(keys).toEqual(['count', 'course', 'done', 'doneWidth', 'left', 'start', 'title', 'width']);
+    expect(loadProgress(storage).plan).toEqual({ courses: ['main'], start: '2026-11-23' });
   });
 
   it('計画は localStorage (gantlo.v1) に残り、読み直すと戻る', () => {
@@ -147,16 +151,15 @@ describe('学習管理 (R-18)', () => {
     expect(planBars(['main'], back, SAMPLE)[0].done).toBe(1);
   });
 
-  it('期限と遅れの判定を持たない (今日の日付が変わっても結果は同じ)', () => {
+  it('今ここは今日の日付によらない (巻き・遅れは予定の側 schedule.ts で、今日を引数で受けて数える)', () => {
     const p = finish(emptyProgress(), 'main-l1');
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-11-23T09:00:00'));
-    const before = { bars: planBars(['main', 'security'], p, SAMPLE), here: currentLesson(['main', 'security'], p, SAMPLE) };
+    const before = currentLesson(['main', 'security'], p, SAMPLE);
     vi.setSystemTime(new Date('2028-03-01T09:00:00'));
-    const after = { bars: planBars(['main', 'security'], p, SAMPLE), here: currentLesson(['main', 'security'], p, SAMPLE) };
-    expect(after).toEqual(before);
-    expect(Object.keys(before.here!).sort()).toEqual(['index', 'left', 'lesson', 'total']);
-    // 期限・遅れ・予定日を扱う関数を持たない
-    expect(Object.keys(plan).filter((k) => /due|late|overdue|deadline|schedule|behind/i.test(k))).toEqual([]);
+    expect(currentLesson(['main', 'security'], p, SAMPLE)).toEqual(before);
+    expect(Object.keys(before!).sort()).toEqual(['index', 'left', 'lesson', 'total']);
+    // 期限を扱う関数を持たない (Q-14 でも期限は持たない)
+    expect(Object.keys(plan).filter((k) => /deadline|overdue/i.test(k))).toEqual([]);
   });
 });

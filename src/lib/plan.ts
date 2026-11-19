@@ -1,8 +1,9 @@
 // 計画と学習管理の計算。画面 (screens/Plan.tsx・Home.tsx) はここの結果を描くだけにする。
-// 計画は「学ぶコースを学ぶ順に並べたもの」で、期限・期間・日付を持たない。横の軸はレッスンの数。
+// 計画は「学ぶコースを学ぶ順に並べたもの」と、おおよその予定 (開始日・コースごとの目安の日数) で、期限は持たない。
+// 予定の帯と巻き・遅れの計算は schedule.ts に置く。
 import { LESSONS } from '../content/index';
 import type { Lesson } from '../content/types';
-import type { Progress } from './progress';
+import { copyPlan, type Plan, type Progress } from './progress';
 import { COURSES, type CourseId } from './route';
 
 /** 計画が無いときの順: 本編 → 追加のコース (route.ts の COURSES の順) */
@@ -33,10 +34,19 @@ export function canSavePlan(courses: readonly CourseId[]): boolean {
   return courses.length > 0;
 }
 
-/** 計画を保存する (PUT /plan)。保存できないときは null。済んだ記録 (lessons・answers・xp) には触れない */
-export function savePlan(p: Progress, courses: readonly CourseId[]): Progress | null {
+/**
+ * 計画を保存する (PUT /plan)。保存できないときは null。済んだ記録 (lessons・answers・xp) には触れない。
+ * 開始日と目安の日数は、渡したものに置き換え、渡さなければ今の計画のものを残す
+ */
+export function savePlan(p: Progress, courses: readonly CourseId[], schedule: Pick<Plan, 'start' | 'days'> = {}): Progress | null {
   if (!canSavePlan(courses)) return null;
-  return { ...p, plan: { courses: [...new Set(courses)] } };
+  const plan = copyPlan({ ...p.plan, courses: [...new Set(courses)] });
+  if (schedule.start !== undefined) plan.start = schedule.start;
+  if (schedule.days !== undefined) {
+    if (Object.keys(schedule.days).length > 0) plan.days = { ...schedule.days };
+    else delete plan.days;
+  }
+  return { ...p, plan };
 }
 
 /** 計画の順に並べたレッスン (1 本のガントチャートの行の順) */
@@ -45,42 +55,6 @@ export function planLessons(courses: readonly CourseId[], lessons: readonly Less
 }
 
 export const isDone = (p: Progress, lessonId: string) => p.lessons[lessonId]?.done === true;
-
-/** 計画の帯 1 本ぶん。start と count はレッスンの数、left・width・doneWidth は全体に対する % */
-export type PlanBar = {
-  course: CourseId;
-  title: string;
-  start: number;
-  count: number;
-  done: number;
-  left: number;
-  width: number;
-  doneWidth: number;
-};
-
-/** 選んだコースを並べた順に、レッスンの数に比例した帯にする。前の帯が終わった所から次の帯が始まる */
-export function planBars(courses: readonly CourseId[], p: Progress, lessons: readonly Lesson[] = LESSONS): PlanBar[] {
-  const counts = courses.map((c) => lessons.filter((l) => l.course === c));
-  const total = counts.reduce((s, ls) => s + ls.length, 0);
-  const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0);
-  let start = 0;
-  return courses.map((course, i) => {
-    const ls = counts[i];
-    const done = ls.filter((l) => isDone(p, l.id)).length;
-    const bar: PlanBar = {
-      course,
-      title: COURSES.find((c) => c.id === course)?.title ?? course,
-      start,
-      count: ls.length,
-      done,
-      left: pct(start),
-      width: pct(ls.length),
-      doneWidth: pct(done),
-    };
-    start += ls.length;
-    return bar;
-  });
-}
 
 /** 今ここ: 計画の順で最初の未完了のレッスン。index は計画の中の何番目か (0 始まり)、left はその位置 (%)。全部済めば null */
 export type Here = { lesson: Lesson; index: number; total: number; left: number };

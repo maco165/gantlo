@@ -1,43 +1,75 @@
 import { Text } from '@astryxdesign/core/Text';
-import { currentLesson, planBars } from '../lib/plan';
-import type { Progress } from '../lib/progress';
-import { lessonHref, type CourseId } from '../lib/route';
+import StatusLine from './StatusLine';
+import { currentLesson } from '../lib/plan';
+import { dayKey, type Progress } from '../lib/progress';
+import { lessonHref } from '../lib/route';
+import { buildSchedule, scheduleStatus, verdictLabel, type ScheduleInput } from '../lib/schedule';
+
+/** 12-05 の形 (年は開始日と予定の終わりに出す) */
+const md = (day: string) => day.slice(5);
 
 /**
- * 計画のガントチャート。横の軸はレッスンの数 (日付ではない)。
- * 帯の長さはコースのレッスンの数に比例し、済んだ数だけ塗る。「今ここ」は計画の順で最初の未完了のレッスンに縦の印を引く
+ * 計画のガントチャート。横の軸は日付で、開始日から学ぶ順にコースの目安の日数をつないだ予定の帯を引く。
+ * 済んだレッスンの割合だけ帯を塗り、今日に縦の線、今ここ (最初の未完了のレッスン) の予定の位置に印を引く。
+ * 済んだ量を今日の予定と比べた巻き・遅れを、ステータス行 (200 / 408) で見せる
  */
-export default function PlanGantt({ courses, progress }: { courses: readonly CourseId[]; progress: Progress }) {
-  const bars = planBars(courses, progress);
-  const here = currentLesson(courses, progress);
-  const total = bars.reduce((s, b) => s + b.count, 0);
+export default function PlanGantt({ plan, progress, now }: { plan: ScheduleInput; progress: Progress; now: Date }) {
+  const s = buildSchedule(plan, progress, now);
+  const here = currentLesson(plan.courses, progress);
+  const total = s.bars.reduce((sum, b) => sum + b.count, 0);
   return (
-    <section className="gantt" aria-labelledby="gantt-title">
+    <section className="gantt" aria-labelledby="gantt-title" data-verdict={s.verdict.kind} data-verdict-days={s.verdict.days}>
       <header className="wf__head">
         <h2 id="gantt-title" className="display">
           Gantt
         </h2>
-        <Text type="supporting">横の長さはレッスンの数 (全 {total} レッスン)。期限は持ちません</Text>
+        <Text type="supporting">
+          横の軸は日付。帯の長さはコースの目安の日数 (全 {total} レッスン・{s.totalDays} 日)。予定は目安で、期限は持ちません
+        </Text>
       </header>
-      {bars.length === 0 ? (
+      {s.bars.length === 0 ? (
         <Text type="supporting">コースを選ぶと、ここに帯を引きます。</Text>
       ) : (
         <>
+          <div className="gantt__verdict" aria-live="polite">
+            <StatusLine status={scheduleStatus(s)} request="GET /plan/schedule" />
+          </div>
+          <Text type="supporting">
+            開始 {s.start}
+            {s.end && ` → 予定の終わり ${s.end}`}・今日 {md(dayKey(now))}・{verdictLabel(s.verdict)}
+          </Text>
           <ol className="gantt__rows">
-            {bars.map((b) => (
-              <li key={b.course} className="gantt__row" data-course={b.course} data-count={b.count} data-done={b.done}>
+            {s.bars.map((b) => (
+              <li
+                key={b.course}
+                className="gantt__row"
+                data-course={b.course}
+                data-count={b.count}
+                data-done={b.done}
+                data-days={b.days}
+                data-first={b.first ?? ''}
+                data-last={b.last ?? ''}
+              >
                 <span className="gantt__name">{b.title}</span>
                 <span className="gantt__count">
-                  <Text type="supporting">{b.count === 0 ? '準備中 (0 レッスン)' : `${b.done}/${b.count} 済み`}</Text>
+                  <Text type="supporting">
+                    {b.first && b.last ? `${b.done}/${b.count} 済み・${b.days} 日 (${md(b.first)}〜${md(b.last)})` : '準備中 (0 レッスン)'}
+                  </Text>
                 </span>
                 <span className="gantt__track" aria-hidden="true">
                   <span className="gantt__bar" style={{ left: `${b.left}%`, width: `${b.width}%` }} />
                   <span className="gantt__done" style={{ left: `${b.left}%`, width: `${b.doneWidth}%` }} />
-                  {here && <span className="gantt__here" style={{ left: `${here.left}%` }} />}
+                  {s.hereLeft !== null && <span className="gantt__here" style={{ left: `${s.hereLeft}%` }} />}
+                  <span className="gantt__today" style={{ left: `${s.todayLeft}%` }} />
                 </span>
               </li>
             ))}
           </ol>
+          <p className="gantt__legend">
+            <span className="gantt__key gantt__key--today">今日</span>
+            <span className="gantt__key gantt__key--here">今ここ</span>
+            <span className="gantt__key gantt__key--done">済み</span>
+          </p>
           {here ? (
             <p className="gantt__next">
               <span className="gantt__here-label">今ここ</span> {here.index + 1} / {here.total} 番目「{here.lesson.title}」{' '}

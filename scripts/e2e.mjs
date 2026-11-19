@@ -17,6 +17,7 @@
 //  12. どの画面でも、文が「…」で切られていない (問題文・選択肢・手順・解説・結果の一覧)
 //  13. 390 幅で、# だけが変わる戻るでもスマホのメニューが閉じ、レッスンは何問目かが変わらない
 // ホームと計画の画面 (R-6・R-17・R-18) は scripts/e2e-home-plan.mjs が確かめる。
+// おおよその予定と巻き・遅れ (R-20) は scripts/e2e-schedule.mjs が確かめる。
 // 復習と設定の画面 (R-13) は scripts/e2e-review-settings.mjs が確かめる。
 // 進捗の画面と用語集 (R-14) は scripts/e2e-progress-glossary.mjs が確かめる。
 // メニューの下端の「このサイト」の 2 つ・上の帯の GitHub のボタン・このサイトについての画面 (B-023) は scripts/e2e-about.mjs が確かめる。
@@ -49,6 +50,7 @@ import {
 } from './e2e-lessons.mjs';
 import { runProgressAndGlossary } from './e2e-progress-glossary.mjs';
 import { runReviewAndSettings } from './e2e-review-settings.mjs';
+import { runSchedule } from './e2e-schedule.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -647,6 +649,8 @@ try {
   await run(browser, 'pc', 1280, 860);
   // ホームと計画の画面 (R-6・R-17・R-18)
   await runHomeAndPlan(browser, { base: BASE, check, noHorizontalOverflow });
+  // おおよその予定と巻き・遅れ (R-20)
+  await runSchedule(browser, { base: BASE, check, noHorizontalOverflow });
   // 復習と設定の画面 (R-13)
   await runReviewAndSettings(browser, { base: BASE, check, noHorizontalOverflow });
   // 進捗の画面と用語集 (R-14)
