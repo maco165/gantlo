@@ -125,6 +125,13 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
         break;
       }
       seen.push(ref);
+      // 最初の並べ替えは、出た直後に送るボタンを押す (前の問題の 2 度押しの 2 回目に当たる)。受け付けず、同じ問題のまま。
+      // 時間に頼らないよう、ほかの検査より先に、ブラウザの中で直に押す
+      if (ref.q.kind === 'order' && guarded === null) {
+        await page.evaluate((label) => [...document.querySelectorAll('button')].find((b) => b.textContent?.trim() === label)?.click(), SUBMIT);
+        await page.waitForTimeout(100);
+        guarded = (await currentId(page)) === id;
+      }
       if ((await page.getByRole('link', { name: /Claude|ChatGPT/ }).count()) > 0) leaked++;
       if (!/残り \d\d:\d\d/.test(await page.getByTestId('exam-clock').innerText())) noClock++;
       if (i === 0) {
@@ -134,12 +141,6 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
       used[ref.week]++;
       const right = used[ref.week] <= plan[ref.week];
       if (!right) wrongIds.push(id);
-      // 最初の並べ替えは、出た直後に送るボタンを押す (前の問題の 2 度押しの 2 回目に当たる)。受け付けず、同じ問題のまま
-      if (ref.q.kind === 'order' && guarded === null) {
-        await page.getByRole('button', { name: SUBMIT }).click();
-        await page.waitForTimeout(100);
-        guarded = (await currentId(page)) === id;
-      }
       await answerExam(page, ref.q, right);
       // 正誤の枠は出さない (最後の問題のあとは結果の画面に移る)
       if (i < TOTAL - 1) {
