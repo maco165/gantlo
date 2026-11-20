@@ -119,7 +119,7 @@ export function formatClock(ms: number): string {
   return `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 }
 
-/** 回の記録が合格か (記録した時の合格の線で数える) */
+/** 回の記録が合格か (今の合格の線 PASS_MARK で数える。記録は合否を持たない) */
 export const isPassed = (r: Pick<ExamRecord, 'correct' | 'total'>) => r.total > 0 && r.correct / r.total >= PASS_MARK;
 
 /** 正しい答えの文 (結果の一覧に出す)。穴埋めは模範解答、4 択は選択肢の文、並べ替えは正しい順 */

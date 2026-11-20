@@ -170,7 +170,7 @@ describe('recordExam', () => {
 });
 
 describe('記録の読み直し (normalizeProgress の exams)', () => {
-  it('形の合う回だけ残し、正答数が問題の数を超えるもの・問題が 0 のものは落とす', () => {
+  it('形の合う回だけ残し、正答数が問題の数を超えるもの・問題が 0 のもの・日付として読めないものは落とす', () => {
     const p = normalizeProgress({
       ...emptyProgress(),
       exams: [
@@ -178,6 +178,7 @@ describe('記録の読み直し (normalizeProgress の exams)', () => {
         { at: '2026-11-20T00:00:00.000Z', correct: 41, total: 40, timeUp: false },
         { at: '2026-11-19T00:00:00.000Z', correct: 0, total: 0 },
         { at: 1, correct: 1, total: 40 },
+        { at: 'not-a-date', correct: 1, total: 40, timeUp: false },
         'broken',
         { at: '2026-11-18T00:00:00.000Z', correct: 12, total: 40, timeUp: 'yes' },
       ],
@@ -194,7 +195,7 @@ describe('記録の読み直し (normalizeProgress の exams)', () => {
   });
 
   it('読み込んだ回は MAX_EXAM_RECORDS 回までに切る', () => {
-    const exams = Array.from({ length: MAX_EXAM_RECORDS + 5 }, (_, i) => ({ at: `t${i}`, correct: 1, total: 40, timeUp: false }));
+    const exams = Array.from({ length: MAX_EXAM_RECORDS + 5 }, (_, i) => ({ at: new Date(2026, 10, 1, i).toISOString(), correct: 1, total: 40, timeUp: false }));
     expect(normalizeProgress({ ...emptyProgress(), exams })?.exams).toHaveLength(MAX_EXAM_RECORDS);
   });
 });

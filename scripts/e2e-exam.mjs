@@ -8,7 +8,8 @@
 //   5. 記録 (gantlo.v1) に回が残り、間違えた問題は翌日の復習に入り、XP は正解 1 問 3 XP。試験の画面に、これまでの回が出る
 //   6. 途中でやめると記録しない
 //   7. 時計を進めて 60 分を過ぎると、408 Request Timeout・答えていない問題の数 (X-Unanswered) が出て、時間切れの回として残る
-//   8. 横にはみ出さず、文が切れない。390 幅では始める・答えを送る・やめるのボタンの押せる範囲が 44px 以上。外へ何も送らず、ページのエラーが無い
+//   8. 並べ替えを出した直後 (0.4 秒の間) の送るは受け付けない (2 度押しの 2 回目で次の問題を送らない)
+//   9. 横にはみ出さず、文が切れない。390 幅では始める・答えを送る・やめるのボタンの押せる範囲が 44px 以上。外へ何も送らず、ページのエラーが無い
 import { arrangeOrder, choiceRadio, fill, loadLessons, orderIds, rightInputs, unsortedTarget } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
@@ -25,11 +26,15 @@ for (const l of lessons) {
   for (const q of l.questions) byId.set(q.id, { q, lesson: l, week: Number(m[1]) });
 }
 
-/** 開いている問題に答えて送る (right か wrong)。正誤の枠は出ないので待たない */
+/**
+ * 開いている問題に答えて送る (right か wrong)。正誤の枠は出ないので待たない。
+ * 並べ替えは出してから 0.4 秒は答えを受け付けない (2 度押しの止め) ので、その間を空けてから送る
+ */
 async function answerExam(page, q, right) {
   if (q.kind === 'command' || q.kind === 'http') await fill(page, right ? rightInputs(q) : q.blanks.map(() => 'zz-wrong-answer'));
   else if (q.kind === 'choice') await choiceRadio(page, q, right ? q.answer : q.choices.find((c) => c.id !== q.answer).id).check();
   else if (q.kind === 'order') await arrangeOrder(page, q, right ? q.answer : unsortedTarget(await orderIds(page), q.answer));
+  if (q.kind === 'order') await page.waitForTimeout(450);
   await page.getByRole('button', { name: SUBMIT }).click();
 }
 
@@ -109,6 +114,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     let leaked = 0;
     let noClock = 0;
     let unknown = 0;
+    let guarded = null;
     await page.getByRole('button', { name: '模擬試験を始める' }).click();
     for (let i = 0; i < TOTAL; i++) {
       await page.locator('[data-testid="exam-run"]').waitFor();
@@ -128,6 +134,12 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
       used[ref.week]++;
       const right = used[ref.week] <= plan[ref.week];
       if (!right) wrongIds.push(id);
+      // 最初の並べ替えは、出た直後に送るボタンを押す (前の問題の 2 度押しの 2 回目に当たる)。受け付けず、同じ問題のまま
+      if (ref.q.kind === 'order' && guarded === null) {
+        await page.getByRole('button', { name: SUBMIT }).click();
+        await page.waitForTimeout(100);
+        guarded = (await currentId(page)) === id;
+      }
       await answerExam(page, ref.q, right);
       // 正誤の枠は出さない (最後の問題のあとは結果の画面に移る)
       if (i < TOTAL - 1) {
@@ -139,6 +151,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     check([1, 2, 3, 4].every((w) => seen.filter((s) => s.week === w).length === PER_WEEK), `${tag} 各週 10 問ずつ (${[1, 2, 3, 4].map((w) => seen.filter((s) => s.week === w).length).join('・')})`);
     check(seen.every((s) => s.q.kind !== 'lab'), `${tag} 実習は出ない`);
     check(new Set(seen.map((s) => s.q.id)).size === TOTAL, `${tag} 同じ問題は 2 回出ない`);
+    check(guarded === true, `${tag} 並べ替えを出した直後の送る (2 度押しの 2 回目) は受け付けず、同じ問題のまま (${guarded})`);
     check(leaked === 0, `${tag} 解いている間は正誤の枠と AI に聞くリンクを出さない (${leaked} か所)`);
     check(noClock === 0, `${tag} どの問題でも残り時間 (mm:ss) が出る`);
 
@@ -156,6 +169,12 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     const gotReread = await rereadLinks.allInnerTexts();
     check(wantReread.length > 0 && wantReread.every((t) => gotReread.includes(t)) && gotReread.length === wantReread.length, `${tag} 読み直すレッスンは第 4 週で間違えた問題のレッスン (${gotReread.join('・')})`);
     check((await page.locator('.result__code--wrong').count()) === 10, `${tag} 問題ごとの結果に不正解が 10 行`);
+    // 不正解の行には正しい答えと解説が出る (正しい答えの文は、種類ごとに模範解答・選択肢の文・正しい順)
+    const expected = (q) =>
+      q.kind === 'choice' ? q.choices.find((c) => c.id === q.answer).text : q.kind === 'order' ? q.answer.map((id) => q.items.find((it) => it.id === id).text).join(' → ') : q.blanks.map((b) => b.answers[0]).join(' / ');
+    const rowsText = await page.locator('section[aria-labelledby="exam-rows"]').innerText();
+    const missingWhy = wrongIds.map((id) => byId.get(id).q).filter((q) => !rowsText.includes(`正しい答え: ${expected(q)}`) || !rowsText.includes(q.explanation));
+    check(missingWhy.length === 0, `${tag} 不正解の 10 行に正しい答えと解説が出る ${missingWhy.map((q) => q.id).join(' ')}`);
     await noHorizontalOverflow(page, width, `${tag} 結果`);
 
     // 5. 記録

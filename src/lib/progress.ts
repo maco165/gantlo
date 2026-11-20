@@ -172,7 +172,7 @@ export function normalizeProgress(raw: unknown): Progress | null {
   if (Array.isArray(raw.exams)) {
     // 形の合う回だけ、正答数が問題の数を超えないものを残す。並び (新しい順) はそのまま
     const exams = raw.exams.flatMap((e): ExamRecord[] => {
-      if (!isObject(e) || typeof e.at !== 'string' || !isCount(e.correct) || !isCount(e.total)) return [];
+      if (!isObject(e) || typeof e.at !== 'string' || !Number.isFinite(Date.parse(e.at)) || !isCount(e.correct) || !isCount(e.total)) return [];
       const total = Math.floor(e.total);
       const correct = Math.floor(e.correct);
       if (total <= 0 || correct > total) return [];

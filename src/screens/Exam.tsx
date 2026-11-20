@@ -39,6 +39,8 @@ type Props = { progress: Progress; updateProgress: (fn: (p: Progress) => Progres
 
 const pct = (rate: number) => `${Math.round(rate * 100)}%`;
 const LIMIT_MS = EXAM_MINUTES * 60_000;
+/** 並べ替えの問題を出してから答えを受け付けるまでの間 (2 度押しで次の問題を送らないため) */
+const ORDER_GUARD_MS = 400;
 
 type Run = { items: ExamItem[]; answers: (ExamAnswer | undefined)[]; index: number; deadline: number };
 type Done = { items: ExamItem[]; answers: (ExamAnswer | undefined)[]; result: ExamResult };
@@ -176,8 +178,13 @@ function Running({
 
   const total = run.items.length;
   const item = run.items[run.index];
+  // 問題を出した時刻。並べ替えの送るボタンは並べ方によらず押せるので、続けて 2 度押すと 2 回目が次の問題に当たる。
+  // 並べ替えだけ、出してから ORDER_GUARD_MS の間に来た答えは捨てる (ほかの種類は答えを入れるまで送るボタンが押せない)
+  const shownAt = useRef({ index: -1, at: 0 });
+  if (shownAt.current.index !== run.index) shownAt.current = { index: run.index, at: Date.now() };
   const isLast = run.index === total - 1;
   const onChecked = (correct: boolean, status: Status) => {
+    if (item.question.kind === 'order' && Date.now() - shownAt.current.at < ORDER_GUARD_MS) return;
     if (Date.now() >= run.deadline) {
       end(run, true);
       return;
