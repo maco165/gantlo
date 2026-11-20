@@ -39,6 +39,7 @@ export const PERSONAL_PAGES: readonly PageName[] = ['plan', 'review', 'progress'
 const PAGE_DESCRIPTIONS: Record<PageName, string> = {
   plan: '学ぶコースを選んで学ぶ順に並べると、レッスンの数を帯の長さにしたガントチャートで計画を引く gantlo の画面。期限は持たず、済んだ記録は組み直しても残ります。',
   review: '間違えた問題を、日をおいて解き直す gantlo の復習の画面。答えの記録はブラウザの localStorage にだけ残り、サーバーには送りません。',
+  exam: 'HTTP・DNS・TLS・REST・OAuth 2.0・JWT を学ぶ本編 4 週の総まとめの模擬試験。各週 10 問ずつ 40 問を 60 分で解き、75% 以上で合格。週ごとの正答率と読み直すレッスンを出します。',
   progress: '正答率・この 7 日の XP・コースごとの進み具合・旅の 8 段の学習状況を見る gantlo の進捗の画面。記録はブラウザの localStorage にだけ残り、サーバーには送りません。',
   glossary: 'HTTP・URI・JSON・DNS・TLS・REST・OAuth など API の基礎の 11 の規格と、gantlo の問題に出る用語を、RFC などの一次情報の出典付きで短くまとめた用語集。',
   settings: 'gantlo の学び方の設定の画面。設定はブラウザの localStorage にだけ残り、サーバーには送りません。',

@@ -8,7 +8,7 @@ import { XP_PER_CORRECT, gradeFill, normalizeAnswer } from '../lib/grade';
 import { RETRY_AFTER_SECONDS, fillStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
-import { ActionArea, PrimaryAction, QuestionHead } from './QuestionFrame';
+import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
 
 const KIND_LABEL = { command: 'コマンドの穴埋め', http: 'HTTP の穴埋め', json: 'JSON の穴埋め' } as const;
 
@@ -20,6 +20,7 @@ export default function FillQuestionView({
   onChecked,
   nextLabel,
   onNext,
+  isExam = false,
 }: {
   question: CommandQuestion | HttpQuestion;
   /** 見出しに添える「何問目」 */
@@ -29,6 +30,8 @@ export default function FillQuestionView({
   onChecked: (correct: boolean, status: Status) => void;
   nextLabel: string;
   onNext: () => void;
+  /** 模擬試験の時は true: 答えを送っても正誤を見せず (onChecked だけ呼び、次へは呼ぶ側が進める)、AI に聞くリンクも出さない */
+  isExam?: boolean;
 }) {
   const [values, setValues] = useState<string[]>(() => question.blanks.map(() => ''));
   const [results, setResults] = useState<boolean[] | null>(null);
@@ -40,6 +43,10 @@ export default function FillQuestionView({
   const check = () => {
     if (checked || !filled) return;
     const r = gradeFill(question, values);
+    if (isExam) {
+      onChecked(r.correct, fillStatus(question.blanks, r.blanks));
+      return;
+    }
     setResults(r.blanks);
     onChecked(r.correct, fillStatus(question.blanks, r.blanks));
   };
@@ -105,8 +112,8 @@ export default function FillQuestionView({
       <ActionArea>
         {!checked ? (
           <>
-            <PrimaryAction label="POST 答えを送る" onClick={check} isDisabled={!filled} />
-            <AskAi question={question} />
+            <PrimaryAction label={isExam ? EXAM_SUBMIT_LABEL : 'POST 答えを送る'} onClick={check} isDisabled={!filled} />
+            {!isExam && <AskAi question={question} />}
           </>
         ) : (
           <>

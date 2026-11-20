@@ -9,7 +9,7 @@ import { answerIndex, gradeOrder, moveItem, type OrderGrade } from '../lib/order
 import { RETRY_AFTER_SECONDS, orderStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
-import { ActionArea, PrimaryAction, QuestionHead } from './QuestionFrame';
+import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
 
 type Dir = 'up' | 'down';
 
@@ -24,6 +24,7 @@ export default function OrderQuestionView({
   onChecked,
   nextLabel,
   onNext,
+  isExam = false,
 }: {
   question: OrderQuestion;
   head: string;
@@ -31,6 +32,8 @@ export default function OrderQuestionView({
   onChecked: (correct: boolean, status: Status) => void;
   nextLabel: string;
   onNext: () => void;
+  /** 模擬試験の時は true: 答えを送っても正誤を見せず (onChecked だけ呼び、次へは呼ぶ側が進める)、AI に聞くリンクも出さない */
+  isExam?: boolean;
 }) {
   const [order, setOrder] = useState(() => question.items.map((it) => it.id));
   const [result, setResult] = useState<OrderGrade | null>(null);
@@ -60,6 +63,10 @@ export default function OrderQuestionView({
   const check = () => {
     if (checked) return;
     const g = gradeOrder(question, order);
+    if (isExam) {
+      onChecked(g.correct, orderStatus(g.misplaced));
+      return;
+    }
     setResult(g);
     onChecked(g.correct, orderStatus(g.misplaced));
   };
@@ -129,8 +136,8 @@ export default function OrderQuestionView({
       <ActionArea>
         {!checked ? (
           <>
-            <PrimaryAction label="POST 答えを送る" onClick={check} />
-            <AskAi question={question} />
+            <PrimaryAction label={isExam ? EXAM_SUBMIT_LABEL : 'POST 答えを送る'} onClick={check} />
+            {!isExam && <AskAi question={question} />}
           </>
         ) : (
           <>

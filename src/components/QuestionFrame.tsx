@@ -4,6 +4,9 @@ import { Text } from '@astryxdesign/core/Text';
 import type { ReactNode } from 'react';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
+/** 模擬試験で答えを送るボタンの文字 (正誤は見せずに次の問題へ進む) */
+export const EXAM_SUBMIT_LABEL = 'POST 答えを送って次へ';
+
 /** 問題の見出し (種類 · 何問目) と問題文 */
 export function QuestionHead({ kind, prompt }: { kind: string; prompt: string }) {
   return (

@@ -19,6 +19,7 @@ import Home from './screens/Home';
 import LessonScreen from './screens/LessonScreen';
 import Plan from './screens/Plan';
 import ProgressScreen from './screens/ProgressScreen';
+import Exam from './screens/Exam';
 import Review from './screens/Review';
 import Settings from './screens/Settings';
 import StatusPage from './screens/StatusPage';
@@ -39,6 +40,7 @@ export default function App() {
   let screen;
   if (route.name === 'page' && route.page === 'plan') screen = <Plan key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'review') screen = <Review key={nav} progress={progress} updateProgress={updateProgress} />;
+  else if (route.name === 'page' && route.page === 'exam') screen = <Exam key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'progress') screen = <ProgressScreen progress={progress} />;
   else if (route.name === 'page' && route.page === 'glossary') screen = (
       <Suspense

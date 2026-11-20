@@ -4,7 +4,7 @@ import { findLesson } from '../content/index';
 import { COURSES, type PageName, type Route } from './route';
 import { SITE_NAME, SITE_TAGLINE } from './site';
 
-export const PAGE_TITLES: Record<PageName, string> = { plan: '計画 (Gantt)', review: '復習', progress: '進捗', glossary: '用語集', settings: '設定', about: 'このサイトについて' };
+export const PAGE_TITLES: Record<PageName, string> = { plan: '計画 (Gantt)', review: '復習', exam: '模擬試験', progress: '進捗', glossary: '用語集', settings: '設定', about: 'このサイトについて' };
 
 /** 画面の題 (ブラウザのタブと検索結果に出る)。ホームは null */
 export function titleOf(route: Route): string | null {
