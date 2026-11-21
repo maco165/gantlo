@@ -8,7 +8,7 @@ import { XP_PER_CORRECT, gradeChoice } from '../lib/grade';
 import { RETRY_AFTER_SECONDS, choiceStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
-import { ActionArea, PrimaryAction, QuestionHead } from './QuestionFrame';
+import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
 
 const letter = (i: number) => String.fromCharCode(65 + i);
 
@@ -20,6 +20,7 @@ export default function ChoiceQuestionView({
   onChecked,
   nextLabel,
   onNext,
+  isExam = false,
 }: {
   question: ChoiceQuestion;
   head: string;
@@ -27,6 +28,8 @@ export default function ChoiceQuestionView({
   onChecked: (correct: boolean, status: Status) => void;
   nextLabel: string;
   onNext: () => void;
+  /** 模擬試験の時は true: 答えを送っても正誤を見せず (onChecked だけ呼び、次へは呼ぶ側が進める)、AI に聞くリンクも出さない */
+  isExam?: boolean;
 }) {
   const [value, setValue] = useState('');
   const [result, setResult] = useState<boolean | null>(null);
@@ -37,6 +40,10 @@ export default function ChoiceQuestionView({
   const check = () => {
     if (checked || value === '') return;
     const ok = gradeChoice(question, value);
+    if (isExam) {
+      onChecked(ok, choiceStatus(ok));
+      return;
+    }
     setResult(ok);
     onChecked(ok, choiceStatus(ok));
   };
@@ -56,8 +63,8 @@ export default function ChoiceQuestionView({
       <ActionArea>
         {!checked ? (
           <>
-            <PrimaryAction label="POST 答えを送る" onClick={check} isDisabled={value === ''} />
-            <AskAi question={question} />
+            <PrimaryAction label={isExam ? EXAM_SUBMIT_LABEL : 'POST 答えを送る'} onClick={check} isDisabled={value === ''} />
+            {!isExam && <AskAi question={question} />}
           </>
         ) : (
           <>

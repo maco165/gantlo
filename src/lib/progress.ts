@@ -11,6 +11,9 @@ export type LessonRecord = { done: boolean; best: number; at: string };
  */
 export type AnswerRecord = { right: number; wrong: number; last: string; stage?: number; nextReview?: string };
 
+/** 模擬試験の 1 回の記録。at は終えた時刻 (ISO)、timeUp は時間が切れて終わったか */
+export type ExamRecord = { at: string; correct: number; total: number; timeUp: boolean };
+
 /** 復習の間隔 (日)。間違えたら翌日、復習で続けて正解するたびに 3 日後・7 日後 */
 export const REVIEW_INTERVALS = [1, 3, 7] as const;
 
@@ -81,6 +84,8 @@ export type Progress = {
   xp: { total: number; byDay: Record<string, number> };
   lessons: Record<string, LessonRecord>;
   answers: Record<string, AnswerRecord>;
+  /** 模擬試験の記録 (新しい順)。一度も受けていなければ無い */
+  exams?: ExamRecord[];
 };
 
 type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem'>;
@@ -127,6 +132,9 @@ function cleanRecords<T>(raw: unknown, clean: (v: Record<string, unknown>) => T 
   return out;
 }
 
+/** 模擬試験の記録を残す回の数 (新しいものから)。読み込みと記録 (src/lib/exam.ts の recordExam) の両方で使う */
+export const MAX_EXAM_RECORDS = 20;
+
 const COURSE_IDS: readonly string[] = COURSES.map((c) => c.id);
 
 /** JSON から読んだものを、欠けや形の違いを埋めた進捗にする。v が 1 でなければ null */
@@ -161,6 +169,17 @@ export function normalizeProgress(raw: unknown): Progress | null {
       return a;
     }),
   };
+  if (Array.isArray(raw.exams)) {
+    // 形の合う回だけ、正答数が問題の数を超えないものを残す。並び (新しい順) はそのまま
+    const exams = raw.exams.flatMap((e): ExamRecord[] => {
+      if (!isObject(e) || typeof e.at !== 'string' || !Number.isFinite(Date.parse(e.at)) || !isCount(e.correct) || !isCount(e.total)) return [];
+      const total = Math.floor(e.total);
+      const correct = Math.floor(e.correct);
+      if (total <= 0 || correct > total) return [];
+      return [{ at: e.at, correct, total, timeUp: e.timeUp === true }];
+    });
+    if (exams.length > 0) out.exams = exams.slice(0, MAX_EXAM_RECORDS);
+  }
   if (isObject(raw.profile)) {
     const goal = raw.profile.dailyGoalXp as number;
     out.profile = { dailyGoalXp: (GOAL_CHOICES as readonly number[]).includes(goal) ? goal : DEFAULT_GOAL_XP };

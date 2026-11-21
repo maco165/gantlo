@@ -295,6 +295,33 @@ export async function runContrast(browser, { base, check }) {
     await page.locator('h1', { hasText: 'このサイトについて' }).waitFor();
     await measure('このサイトについて', ['このサイトについて', 'GitHub のリポジトリを開く', 'Issue を書く', '記録の置き場所']);
     await context.close();
+
+    // 模擬試験: 始める前・残り 5 分を切った途中 (残り時間が誤りの色)・時間切れの結果 (408 と未回答の行)。時計を進めるので別の context で開く
+    const examContext = await browser.newContext({ viewport: { width, height } });
+    await examContext.clock.install();
+    const examPage = await examContext.newPage();
+    const measureExam = async (screen, must = []) => {
+      await examPage.evaluate(() => document.fonts.ready);
+      await examPage.waitForTimeout(200);
+      const min = await checkContrast(examPage, check, `${tag} ${screen}`, must);
+      mins.push({ label: `${name} ${screen}`, ratio: min.ratio, text: min.text });
+    };
+    await examPage.goto(`${base}exam/`);
+    await examPage.getByRole('button', { name: '模擬試験を始める' }).waitFor();
+    await measureExam('模擬試験 (始める前)', ['模擬試験を始める', '75% 以上']);
+    await examPage.getByRole('button', { name: '模擬試験を始める' }).click();
+    await examPage.locator('[data-testid="exam-run"]').waitFor();
+    await examContext.clock.fastForward('56:00');
+    await examPage.locator('.exam-clock--low').waitFor();
+    // 時計は動き続けるので、測る直前の字を must に渡す (秒が進んで食い違わないよう、時計をその場で止める)
+    await examContext.clock.pauseAt((await examPage.evaluate(() => Date.now())) + 1000);
+    const clockText = (await examPage.locator('.exam-clock').innerText()).trim();
+    await measureExam('模擬試験 (残り 5 分を切った途中)', [clockText]);
+    await examContext.clock.resume();
+    await examContext.clock.fastForward('05:00');
+    await examPage.locator('section.response[data-status="408"]').waitFor();
+    await measureExam('模擬試験 (時間切れの結果)', ['408', '未回答 · 復習へ']);
+    await examContext.close();
   }
   return mins;
 }

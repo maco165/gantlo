@@ -1169,3 +1169,15 @@ code {
 .about code {
   overflow-wrap: anywhere;
 }
+
+/* 模擬試験。残り時間は数字の幅をそろえ、残り 5 分を切ったら誤りの色にする (文字の「残り」でも分かる) */
+.exam-clock {
+  font-variant-numeric: tabular-nums;
+}
+.exam-clock--low {
+  color: var(--color-text-error);
+}
+.exam-reread {
+  margin: 0;
+  padding-left: 1.25rem;
+}
