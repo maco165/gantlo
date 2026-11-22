@@ -5,6 +5,38 @@
       "title": "DNS で名前を引く",
       "course": "main",
       "stage": "dns",
+      "intro": {
+        "goals": [
+          "問い合わせで名前と種類を指定することを説明できる",
+          "dig で欲しい種類のレコードを引く",
+          "ネームサーバーとリゾルバの役目を見分ける"
+        ],
+        "body": [
+          "DNS は、木の形をしたドメインの名前空間と、名前に結び付いたレコードでできています。問い合わせでは、知りたい名前と、欲しいレコードの種類を指定します。",
+          "レコードの種類には、ホストのアドレスを表す A や、メールの配送先を表す MX などがあります。dig は名前の後ろに種類を書くと、その種類を問い合わせます。書かないと A を引きます。",
+          "ネームサーバーは、名前空間の一部について完全な情報を持ちます。その部分の権威 (authority) と呼ばれます。ほかの部分については、別のネームサーバーへの手がかりを持ちます。",
+          "リゾルバは、利用者の求めに応じてネームサーバーから情報を取り出すプログラムです。問い合わせには、サーバーの 53 番を UDP でも TCP でも使えます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "DNS を成す 3 つの部品 (RFC 1034 2.4)",
+          "items": [
+            { "label": "名前空間とレコード", "note": "木の形の名前空間と、名前に結び付いたデータの決まり" },
+            { "label": "ネームサーバー", "note": "木の一部について完全な情報と、ほかの部分への手がかりを持つ" },
+            { "label": "リゾルバ", "note": "利用者の求めに応じて、ネームサーバーから情報を取り出す" }
+          ]
+        },
+        "tryIt": [
+          { "command": "dig example.com A +noall +answer", "expect": "example.com. で始まる行が出て、行の終わりに IPv4 のアドレスが並びます (手元では 2 行)。" },
+          { "command": "dig example.com MX +noall +answer", "expect": "種類の欄に MX と書いた行が出ます。種類を変えると、返ってくるレコードも変わります。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc1034#section-2.4",
+          "https://www.rfc-editor.org/rfc/rfc1035#section-3.2.2",
+          "https://www.rfc-editor.org/rfc/rfc1035#section-4.2",
+          "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility"
+        ]
+      },
       "questions": [
         {
           "id": "main-w2-l1-q1",
@@ -95,6 +127,39 @@
       "title": "dig の出力を読む",
       "course": "main",
       "stage": "dns",
+      "intro": {
+        "goals": [
+          "dig の出力をヘッダーとセクションに分けて読む",
+          "ヘッダーの行の status と flags を探す",
+          "+ で始まる問い合わせのオプションで表示を絞る"
+        ],
+        "body": [
+          "DNS のメッセージは、ヘッダーと 4 つのセクションでできています。ヘッダーは必ずあり、問い合わせか応答か、どのセクションがあるかなどを示します。",
+          "dig は、ヘッダーの中身を HEADER と flags の行に出します。status は応答の結果の符号 (RCODE) で、誤りが無ければ NOERROR です。flags の qr は、そのメッセージが応答であることを示します。",
+          "dig の問い合わせのオプションは、+ の後ろにキーワードを書きます。前に no を付けると意味が逆になります。+noall は表示の印を全部消し、+answer は答えのセクションを出す印です。",
+          "答えのセクションの 1 行は、1 つの資源レコードです。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "DNS のメッセージの部分 (RFC 1035 4.1)",
+          "items": [
+            { "label": "Header", "note": "必ずある。問い合わせか応答かなどを示す" },
+            { "label": "Question", "note": "ネームサーバーへの問い" },
+            { "label": "Answer", "note": "問いに答えるレコード" },
+            { "label": "Authority", "note": "権威を持つサーバーを指すレコード" },
+            { "label": "Additional", "note": "付け足しの情報を持つレコード" }
+          ]
+        },
+        "tryIt": [
+          { "command": "dig example.com", "expect": "HEADER の行に status: NOERROR、次の行に flags が出て、QUESTION と ANSWER のセクションが続きます。" },
+          { "command": "dig example.com +noall +answer", "expect": "ヘッダーやほかのセクションが消え、答えのセクションの行だけが出ます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc1035#section-4.1",
+          "https://www.rfc-editor.org/rfc/rfc1035#section-4.1.1",
+          "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility"
+        ]
+      },
       "questions": [
         {
           "id": "main-w2-l2-q1",
@@ -192,6 +257,39 @@
       "title": "TCP で接続する",
       "course": "main",
       "stage": "tcp",
+      "intro": {
+        "goals": [
+          "TCP がポート番号で何を見分けるかを説明できる",
+          "シーケンス番号の決まりを読む",
+          "制御のビットと接続の状態の名前を見分ける"
+        ],
+        "body": [
+          "TCP は、2 つのホストの間に接続を作り、その上でデータを両方向に流せます。ポート番号で、アプリケーションのサービスを見分けます。",
+          "TCP の接続で送るデータは、1 オクテットごとにシーケンス番号を持ちます。番号の空間は 0 から 2^32 - 1 までで、計算は 2^32 を法として行います。",
+          "セグメントのヘッダーには、フラグとも呼ぶ制御のビットが並びます。接続を始める、終える、断ち切るといった合図に使います。",
+          "接続は、LISTEN・ESTABLISHED・TIME-WAIT などの状態を移ります。CLOSED は、接続がまったく無いことを表す架空の状態です。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "TCP の主な制御のビット (RFC 9293 3.1)",
+          "items": [
+            { "label": "ACK", "note": "確認番号の欄が意味を持つ" },
+            { "label": "RST", "note": "接続をリセットする" },
+            { "label": "SYN", "note": "シーケンス番号を同期する" },
+            { "label": "FIN", "note": "送り手からのデータはもう無い" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -sv http://example.com/ -o /dev/null", "expect": "Trying の行で相手のアドレスの 80 番につなぎに行き、port 80 を含む行 (手元の 8.18.0 では Established connection の行) で接続ができたことが分かります。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9293#section-2.2",
+          "https://www.rfc-editor.org/rfc/rfc9293#section-3.1",
+          "https://www.rfc-editor.org/rfc/rfc9293#section-3.3.2",
+          "https://www.rfc-editor.org/rfc/rfc9293#section-3.4",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w2-l3-q1",
@@ -291,6 +389,37 @@
       "title": "TLS 1.3 のハンドシェイク",
       "course": "main",
       "stage": "tls",
+      "intro": {
+        "goals": [
+          "TLS が通り道に与える 3 つの性質を説明できる",
+          "ハンドシェイクとレコードの役目を見分ける",
+          "openssl s_client で接続の版と暗号の組を確かめる"
+        ],
+        "body": [
+          "TLS の目的は、通信する 2 者の間に安全な通り道を作ることです。通り道は、認証・機密性・完全性の 3 つの性質を持つべきだとされています。",
+          "TLS は 2 つの部分からなります。ハンドシェイクのプロトコルは、相手を認証し、暗号の方式と値を取り決め、共有の鍵の材料を作ります。レコードのプロトコルは、その値を使って通信をレコードに分け、1 つずつ守ります。",
+          "暗号の組 (cipher suite) は、2 つのアルゴリズムの組です。レコードを守るものと、鍵の導出 (HKDF) に使うハッシュです。別の定めが無ければ、準拠する実装は TLS_AES_128_GCM_SHA256 を必ず実装します (MUST)。",
+          "どの版の TLS も、両者が対応する共通の版を取り決める仕組みを持っています。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "安全な通り道が持つべき性質 (RFC 8446 1)",
+          "items": [
+            { "label": "認証", "note": "サーバー側は必ず認証する。クライアント側は任意" },
+            { "label": "機密性", "note": "安全な通り道で送るデータは、両端にしか見えない" },
+            { "label": "完全性", "note": "安全な通り道で送るデータを、気付かれずに書き換えられない" }
+          ]
+        },
+        "tryIt": [
+          { "command": "openssl s_client -connect example.com:443 -brief </dev/null", "expect": "CONNECTION ESTABLISHED の後に Protocol version と Ciphersuite の行が出ます。手元では TLSv1.3 と TLS_AES_256_GCM_SHA384 でした。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc8446#section-1",
+          "https://www.rfc-editor.org/rfc/rfc8446#section-4.1.2",
+          "https://www.rfc-editor.org/rfc/rfc8446#section-9.1",
+          "https://docs.openssl.org/master/man1/openssl-s_client/"
+        ]
+      },
       "questions": [
         {
           "id": "main-w2-l4-q1",
@@ -395,6 +524,39 @@
       "title": "実習: リクエストの旅を手元で見る",
       "course": "main",
       "stage": "tls",
+      "intro": {
+        "goals": [
+          "dig・curl・openssl の出力から要る行を探す",
+          "curl -v の行の頭の記号を読み分ける",
+          "使っている道具の版を確かめる"
+        ],
+        "body": [
+          "この実習では、URL を開くときに裏で起きることを 1 つずつ見ます。使うのは dig・curl・openssl です。出力は長いので、要る行だけを探して読みます。",
+          "dig の問い合わせのオプションは + で始まり、前に no を付けると意味が逆になります。+noall で表示の印を全部消し、+answer で答えのセクションだけを出せます。",
+          "curl の -v は、動きの詳しい情報を出すオプションです。送ったヘッダー・受け取ったヘッダー・curl の説明を、行の頭の記号で見分けます。",
+          "openssl s_client の -brief は、接続の値の要点だけを出します。curl と dig は、版を出すオプションを持っています。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "curl -v の行の頭の記号 (curl の man ページの -v)",
+          "items": [
+            { "label": ">", "note": "curl が送ったヘッダー" },
+            { "label": "<", "note": "curl が受け取ったヘッダー" },
+            { "label": "*", "note": "curl からの付け足しの説明" },
+            { "label": "}", "note": "curl が送ったデータ" },
+            { "label": "{", "note": "curl が受け取ったデータ" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl --version", "expect": "1 行目に curl の版と、使っている TLS のライブラリが出ます (手元では curl 8.18.0 と OpenSSL/3.5.5)。" },
+          { "command": "dig -v", "expect": "DiG 9.20.24 のように、dig の版が 1 行出ます。" }
+        ],
+        "sources": [
+          "https://curl.se/docs/manpage.html",
+          "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility",
+          "https://docs.openssl.org/master/man1/openssl-s_client/"
+        ]
+      },
       "questions": [
         {
           "id": "main-w2-l5-q1",

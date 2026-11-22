@@ -5,6 +5,43 @@
       "title": "OAuth 2.0 の役割と流れ",
       "course": "main",
       "stage": "oauth",
+      "intro": {
+        "goals": [
+          "OAuth 2.0 の 4 つの役割の名前を言える",
+          "アクセストークンとリフレッシュトークンの使い道を見分ける",
+          "トークンを運ぶ要求と応答に掛かる決まりを確かめる"
+        ],
+        "body": [
+          "OAuth 2.0 は、利用者のパスワードを渡さずに、アプリに HTTP の資源への限られたアクセスを許す仕組みです。RFC 6749 は、資源の持ち主・リソースサーバー・クライアント・認可サーバーの 4 つの役割を定めます。",
+          "クライアントは、持ち主のパスワードの代わりにアクセストークンを使います。持ち主の許可を表し、トークンを得るのに使う資格を認可グラントと呼びます。グラントの種類で、許可の得方が変わります。",
+          "アクセストークンは守られた資源に触れるための資格で、リフレッシュトークンは新しいアクセストークンを得るための資格です。",
+          "トークンは、手に入れた人に使われてしまう秘密の値です。そのため RFC 6749 は、トークンを運ぶ要求の送り方や、応答の保存のされ方にも決まりを置いています。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "RFC 6749 が定める 4 つの認可グラント (RFC 6749 1.3)",
+          "items": [
+            { "label": "認可コード", "note": "認可サーバーを仲立ちにし、持ち主をクライアントへ戻すときにコードを渡す" },
+            { "label": "インプリシット", "note": "ブラウザの中のクライアント向け。コードを挟まず、アクセストークンを直接出す。今は使わないよう勧められる (RFC 9700 2.1.2)" },
+            { "label": "持ち主のパスワード", "note": "利用者名とパスワードをそのままグラントに使う。今は使ってはならない (RFC 9700 2.4)" },
+            { "label": "クライアントの資格", "note": "クライアントが自分のために、自分の管理する資源などを求めるときに使う" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -si https://httpbin.org/bearer", "expect": "トークンを付けていないので HTTP/2 401 が返り、ヘッダーに www-authenticate が出ます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc6749#section-1",
+          "https://www.rfc-editor.org/rfc/rfc6749#section-1.1",
+          "https://www.rfc-editor.org/rfc/rfc6749#section-1.3",
+          "https://www.rfc-editor.org/rfc/rfc6749#section-1.4",
+          "https://www.rfc-editor.org/rfc/rfc6749#section-1.5",
+          "https://www.rfc-editor.org/rfc/rfc6749#section-3.2",
+          "https://www.rfc-editor.org/rfc/rfc6749#section-5.1",
+          "https://www.rfc-editor.org/rfc/rfc9700#section-2.1.2",
+          "https://www.rfc-editor.org/rfc/rfc9700#section-2.4"
+        ]
+      },
       "questions": [
         {
           "id": "main-w4-l1-q1",
@@ -98,6 +135,41 @@
       "title": "認可コードの流れと PKCE",
       "course": "main",
       "stage": "oauth",
+      "intro": {
+        "goals": [
+          "認可コードの流れでブラウザを通る部分と通らない部分を見分ける",
+          "認可の要求とトークンの要求の引数を読む",
+          "PKCE が足す 2 つの値の作り方を確かめる"
+        ],
+        "body": [
+          "認可コードグラントでは、持ち主のブラウザが認可サーバーへ行き、クライアントへ戻ります。持ち主は認可サーバーとだけ認証するので、資格はクライアントに渡りません (RFC 6749 1.3.1)。",
+          "認可の要求では、response_type で欲しいものの種類を伝えます。値は RFC が決めた語か、登録された拡張の語に限ります (3.1.1)。トークンの要求は、ブラウザを通らずクライアントが直接送ります。",
+          "PKCE (RFC 7636) は、この流れに 1 組の値を足します。クライアントは認可の要求ごとにランダムな code_verifier を作ります。そこから作った code_challenge を、認可の要求に付けます。",
+          "トークンの要求では code_verifier そのものを送ります。サーバーは受け取った値から計算し直し、先の code_challenge と比べます (4.6)。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "PKCE が足す値 (RFC 7636 4.1〜4.3)",
+          "items": [
+            { "label": "code_verifier", "note": "43〜128 字のランダムな文字列。クライアントが認可の要求ごとに作る" },
+            { "label": "code_challenge", "note": "code_verifier から作った値。認可の要求に付けて送る" },
+            { "label": "code_challenge_method", "note": "作り方の名前。S256 か plain で、省くと plain とみなされる" },
+            { "label": "S256", "note": "SHA-256 のハッシュを base64url にする作り方。使えるクライアントはこれを使わなければならない" }
+          ]
+        },
+        "tryIt": [
+          { "command": "openssl rand 32 | basenc --base64url | tr -d '='", "expect": "英数字と - と _ だけでできた 43 字の文字列が出ます。RFC 7636 が勧める、32 バイトの乱数から作る code_verifier の形です。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc6749#section-1.3.1",
+          "https://www.rfc-editor.org/rfc/rfc6749#section-3.1.1",
+          "https://www.rfc-editor.org/rfc/rfc6749#section-4.1",
+          "https://www.rfc-editor.org/rfc/rfc7636#section-4.1",
+          "https://www.rfc-editor.org/rfc/rfc7636#section-4.2",
+          "https://www.rfc-editor.org/rfc/rfc7636#section-4.3",
+          "https://www.rfc-editor.org/rfc/rfc7636#section-4.6"
+        ]
+      },
       "questions": [
         {
           "id": "main-w4-l2-q1",
@@ -193,6 +265,37 @@
       "title": "Bearer トークンを送る",
       "course": "main",
       "stage": "oauth",
+      "intro": {
+        "goals": [
+          "アクセストークンの 3 つの送り方を見分ける",
+          "リソースサーバーが失敗を伝える応答を読む",
+          "トークンを送るときに守る決まりを確かめる"
+        ],
+        "body": [
+          "RFC 6750 は、OAuth 2.0 のアクセストークンを、リソースサーバーへの要求に付けて送る方法を定めます。送り方は要求のヘッダー・本文のフォーム・URL のクエリーの 3 つです。1 つの要求で 2 つ以上を使ってはなりません (2)。",
+          "ヘッダーで送るときは、認証の方式の名前、空白、トークンの順に書きます。HTTP の認証の方式の名前は、大文字と小文字を区別しない語です (RFC 9110 11.1)。",
+          "資格が無い要求や、資源に触れられないトークンには、応答に WWW-Authenticate を付けます (3)。サーバーはこれを省いてはなりません。失敗の理由は error の属性に、決められた語で入れます (3.1)。",
+          "トークンを付けた要求は、いつも TLS (https) かそれと同等の守りのある通り道で送らなければなりません (5.3)。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "アクセストークンの 3 つの送り方 (RFC 6750 2)",
+          "items": [
+            { "label": "要求のヘッダー (2.1)", "note": "クライアントはこれを使うべきで、リソースサーバーは対応しなければならない" },
+            { "label": "本文のフォーム (2.2)", "note": "access_token の引数で送る。本文がフォームの形で 1 部だけなど、条件を満たすときに限る" },
+            { "label": "URL のクエリー (2.3)", "note": "access_token の引数で送る。ヘッダーでも本文でも送れないときのほかは使うべきでない" }
+          ]
+        },
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc6750#section-2",
+          "https://www.rfc-editor.org/rfc/rfc6750#section-2.1",
+          "https://www.rfc-editor.org/rfc/rfc6750#section-2.2",
+          "https://www.rfc-editor.org/rfc/rfc6750#section-2.3",
+          "https://www.rfc-editor.org/rfc/rfc6750#section-3",
+          "https://www.rfc-editor.org/rfc/rfc6750#section-5.3",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-11.1"
+        ]
+      },
       "questions": [
         {
           "id": "main-w4-l3-q1",
@@ -289,6 +392,41 @@
       "title": "JWT の形と検証",
       "course": "main",
       "stage": "oauth",
+      "intro": {
+        "goals": [
+          "JWT が JWS か JWE の形で運ばれることを説明できる",
+          "base64url の文字列を手元で戻して読む",
+          "登録済みのクレームの名前と意味を見分ける"
+        ],
+        "body": [
+          "JWT は、2 者の間で受け渡す主張 (クレーム) を表す、小さく URL に載せやすい形式です。クレームは JSON にまとめ、JWS で署名か MAC を付けるか、JWE で暗号化して運びます (RFC 7519 1)。",
+          "JWS のコンパクトな形は、3 つの部分をそれぞれ base64url にし、. でつないだ 1 行の文字列です。base64url は、URL とファイル名に使える文字の base64 で、末尾の = を省きます (RFC 7515 2)。",
+          "RFC 7519 は、よく使うクレームの名前を登録済みのクレームとして定めています。どれも使うかどうかは任意です。時刻を表すクレームの値は NumericDate です。1970-01-01T00:00:00Z UTC からの秒数で表します (RFC 7519 2)。",
+          "ヘッダーの alg は、署名や MAC の作り方を表します。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "登録済みのクレームの一部 (RFC 7519 4.1)",
+          "items": [
+            { "label": "sub", "note": "JWT の主題。クレームはふつう主題についての主張 (4.1.2)" },
+            { "label": "aud", "note": "JWT を受け取るはずの相手 (宛先)。文字列か、文字列の配列 (4.1.3)" },
+            { "label": "nbf", "note": "この時刻より前は処理に受け入れてはならない (4.1.5)" },
+            { "label": "iat", "note": "JWT を出した時刻。JWT の古さを知るのに使える (4.1.6)" },
+            { "label": "jti", "note": "JWT ごとの一意の識別子。同じ JWT の使い回しを防ぐのに使える (4.1.7)" }
+          ]
+        },
+        "tryIt": [
+          { "command": "printf '%s' '{\"sub\":\"ann\"}' | basenc --base64url", "expect": "eyJzdWIiOiJhbm4ifQ== が出ます。末尾の == は、JWT の中では省かれる部分です。" },
+          { "command": "printf '%s' 'eyJzdWIiOiJhbm4ifQ==' | basenc --base64url -d", "expect": "{\"sub\":\"ann\"} が出ます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc7519#section-1",
+          "https://www.rfc-editor.org/rfc/rfc7519#section-2",
+          "https://www.rfc-editor.org/rfc/rfc7519#section-4.1",
+          "https://www.rfc-editor.org/rfc/rfc7515#section-2",
+          "https://www.rfc-editor.org/rfc/rfc7515#section-3.1"
+        ]
+      },
       "questions": [
         {
           "id": "main-w4-l4-q1",
@@ -397,6 +535,42 @@
       "title": "実習: JWT と PKCE を手元で確かめる",
       "course": "main",
       "stage": "oauth",
+      "intro": {
+        "goals": [
+          "base64url の部分を basenc で元に戻す",
+          "openssl で SHA-256 のハッシュと HMAC を作る",
+          "NumericDate の秒数を date で日時に直す"
+        ],
+        "body": [
+          "この実習では、ネットワークを使わずに、JWT と PKCE の計算を手元の道具で確かめます。使うのは GNU coreutils の basenc と date、それに openssl です。",
+          "basenc --base64url は、URL とファイル名に安全な base64 (RFC 4648 の 5 節) を扱います。-d を付けると元に戻します。JWS の base64url は末尾の = を省くので、戻すときに = を足すことがあります。",
+          "openssl dgst -sha256 は SHA-256 のハッシュを作り、-binary で結果をそのままのバイトで出します。-mac HMAC と -macopt で鍵を渡すと、ハッシュの代わりに HMAC を作ります。",
+          "GNU の date は、@ を付けた数を 1970-01-01 00:00:00 UTC からの秒数として読みます。-u を付けると UTC で表示します。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "実習で確かめる値の作り方 (RFC 7515 2・5.1、RFC 7519 2、RFC 7636 4.2)",
+          "items": [
+            { "label": "JWT の各部分", "note": "JSON などを base64url にし、末尾の = を落とす" },
+            { "label": "HS256 の MAC", "note": "base64url のヘッダーとペイロードを . でつないだ文字列に、共通の鍵で HMAC SHA-256 を掛ける" },
+            { "label": "NumericDate", "note": "1970-01-01T00:00:00Z UTC からの秒数 (うるう秒は数えない)" },
+            { "label": "S256 の code_challenge", "note": "code_verifier の SHA-256 を base64url にする" }
+          ]
+        },
+        "tryIt": [
+          { "command": "printf '%s' 'abc' | openssl dgst -sha256 -mac HMAC -macopt key:secret -binary | basenc --base64url | tr -d '='", "expect": "mUba1OAOkT_Ivo5dP34RCkqegy-D-wnDRShdeGONig4 が出ます。abc を abd に変えると、まったく違う値になります。" },
+          { "command": "date -u -d @0", "expect": "1970 年 1 月 1 日 00:00:00 UTC が出ます (表示の形は言語の設定で変わります)。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc7515#section-2",
+          "https://www.rfc-editor.org/rfc/rfc7515#section-5.1",
+          "https://www.rfc-editor.org/rfc/rfc7519#section-2",
+          "https://www.rfc-editor.org/rfc/rfc7636#section-4.2",
+          "https://www.gnu.org/software/coreutils/manual/html_node/basenc-invocation.html",
+          "https://www.gnu.org/software/coreutils/manual/html_node/Seconds-since-the-Epoch.html",
+          "https://docs.openssl.org/master/man1/openssl-dgst/"
+        ]
+      },
       "questions": [
         {
           "id": "main-w4-l5-q1",

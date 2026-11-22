@@ -5,6 +5,39 @@
       "title": "メソッドとステータスコード",
       "course": "main",
       "stage": "http",
+      "intro": {
+        "goals": [
+          "メソッドの「安全」と「冪等」を区別できる",
+          "ステータスコードの先頭の桁から応答の分類を読む",
+          "curl で送るメソッドと返ってくるコードを確かめる"
+        ],
+        "body": [
+          "HTTP の要求は、メソッドで「何をしたいか」を伝えます。GET は読む、PUT は置き換える、DELETE は消す、が基本の意味です。",
+          "読むだけでサーバーの状態の変化を求めないメソッドを「安全」と呼びます。同じ要求を何回送っても、意図した効果が 1 回と同じなら「冪等」です。安全なメソッドは冪等でもありますが、逆は成り立ちません。",
+          "応答のステータスコードは 3 桁で、先頭の桁が分類を表します。後ろの 2 桁に分類の意味はありません。転送の 3xx には、メソッドを保つコードと保たないコードがあります。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "ステータスコードの先頭の桁と分類 (RFC 9110 15)",
+          "items": [
+            { "label": "1xx", "note": "情報。受け取って処理を続けている" },
+            { "label": "2xx", "note": "成功。受け取り、理解し、受け入れた" },
+            { "label": "3xx", "note": "転送。終えるにはさらに動作が要る" },
+            { "label": "4xx", "note": "クライアントの誤り。要求に問題がある" },
+            { "label": "5xx", "note": "サーバーの誤り。正しそうな要求を果たせなかった" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -sI https://example.com/", "expect": "1 行目に HTTP/2 200 のようなステータス行が出て、続けてヘッダーが並びます。" },
+          { "command": "curl -s -o /dev/null -w '%{http_code}\\n' https://example.com/nope", "expect": "無い道なので 4xx (手元では 404) が出ます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9110#section-9.2.1",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-15",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l1-q1",
@@ -108,6 +141,40 @@
       "title": "URI を分解する",
       "course": "main",
       "stage": "uri",
+      "intro": {
+        "goals": [
+          "URI を区切りの文字で部品に分けられる",
+          "HTTP/1.1 の要求の行と Host ヘッダーに載る部分を見分ける",
+          "% 符号化された文字を読み解く"
+        ],
+        "body": [
+          "URI は、資源を指す名前を決まった構文で書いたものです。一般の構文では、区切りの文字で 5 つの部品に分かれます。scheme と path は必ずあり (path は空でもよい)、ほかの部品は無いこともあります。",
+          "HTTP/1.1 でサーバーに直接送るとき、要求の行には URI の全部を書くわけではありません。host と port は Host ヘッダーで伝えます。どの部品がどこに載るかは、RFC 9112 3.2 と RFC 9110 7 に決まっています。",
+          "URI にそのまま書けない文字や、区切りと紛れる文字は % 符号化で書きます。% のあとに、そのバイトの値を 16 進 2 桁で続けます。16 進の A〜F は大文字と小文字が同じ意味で、作る側は大文字を使うべきとされています。",
+          "curl に -G を付けると、送るデータは本文ではなく URL のクエリとして後ろに付き、GET で送られます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "URI の区切りの文字 (RFC 3986 2.1・3)",
+          "items": [
+            { "label": "#", "note": "fragment の始まり。URI の終わりまで続く" },
+            { "label": "%", "note": "後ろの 16 進 2 桁で 1 バイトを表す" },
+            { "label": ":", "note": "先頭の scheme の終わり" },
+            { "label": "?", "note": "query の始まり。# か URI の終わりまで続く" },
+            { "label": "//", "note": "authority の始まり。次の / ? # か終わりまで続く" }
+          ]
+        },
+        "tryIt": [
+          { "command": "python3 -c \"from urllib.parse import quote; print(quote('€'))\"", "expect": "%E2%82%AC が出ます。€ を UTF-8 にした 3 バイトが、1 バイトずつ % と大文字の 16 進 2 桁になっています。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc3986#section-3",
+          "https://www.rfc-editor.org/rfc/rfc3986#section-2.1",
+          "https://www.rfc-editor.org/rfc/rfc9112#section-3.2",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-7.2",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l2-q1",
@@ -226,6 +293,39 @@
       "title": "ヘッダーと MIME タイプ",
       "course": "main",
       "stage": "mime",
+      "intro": {
+        "goals": [
+          "ヘッダーの名前と値の形を読む",
+          "メディアタイプを type・subtype・引数に分けられる",
+          "本文の形式と、欲しい応答の形式を伝えるヘッダーを見分ける"
+        ],
+        "body": [
+          "HTTP のヘッダーは、名前とコロンのあとに値を書く 1 行です。ヘッダーの名前は、大文字と小文字を区別しません。",
+          "Content-Type は、本文 (表現) がどんな形式かを伝えるヘッダーです。値はメディアタイプで、type と subtype を / でつなぎ、後ろに ; で区切った名前と値の組 (引数) を続けられます。",
+          "応答をどの形式で欲しいかは、要求の側の別のヘッダーで伝えます。本文の形式を伝えるヘッダーと取り違えないようにします。",
+          "curl の -d は、要求の本文を送るオプションです。curl は自分でもいくつかのヘッダーを付けて送ります。同じ名前のヘッダーを自分で足すと、足したほうが使われます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "メディアタイプの部品 (RFC 9110 8.3.1)",
+          "items": [
+            { "label": "type", "note": "/ の左。大きな分類 (例: image/png の image)" },
+            { "label": "subtype", "note": "/ の右。その中の形式 (例: image/png の png)" },
+            { "label": "引数 (parameter)", "note": "; のあとの 名前=値 の組 (例: charset=us-ascii)" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -sI https://example.com/ | grep -i '^content-type'", "expect": "content-type: text/html; charset=utf-8 のような 1 行が出ます。type・subtype・引数の 3 つが見えます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9110#section-5.1",
+          "https://www.rfc-editor.org/rfc/rfc9112#section-5",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-8.3",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-8.3.1",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l3-q1",
@@ -342,6 +442,38 @@
       "title": "JSON と UTF-8",
       "course": "main",
       "stage": "mime",
+      "intro": {
+        "goals": [
+          "JSON の値の種類を見分ける",
+          "JSON の文法に合うかどうかを確かめる",
+          "UTF-8 のバイト数を文字の番号から考える"
+        ],
+        "body": [
+          "JSON は、データを文字で書き表す形式です。値は、オブジェクト・配列・数・文字列と、決まった 3 つのリテラルのどれかです。リテラルは小文字で書かなければならず、ほかの語は使えません。",
+          "オブジェクトは { } で名前と値の組を囲み、名前は文字列です。配列は [ ] で値を並べます。文字列は二重引用符で囲み、数は 10 進の数字で書きます。",
+          "UTF-8 は、Unicode の 1 文字を 1〜4 バイトで表す符号化です。文字の番号の範囲でバイト数が決まります。複数バイトの文字は、先頭のバイトの上位のビットの並びで、全部で何バイトかが分かります。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "JSON の値の種類 (RFC 8259 3〜7)",
+          "items": [
+            { "label": "オブジェクト", "note": "{ } で、名前と値の組を 0 個以上囲む" },
+            { "label": "配列", "note": "[ ] で、値を 0 個以上カンマで並べる" },
+            { "label": "数", "note": "10 進の数字。小数の部分と指数の部分を付けられる" },
+            { "label": "文字列", "note": "二重引用符で囲む" },
+            { "label": "リテラル", "note": "決まった 3 つの語だけ。小文字で書く" }
+          ]
+        },
+        "tryIt": [
+          { "command": "printf '€' | od -An -tx1", "expect": "e2 82 ac が出ます。€ (U+20AC) を UTF-8 にしたバイト列を 16 進で並べたものです。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc8259#section-3",
+          "https://www.rfc-editor.org/rfc/rfc8259#section-4",
+          "https://www.rfc-editor.org/rfc/rfc8259#section-7",
+          "https://www.rfc-editor.org/rfc/rfc3629#section-3"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l4-q1",
@@ -474,6 +606,40 @@
       "title": "実習: curl -v で 1 件のやり取りを読む",
       "course": "main",
       "stage": "http",
+      "intro": {
+        "goals": [
+          "HTTP/1.1 のメッセージの並びを読む",
+          "要求の行と応答のステータスの行を見分ける",
+          "curl の記録で、送った行と受け取った行を読み分ける"
+        ],
+        "body": [
+          "HTTP/1.1 のメッセージは、最初の行、ヘッダーの行の並び、空の行、本文の順です。空の行がヘッダーの終わりの印で、本文は無いこともあります。",
+          "要求の最初の行は、メソッド・宛先・版を空白で区切ります。応答の最初の行は、版・ステータスコード・理由の句です。理由の句は説明の文で、クライアントは中身を無視すべきとされています。",
+          "HTTP の版が違っても、メッセージの意味は変わらないように決められています。書き方が版ごとに違うだけです。",
+          "curl -v は、やり取りの記録を、行の頭の印で分けて出します。送った行、受け取った行、curl 自身の説明で印が違います。印の意味は man ページの -v の節にあります。"
+        ],
+        "figure": {
+          "kind": "flow",
+          "caption": "HTTP/1.1 のメッセージの形 (RFC 9112 2.1)",
+          "items": [
+            { "label": "最初の行", "note": "要求なら要求の行、応答ならステータスの行" },
+            { "label": "ヘッダーの行", "note": "名前: 値 の行が 0 行以上" },
+            { "label": "空の行", "note": "ヘッダーの終わり" },
+            { "label": "本文", "note": "無いこともある" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -s -o /dev/null -w '%{http_version} %{response_code}\\n' https://example.com/", "expect": "2 200 のように、使った HTTP の版とステータスコードが出ます。" },
+          { "command": "curl -sI --http1.1 https://example.com/ | head -n 1", "expect": "HTTP/1.1 200 OK が出ます。版・ステータスコード・理由の句の順です。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9112#section-2.1",
+          "https://www.rfc-editor.org/rfc/rfc9112#section-3",
+          "https://www.rfc-editor.org/rfc/rfc9112#section-4",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-6",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l5-q1",
