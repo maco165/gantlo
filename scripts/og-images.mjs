@@ -106,26 +106,27 @@ try {
     const problem = await page.evaluate(async (c) => {
       await document.fonts.ready;
       const og = document.querySelector('.og');
-      const title = document.querySelector('[data-og="title"]');
       const fams = (f) => [...document.fonts].filter((x) => x.family.replace(/['"]/g, '') === f);
       const loaded = (f) => fams(f).some((x) => x.status === 'loaded');
       for (const f of ['Fustat', 'JetBrains Mono', 'Manufacturing Consent']) if (!loaded(f)) return `書体 ${f} を読めていません`;
-      if (/[　-ヿ一-鿿]/.test(c.title) && !loaded('Noto Sans JP Variable')) return '日本語の書体 (Noto Sans JP) を読めていません';
-      // 題の字を 1 つずつ canvas に描き、どの書体にも無い字 (.notdef の豆腐) と同じ絵なら止める
-      const font = getComputedStyle(title).font;
+      if (/[　-ヿ一-鿿]/.test(`${c.kind}${c.title}${c.request}${c.url}`) && !loaded('Noto Sans JP Variable')) return '日本語の書体 (Noto Sans JP) を読めていません';
+      // カードの字 (種類・題・要求の行・URL) を、要素ごとの書体で 1 つずつ canvas に描き、どの書体にも無い字 (.notdef の豆腐) と同じ絵なら止める
       const canvas = document.createElement('canvas');
       canvas.width = 80;
       canvas.height = 80;
       const ctx = canvas.getContext('2d', { willReadFrequently: true });
-      const draw = (ch) => {
+      const draw = (font, ch) => {
         ctx.clearRect(0, 0, 80, 80);
-        ctx.font = font.replace(/\d+px\/[\d.]+px|\d+px/, '48px');
+        ctx.font = font;
         ctx.fillText(ch, 8, 60);
         return ctx.getImageData(0, 0, 80, 80).data.join(',');
       };
-      const tofu = draw('\u{10FFFD}');
-      const bad = [...new Set([...c.title].filter((ch) => ch.trim()))].filter((ch) => draw(ch) === tofu);
-      if (bad.length) return `題の字が豆腐になります: ${bad.join(' ')}`;
+      for (const el of document.querySelectorAll('[data-og]')) {
+        const font = getComputedStyle(el).font.replace(/\d+px\/[\d.]+px|\d+px/, '48px');
+        const tofu = draw(font, '\u{10FFFD}');
+        const bad = [...new Set([...el.textContent].filter((ch) => ch.trim()))].filter((ch) => draw(font, ch) === tofu);
+        if (bad.length) return `${el.getAttribute('data-og')} の字が豆腐になります: ${bad.join(' ')}`;
+      }
       if (og.scrollWidth > og.clientWidth) return '横にはみ出しています';
       return null;
     }, card);
