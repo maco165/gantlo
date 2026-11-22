@@ -6,7 +6,7 @@
 //   3. Web Share API のある端末 (navigator.share を差し替える) では「共有する」1 つで、文と URL だけを渡す
 //   4. 模擬試験の結果 (時計を 60 分進めて時間切れにする): 共有に 40 問中 0 問と模擬試験のページの URL
 //   5. 外へ何も送らない (X の投稿の画面は開かずに href を見る)。ページのエラーが無い
-import { answer, loadLessons } from './e2e-lessons.mjs';
+import { answer, loadLessons, startLesson } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 const LESSONS = loadLessons();
@@ -56,6 +56,8 @@ export async function runShare(browser, { base, check, noHorizontalOverflow }) {
   // 2. レッスン完了 (Web Share API の無い端末)
   const finishLesson = async (page) => {
     await page.goto(`${base}lesson/${lesson.id}/`);
+    // はじめてのレッスンは要点が先に出る (#57)。「問題を始める」で 1 問目へ
+    await startLesson(page);
     for (let i = 0; i < lesson.questions.length; i++) {
       await answer(page, lesson.questions[i], 'right');
       await page.getByRole('button', { name: i === lesson.questions.length - 1 ? 'POST 結果を記録する' : '次の問題へ' }).click();
