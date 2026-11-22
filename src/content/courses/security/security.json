@@ -108,7 +108,7 @@
           "code": "printf 'hello' | openssl dgst {{blank}}",
           "blanks": [
             {
-              "answers": ["-sha256"],
+              "answers": ["-sha256", "--sha256", "-SHA256", "-sha-256", "-SHA-256", "-sha2-256", "-SHA2-256"],
               "wrong": [
                 { "answer": "-md5", "why": "-md5 は MD5 という別のハッシュ関数を選びます。手元では 16 進で 32 文字の短いダイジェストが出て、SHA-256 の値にはなりません。" },
                 { "answer": "-sha1", "why": "-sha1 は SHA-1 を選びます。SHA-1 のダイジェストは 160 ビット (16 進で 40 文字) で、SHA-256 とは別の関数です (FIPS 180-4 の 1 章の表)。" },
@@ -117,7 +117,7 @@
             }
           ],
           "output": "SHA2-256(stdin)= 2cf24dba5fb0a30e26e83b2ac5b9e29e1b161e5c1fa7425e73043362938b9824",
-          "explanation": "openssl dgst は、オプションで選んだハッシュ関数でダイジェストを出します (-sha256 など。openssl-dgst の SYNOPSIS の -digest)。SHA-256 のダイジェストは 256 ビットで、16 進では 64 文字になります (FIPS 180-4 の 1 章の表)。printf を使うのは、echo だと末尾の改行までハッシュに入るためです。",
+          "explanation": "openssl dgst は、オプションで選んだハッシュ関数でダイジェストを出します (-sha256 など。openssl-dgst の SYNOPSIS の -digest)。SHA-256 のダイジェストは 256 ビットで、16 進では 64 文字になります (FIPS 180-4 の 1 章の表)。printf を使うのは、echo だと末尾の改行までハッシュに入るためです。ダイジェストの名前は別名 (SHA-256・SHA2-256・SHA256) でも書けるので、-SHA256 や -sha-256 でも同じ値が出ます (openssl list -digest-algorithms)。手元の OpenSSL 3.5.5 では --sha256 も通りました。",
           "sources": [
             "https://docs.openssl.org/3.5/man1/openssl-dgst/",
             "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf"
@@ -496,7 +496,7 @@
           "code": "openssl verify {{blank}} ca.crt server.crt",
           "blanks": [
             {
-              "answers": ["-CAfile"],
+              "answers": ["-CAfile", "-trusted"],
               "wrong": [
                 { "answer": "-untrusted", "why": "-untrusted は、鎖を組むのに使う信頼しない証明書 (ふつうは中間の CA) を渡すオプションです。信頼の起点にならないので、手元では self-signed certificate in certificate chain で失敗します。" },
                 { "answer": "-CApath", "why": "-CApath は、信頼する証明書を集めたディレクトリを渡すオプションです。ファイルを渡すと、手元では「Not a directory」で止まります。" },
@@ -505,9 +505,10 @@
             }
           ],
           "output": "server.crt: OK",
-          "explanation": "openssl verify は、信頼する CA の証明書を -CAfile で受け取り、そこから対象の証明書までの鎖を検証します。成功すると「ファイル名: OK」と出ます。CA の証明書を渡さないと、自分で作った CA は信頼されていないので検証に失敗します (RFC 5280 6.1 の path validation は、信頼の起点から鎖をたどります)。",
+          "explanation": "openssl verify は、信頼する CA の証明書を -CAfile で受け取り、そこから対象の証明書までの鎖を検証します。成功すると「ファイル名: OK」と出ます。CA の証明書を渡さないと、自分で作った CA は信頼されていないので検証に失敗します (RFC 5280 6.1 の path validation は、信頼の起点から鎖をたどります)。-trusted でも、渡したファイルの証明書を信頼の起点にして同じ検証ができます (openssl-verification-options の -trusted)。",
           "sources": [
             "https://docs.openssl.org/3.5/man1/openssl-verify/",
+            "https://docs.openssl.org/3.5/man1/openssl-verification-options/",
             "https://www.rfc-editor.org/rfc/rfc5280#section-6.1"
           ]
         }
@@ -1193,7 +1194,7 @@
           "code": "openssl req {{blank}} -newkey ec -pkeyopt ec_paramgen_curve:P-256 -noenc -keyout ca.key -out ca.crt -days 30 -subj \"/CN=My Lab CA\"",
           "blanks": [
             {
-              "answers": ["-x509"],
+              "answers": ["-x509", "-x509v1"],
               "wrong": [
                 { "answer": "-new", "why": "-new は、新しい署名要求 (CSR) を作るオプションです。手元では -days を無視するという警告が出て、証明書ではなく CSR ができます。" },
                 { "answer": "-CA", "why": "-CA は、すでにある CA の証明書を渡し、その鍵で新しい証明書に署名させるオプションです。これから作る CA そのものの証明書には使えません。" },
@@ -1201,7 +1202,7 @@
               ]
             }
           ],
-          "explanation": "openssl req は、ふつうは証明書の署名要求 (CSR) を作ります。-x509 を付けると、CSR の代わりに自己署名の証明書を出します。-newkey で新しい鍵を作り、-noenc で鍵を暗号化せずに保存します (ラボの中だけで使う前提です)。CA の証明書は自分で自分に署名した証明書で、これを信頼の起点として渡した相手だけが、この CA の発行した証明書を信頼します (RFC 5280 6.1)。",
+          "explanation": "openssl req は、ふつうは証明書の署名要求 (CSR) を作ります。-x509 を付けると、CSR の代わりに自己署名の証明書を出します。-newkey で新しい鍵を作り、-noenc で鍵を暗号化せずに保存します (ラボの中だけで使う前提です)。CA の証明書は自分で自分に署名した証明書で、これを信頼の起点として渡した相手だけが、この CA の発行した証明書を信頼します (RFC 5280 6.1)。-x509v1 も -x509 を含むので、自己署名の証明書が出ます。版 1 を求めるオプションですが、設定の拡張が付くと版 3 になります (openssl-req の -x509v1)。",
           "sources": [
             "https://docs.openssl.org/3.5/man1/openssl-req/",
             "https://www.rfc-editor.org/rfc/rfc5280#section-6.1"
@@ -1297,7 +1298,7 @@
           "code": "openssl s_client -connect 127.0.0.1:8443 -servername localhost {{blank}} ca.crt",
           "blanks": [
             {
-              "answers": ["-CAfile"],
+              "answers": ["-CAfile", "-verifyCAfile"],
               "wrong": [
                 { "answer": "-cert", "why": "-cert は、サーバーに求められたときに見せる、クライアントの証明書を渡すオプションです。手元では鍵が無いと言われて止まります。" },
                 { "answer": "-chainCAfile", "why": "-chainCAfile は、クライアントの証明書の鎖を組むための証明書を渡すオプションです。サーバーの証明書の検証には使われず、手元では Verify return code: 21 (unable to verify the first certificate) で終わります。" },
@@ -1306,7 +1307,7 @@
             }
           ],
           "output": "subject=CN=localhost\nissuer=CN=My Lab CA\n...\nVerify return code: 0 (ok)",
-          "explanation": "s_client の -CAfile は、サーバーの証明書を検証するときに信頼する CA の証明書を渡すオプションです (openssl-s_client と openssl-verification-options)。-servername は、接続先の名前を TLS の SNI で伝えます。Verify return code: 0 (ok) は、渡した CA からサーバー証明書までの鎖をたどれたことを表します。",
+          "explanation": "s_client の -CAfile は、サーバーの証明書を検証するときに信頼する CA の証明書を渡すオプションです (openssl-s_client と openssl-verification-options)。-servername は、接続先の名前を TLS の SNI で伝えます。Verify return code: 0 (ok) は、渡した CA からサーバー証明書までの鎖をたどれたことを表します。-verifyCAfile も、サーバーの証明書の検証に使う信頼の証明書のファイルを渡すオプションです (openssl-s_client の -verifyCAfile)。",
           "sources": [
             "https://docs.openssl.org/3.5/man1/openssl-s_client/",
             "https://docs.openssl.org/3.5/man1/openssl-verification-options/"

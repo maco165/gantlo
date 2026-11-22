@@ -317,7 +317,7 @@
           "code": "curl -G {{blank}} \"q=hello world\" https://example.com/search",
           "blanks": [
             {
-              "answers": ["--data-urlencode"],
+              "answers": ["--data-urlencode", "--url-query"],
               "wrong": [
                 { "answer": "-d", "why": "-d は、渡したデータを手を加えずそのまま送ります。空白は符号化されません。" },
                 { "answer": "--data-binary", "why": "--data-binary は、データを何も処理せずそのまま送るオプションです。URL 符号化はしません。" },
@@ -326,7 +326,7 @@
             }
           ],
           "output": "> GET /search?q=hello+world HTTP/1.1",
-          "explanation": "--data-urlencode は値を URL 符号化して送るデータにします。ふつうは POST の本文になりますが、-G (--get) を付けると GET の要求になり、データは URL のクエリとして後ろに付きます (curl の man ページ)。手元の curl 8.18.0 では、空白は + に、「あ」は %e3%81%82 になりました。16 進の大文字と小文字は同じ意味です (RFC 3986 2.1)。",
+          "explanation": "--data-urlencode は値を URL 符号化して送るデータにします。ふつうは POST の本文になりますが、-G (--get) を付けると GET の要求になり、データは URL のクエリとして後ろに付きます (curl の man ページ)。手元の curl 8.18.0 では、空白は + に、「あ」は %e3%81%82 になりました。16 進の大文字と小文字は同じ意味です (RFC 3986 2.1)。--url-query も --data-urlencode と同じ書き方で値を符号化し、URL のクエリに足します (curl 7.87.0 から)。",
           "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc3986#section-2.1"]
         }
       ]
