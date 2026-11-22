@@ -88,24 +88,6 @@ export default function ProgressScreen({ progress, now = new Date(), lessons = L
           <dd>{currentStreak(progress, now)} 日</dd>
         </div>
       </dl>
-      <dl className="headers__list prog__habits" data-testid="habits">
-        <div className="headers__row" data-header="X-Streak-Freeze">
-          <dt>
-            <code>X-Streak-Freeze</code>
-          </dt>
-          <dd>{freezeText(progress, now)}</dd>
-        </div>
-        <div className="headers__row" data-header="X-Weekly-Target">
-          <dt>
-            <code>X-Weekly-Target</code>
-          </dt>
-          <dd>{weeklyTargetText(progress, now)}</dd>
-        </div>
-      </dl>
-      <Text type="supporting">
-        {freezeCountText(progress)}: 休みの札は、学んだ日が 7 日たまるごとに 1 個 (2 個まで) 増えます。休んだ日があると、次に学んだときにその日数分を使い、連続日数を保ちます (足りなければ切れます)。週の目標は{' '}
-        <Link href={pageHref('settings')}>設定</Link> で決めます。
-      </Text>
       <Text type="supporting">
         {acc.total > 0
           ? `正答率は、レッスンと復習で答えた ${acc.total} 回のうち、正解した ${acc.right} 回の割合です (実習は採点しないので入りません)。`
@@ -132,6 +114,25 @@ export default function ProgressScreen({ progress, now = new Date(), lessons = L
         </ol>
         <Text type="supporting">1 問正解で 3 XP、実習で 10 XP。日付はこの端末の時刻で数えます。</Text>
       </section>
+
+      <dl className="headers__list prog__habits" data-testid="habits">
+        <div className="headers__row" data-header="X-Streak-Freeze">
+          <dt>
+            <code>X-Streak-Freeze</code>
+          </dt>
+          <dd>{freezeText(progress, now)}</dd>
+        </div>
+        <div className="headers__row" data-header="X-Weekly-Target">
+          <dt>
+            <code>X-Weekly-Target</code>
+          </dt>
+          <dd>{weeklyTargetText(progress, now)}</dd>
+        </div>
+      </dl>
+      <Text type="supporting">
+        {freezeCountText(progress)}: 休みの札は、学んだ日が 7 日たまるごとに 1 個 (2 個まで) 増えます。休んだ日があると、次に学んだときにその日数分を使い、連続日数を保ちます (足りなければ切れます)。週の目標は{' '}
+        <Link href={pageHref('settings')}>設定</Link> で決めます。
+      </Text>
 
       <section className="prog" aria-labelledby="prog-cal-title">
         <h2 id="prog-cal-title" className="prog__title">
