@@ -5,7 +5,7 @@ import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useMemo, useState, type ReactNode } from 'react';
 import StatusLine from '../components/StatusLine';
 import { SORTED, TERMS } from '../content/glossary';
-import { findLesson } from '../content/index';
+import { findLessonMeta as findLesson } from '../content/catalog';
 import { searchTerms, STANDARD_COUNT, type GlossaryTerm } from '../lib/glossary';
 import { COURSES, lessonHref } from '../lib/route';
 import { glossaryStatus } from '../lib/status';

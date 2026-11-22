@@ -3,8 +3,7 @@ import { Text } from '@astryxdesign/core/Text';
 import LessonNetwork from '../components/LessonNetwork';
 import LessonStartLink from '../components/LessonStartLink';
 import StatusLine from '../components/StatusLine';
-import { LESSONS } from '../content/index';
-import type { Lesson } from '../content/types';
+import { CATALOG, type LessonMeta } from '../content/catalog';
 import { COURSE_EMPTY, COURSE_LEADS } from '../lib/courses';
 import { currentLesson, isDone } from '../lib/plan';
 import type { Progress } from '../lib/progress';
@@ -16,7 +15,7 @@ import { courseStatus } from '../lib/status';
  * 最初の未完了の行を「次」にする。ステータスはホームと同じ決まり (まだ 202・途中 206・全部済み 200。レッスンが無ければ 204)。
  * 見出し・紹介・一覧の順は書き出す HTML (src/prerender/pages.ts) と同じ
  */
-export default function CourseScreen({ course, progress, lessons = LESSONS }: { course: CourseId; progress: Progress; lessons?: readonly Lesson[] }) {
+export default function CourseScreen({ course, progress, lessons = CATALOG }: { course: CourseId; progress: Progress; lessons?: readonly LessonMeta[] }) {
   const title = COURSES.find((c) => c.id === course)?.title ?? course;
   const own = lessons.filter((l) => l.course === course);
   const done = own.filter((l) => isDone(progress, l.id)).length;
