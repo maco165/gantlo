@@ -158,6 +158,9 @@ code {
 }
 .crumbs a {
   color: var(--color-text-secondary);
+  /* 周りの字 (今のページは主の色) と色だけでは 3:1 に届かないので、下線でリンクと分かるようにする (Lighthouse の link-in-text-block) */
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 .crumbs [aria-current='page'] {
   color: var(--color-text-primary);
