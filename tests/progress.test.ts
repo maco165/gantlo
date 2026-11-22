@@ -10,6 +10,10 @@ import {
   dueReviewIds,
   emptyProgress,
   exportFileName,
+  freezeState,
+  inRowOf,
+  missedDays,
+  pendingFreezes,
   goalXp,
   isValidDay,
   loadProgress,
@@ -397,5 +401,141 @@ describe('壊れた・悪意のある記録を読み込んでも落ちない', (
     expect(p?.answers.b.nextReview).toBeUndefined();
     expect(isValidDay('2028-02-29')).toBe(true);
     expect(isValidDay('2027-02-29')).toBe(false);
+  });
+});
+
+describe('休みの札 (freeze)', () => {
+  /** 続けて n 日学んだ記録 (start から) */
+  const studyDays = (start: string, n: number, p = emptyProgress()) => {
+    let out = p;
+    for (let i = 0; i < n; i++) {
+      const d = new Date(`${start}T09:00:00`);
+      d.setDate(d.getDate() + i);
+      out = completeReview(out, 3, d);
+    }
+    return out;
+  };
+
+  it('学んだ日が 7 日たまるごとに 1 個、最大 2 個', () => {
+    expect(freezeState(studyDays('2026-11-01', 6)).count).toBe(0);
+    expect(freezeState(studyDays('2026-11-01', 7))).toMatchObject({ count: 1, toward: 0 });
+    expect(freezeState(studyDays('2026-11-01', 14)).count).toBe(2);
+    // 2 個あるときは足さずに数え直す
+    expect(freezeState(studyDays('2026-11-01', 21))).toMatchObject({ count: 2, toward: 0 });
+  });
+
+  it('同じ日に何度学んでも、札までの日は 1 日だけ進む', () => {
+    let p = completeReview(emptyProgress(), 3, at('2026-11-01', 9));
+    p = completeReview(p, 3, at('2026-11-01', 21));
+    expect(freezeState(p).toward).toBe(1);
+  });
+
+  it('1 日休んでも、次に学ぶと札を 1 個使って連続を保ち、使った日を残す', () => {
+    let p = studyDays('2026-11-01', 7); // 11-07 まで 7 日。札 1
+    expect(currentStreak(p, at('2026-11-09'))).toBe(7); // 11-08 を休んだが、札で埋められる
+    expect(pendingFreezes(p, at('2026-11-09'))).toBe(1);
+    p = completeReview(p, 3, at('2026-11-09'));
+    expect(p.streak.count).toBe(8);
+    expect(freezeState(p)).toMatchObject({ count: 0, used: ['2026-11-08'] });
+  });
+
+  it('休んだ日が札より多ければ、札は使わずに 1 に戻る', () => {
+    let p = studyDays('2026-11-01', 7); // 札 1
+    expect(currentStreak(p, at('2026-11-10'))).toBe(0); // 2 日休んだ
+    expect(pendingFreezes(p, at('2026-11-10'))).toBe(0);
+    p = completeReview(p, 3, at('2026-11-10'));
+    expect(p.streak.count).toBe(1);
+    expect(freezeState(p).count).toBe(1);
+  });
+
+  it('札が 2 個なら 2 日休んでも保つ。使った日は新しい順', () => {
+    let p = studyDays('2026-11-01', 14); // 11-14 まで。札 2
+    p = completeReview(p, 3, at('2026-11-17'));
+    expect(p.streak.count).toBe(15);
+    expect(freezeState(p)).toMatchObject({ count: 0, used: ['2026-11-16', '2026-11-15'] });
+  });
+
+  it('札の欄が無い古い記録は、学んだ日の数から数える', () => {
+    const old = { v: 1, streak: { count: 3, lastDay: '2026-11-08' }, xp: { total: 30, byDay: Object.fromEntries(Array.from({ length: 9 }, (_, i) => [`2026-11-0${i + 1}`, 3])) }, lessons: {}, answers: {} };
+    const p = parseProgressText(JSON.stringify(old))!;
+    expect(p.freeze).toBeUndefined();
+    expect(freezeState(p)).toEqual({ count: 1, toward: 2, used: [] });
+    // 11-09 を休んで 11-10 に学ぶと、数えた札を使う
+    expect(completeReview(p, 3, at('2026-11-10')).streak.count).toBe(4);
+  });
+
+  it('読み直しで札の欄を確かめる (範囲外は丸め、形の違う日付は落とす)', () => {
+    const raw = { ...emptyProgress(), freeze: { count: 5, toward: 9, used: ['2026-11-02', 'x', '2026-11-03', '2026-11-02'] } };
+    expect(parseProgressText(JSON.stringify(raw))!.freeze).toEqual({ count: 2, toward: 6, used: ['2026-11-03', '2026-11-02'] });
+    const broken = { ...emptyProgress(), freeze: { count: 'a' } };
+    expect(parseProgressText(JSON.stringify(broken))!.freeze).toBeUndefined();
+  });
+
+  it('保存して読み直しても札が残る。記録を消すと消える', () => {
+    const p = studyDays('2026-11-01', 7);
+    const s = memoryStorage();
+    saveProgress(p, s);
+    expect(loadProgress(s).freeze).toEqual(p.freeze);
+    expect(resetProgress(p).freeze).toBeUndefined();
+  });
+
+  it('missedDays は両端を含まず、長い空きは札の上限 + 1 で数えるのをやめる', () => {
+    expect(missedDays('2026-11-01', '2026-11-04')).toEqual(['2026-11-02', '2026-11-03']);
+    expect(missedDays('2026-11-01', '2026-11-02')).toEqual([]);
+    expect(missedDays('2020-01-01', '2026-11-02')).toHaveLength(3);
+    expect(missedDays('2026-11-05', '2026-11-02')).toEqual([]);
+  });
+});
+
+describe('続けて正解した数 (inRow) と日ごとの答えた数', () => {
+  it('正解で 1 ずつ増え、間違えると 0 に戻る', () => {
+    let p = recordAnswer(emptyProgress(), 'q1', true, at('2026-11-01'));
+    expect(p.answers.q1.inRow).toBe(1);
+    p = recordAnswer(p, 'q1', true, at('2026-11-02'));
+    expect(p.answers.q1.inRow).toBe(2);
+    p = recordAnswer(p, 'q1', false, at('2026-11-03'));
+    expect(p.answers.q1.inRow).toBe(0);
+  });
+
+  it('inRow の無い古い記録は、回数と復習の段階から推す', () => {
+    expect(inRowOf({ right: 3, wrong: 0, last: '' })).toBe(3);
+    expect(inRowOf({ right: 0, wrong: 2, last: '' })).toBe(0);
+    expect(inRowOf({ right: 3, wrong: 1, last: '' })).toBe(2); // 卒業 (予定が無い)
+    expect(inRowOf({ right: 1, wrong: 1, last: '', stage: 1, nextReview: '2026-11-05' })).toBe(1);
+    expect(inRowOf({ right: 1, wrong: 1, last: '', stage: 0, nextReview: '2026-11-05' })).toBe(0);
+    // 古い記録に答えを足すと、推した数から数える
+    const old = { ...emptyProgress(), answers: { q1: { right: 1, wrong: 1, last: '', stage: 1, nextReview: '2026-11-05' } } };
+    expect(recordAnswer(old, 'q1', true, at('2026-11-05')).answers.q1.inRow).toBe(2);
+  });
+
+  it('日ごとに答えた数を数え、模擬試験で答えなかった問題は数えない', () => {
+    let p = recordAnswer(emptyProgress(), 'q1', true, at('2026-11-01'));
+    p = recordAnswer(p, 'q2', false, at('2026-11-01', 22));
+    p = recordAnswer(p, 'q3', false, at('2026-11-01', 23), { answered: false });
+    expect(p.answered).toEqual({ '2026-11-01': 2 });
+  });
+
+  it('読み直しで inRow と日ごとの数が残り、壊れた値は落とす', () => {
+    const raw = { ...emptyProgress(), answers: { q1: { right: 2, wrong: 0, last: '', inRow: 50 }, q2: { right: 1, wrong: 0, last: '', inRow: -1 } }, answered: { '2026-11-01': 4, bad: 3, '2026-11-02': 'x' } };
+    const p = parseProgressText(JSON.stringify(raw))!;
+    expect(p.answers.q1.inRow).toBe(9);
+    expect(p.answers.q2.inRow).toBeUndefined();
+    expect(p.answered).toEqual({ '2026-11-01': 4 });
+  });
+});
+
+describe('週の目標 (profile.weeklyGoalDays)', () => {
+  it('1〜7 の整数だけ残し、ほかの設定を変えない', () => {
+    const p = setProfile(emptyProgress(), { weeklyGoalDays: 5 });
+    expect(parseProgressText(JSON.stringify(p))!.profile).toEqual({ dailyGoalXp: DEFAULT_GOAL_XP, weeklyGoalDays: 5 });
+    for (const bad of [0, 8, 2.5, '3']) {
+      const raw = { ...emptyProgress(), profile: { dailyGoalXp: 20, weeklyGoalDays: bad } };
+      expect(parseProgressText(JSON.stringify(raw))!.profile).toEqual({ dailyGoalXp: 20 });
+    }
+  });
+
+  it('目標を外すと記録から消える', () => {
+    const p = setProfile(setProfile(emptyProgress(), { weeklyGoalDays: 3 }), { weeklyGoalDays: undefined });
+    expect(parseProgressText(JSON.stringify(p))!.profile?.weeklyGoalDays).toBeUndefined();
   });
 });
