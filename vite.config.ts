@@ -1,4 +1,5 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -34,7 +35,7 @@ function lessonCatalog(): Plugin {
 export default defineConfig({
   base: BASE,
   // purgeAtomicCssPlugin: 使われない StyleX の原子クラスを CSS から落とす (scripts/purge-atomic-css.ts)
-  plugins: [lessonCatalog(), react(), purgeAtomicCssPlugin()],
+  plugins: [lessonCatalog(), react(), purgeAtomicCssPlugin(fileURLToPath(new URL('./src', import.meta.url)))],
   // 書き出す HTML に、ページの画面の JS を先に取りに行く modulepreload を入れるため (scripts/prerender.mjs が読む)
   build: { manifest: true },
   test: {
