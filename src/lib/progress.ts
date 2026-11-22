@@ -175,6 +175,11 @@ export const MAX_EXAM_RECORDS = 20;
 
 const COURSE_IDS: readonly string[] = COURSES.map((c) => c.id);
 
+/** 進捗の一番外の、この版が知っている欄 */
+const KNOWN_FIELDS = new Set(['v', 'streak', 'xp', 'lessons', 'answers', 'exams', 'profile', 'plan', 'freeze', 'answered']);
+/** 写すと Object の中身に触る鍵 */
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
+
 /** JSON から読んだものを、欠けや形の違いを埋めた進捗にする。v が 1 でなければ null */
 export function normalizeProgress(raw: unknown): Progress | null {
   if (!isObject(raw) || raw.v !== 1) return null;
@@ -253,8 +258,12 @@ export function normalizeProgress(raw: unknown): Progress | null {
   }
   // 一番外の欄の並びは、読んだ記録の並びのままにする (欄は記録が作られた順に並ぶので、読み直しても
   // localStorage の中身・書き出したファイルと同じ文字列になる)。読んだ記録に無い欄は後ろ
-  const order = [...Object.keys(raw).filter((k) => k in out), ...Object.keys(out).filter((k) => !(k in raw))];
-  return Object.fromEntries(order.map((k) => [k, out[k as keyof Progress]])) as Progress;
+  // 自分の持つ鍵だけを見る (読み込むファイルの __proto__・constructor などで Object の中身を写さない)
+  // 知らない欄 (これから足す欄。新しい版の JS が書いたもの) は捨てずに残す (古い版のタブが保存しても消えないように)。
+  // ただし __proto__・constructor・prototype は写さない。形が違って落とした知っている欄は戻さない
+  const keep = (k: string) => Object.hasOwn(out, k) || (!KNOWN_FIELDS.has(k) && !UNSAFE_KEYS.has(k));
+  const order = [...Object.keys(raw).filter(keep), ...Object.keys(out).filter((k) => !Object.hasOwn(raw, k))];
+  return Object.fromEntries(order.map((k) => [k, Object.hasOwn(out, k) ? out[k as keyof Progress] : raw[k]])) as Progress;
 }
 
 /** 書き出したファイルの中身を読む。読めない・形が違うときは null */
@@ -391,7 +400,8 @@ function addActivity(p: Progress, xpGained: number, now: Date): Progress {
   const f = freezeState(p);
   let freeze: Freeze = f;
   let count: number;
-  if (last === today) count = Math.max(p.streak.count, 1);
+  // 最後に学んだ日が今日より後 (時刻帯を西へ移って日付が戻った・時計が戻った) なら、同じ日とみなし、連続も札も動かさない
+  if (last !== null && last >= today) count = Math.max(p.streak.count, 1);
   else if (last !== null && last < today) {
     const missed = missedDays(last, today);
     if (missed.length === 0) count = p.streak.count + 1;
@@ -400,13 +410,13 @@ function addActivity(p: Progress, xpGained: number, now: Date): Progress {
       freeze = { ...f, count: f.count - missed.length, used: [...missed.reverse(), ...f.used].slice(0, MAX_FREEZE_LOG) };
     } else count = 1;
   } else count = 1;
-  if (last !== today) {
+  if (last === null || last < today) {
     const toward = freeze.toward + 1;
     freeze = toward >= FREEZE_EVERY ? { ...freeze, count: Math.min(freeze.count + 1, MAX_FREEZES), toward: 0 } : { ...freeze, toward };
   }
   return {
     ...p,
-    streak: { count, lastDay: today },
+    streak: { count, lastDay: last !== null && last > today ? last : today },
     freeze,
     xp: { total: p.xp.total + xpGained, byDay: { ...p.xp.byDay, [today]: (p.xp.byDay[today] ?? 0) + xpGained } },
   };
@@ -443,7 +453,8 @@ export function todayXp(p: Progress, now: Date): number {
 export function currentStreak(p: Progress, now: Date): number {
   const today = dayKey(now);
   const last = p.streak.lastDay;
-  if (last === today || last === addDays(today, -1)) return p.streak.count;
+  // 今日より後 (時刻帯を西へ移った) も同じ日とみなす
+  if (last !== null && (last >= today || last === addDays(today, -1))) return p.streak.count;
   return pendingFreezes(p, now) > 0 ? p.streak.count : 0;
 }
 

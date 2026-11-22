@@ -26,6 +26,7 @@ import {
   setProfile,
   todayXp,
   upcomingReview,
+  type Progress,
 } from '../src/lib/progress';
 
 function memoryStorage(initial: Record<string, string> = {}) {
@@ -547,5 +548,36 @@ describe('読み直しの欄の並び', () => {
     p = setProfile(p, { dailyGoalXp: 10 });
     const text = JSON.stringify(p);
     expect(JSON.stringify(parseProgressText(text))).toBe(text);
+  });
+});
+
+describe('読み込むファイルの知らない欄と Object の鍵', () => {
+  it('知らない欄は残し (新しい版が足した欄を古い版で消さない)、__proto__・constructor は写さない', () => {
+    const text = '{"v":1,"streak":{"count":0,"lastDay":null},"xp":{"total":0,"byDay":{}},"lessons":{},"answers":{},"__proto__":{"x":1},"constructor":1,"futureField":{"a":[1]}}';
+    const r = parseImport(text, text.length);
+    expect(r.ok).toBe(true);
+    const p = (r as { progress: Record<string, unknown> }).progress;
+    expect(Object.keys(p)).toEqual(['v', 'streak', 'xp', 'lessons', 'answers', 'futureField']);
+    expect(Object.hasOwn(p, 'constructor')).toBe(false);
+    expect(Object.getPrototypeOf(p)).toBe(Object.prototype);
+    expect(JSON.stringify(p)).toBe('{"v":1,"streak":{"count":0,"lastDay":null},"xp":{"total":0,"byDay":{}},"lessons":{},"answers":{},"futureField":{"a":[1]}}');
+  });
+  it('形が違って落とした知っている欄は戻さない', () => {
+    const p = parseProgressText(JSON.stringify({ ...emptyProgress(), freeze: 'x', exams: 3 }))!;
+    expect(Object.hasOwn(p, 'freeze')).toBe(false);
+    expect(Object.hasOwn(p, 'exams')).toBe(false);
+  });
+});
+
+describe('時刻帯を西へ移って日付が戻ったとき', () => {
+  it('最後に学んだ日が今日より後なら同じ日とみなし、連続と札の数えを動かさない', () => {
+    const p: Progress = { ...emptyProgress(), streak: { count: 5, lastDay: '2026-11-24' }, freeze: { count: 1, toward: 3, used: [] }, xp: { total: 3, byDay: { '2026-11-24': 3 } } };
+    expect(currentStreak(p, at('2026-11-23'))).toBe(5);
+    const next = completeReview(p, 3, at('2026-11-23'));
+    expect(next.streak).toEqual({ count: 5, lastDay: '2026-11-24' });
+    expect(freezeState(next)).toEqual({ count: 1, toward: 3, used: [] });
+    // 次の日 (11-24) も同じ日。その次の日 (11-25) は 1 日進む
+    expect(completeReview(next, 3, at('2026-11-24')).streak.count).toBe(5);
+    expect(completeReview(next, 3, at('2026-11-25')).streak.count).toBe(6);
   });
 });
