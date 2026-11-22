@@ -5,7 +5,6 @@ import { List, ListItem } from '@astryxdesign/core/List';
 import { ProgressBar } from '@astryxdesign/core/ProgressBar';
 import { HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
-import { ToggleButton } from '@astryxdesign/core/ToggleButton';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AnswerResponse from '../components/AnswerResponse';
@@ -42,6 +41,9 @@ import {
   type ExamResult,
   type RestoredExam,
 } from '../lib/exam';
+import { sortLessons } from '../content/catalog';
+import type { LessonFile } from '../content/types';
+import type { Lesson } from '../content/types';
 import { clearExamRun, newRunId, saveExamRun, savedRunId } from '../lib/examSave';
 import { XP_PER_CORRECT } from '../lib/grade';
 import { loadProgress, type Progress } from '../lib/progress';
@@ -68,6 +70,29 @@ type Done = { items: ExamItem[]; answers: (ExamAnswer | undefined)[]; result: Ex
 type Saved = RestoredExam;
 
 /**
+ * 本編の問題データのファイル (開いたときには読まない)。レッスンの画面と同じファイルごとのチャンクを読む。
+ * content/index.ts や content/lesson.ts を後から読む形にすると、rolldown が共有の部品を細かいチャンクに切り直し、
+ * どのページも最初に読む JS の本数が増えるので、この画面だけの glob にする
+ */
+const MAIN_FILES = import.meta.glob<LessonFile>('../content/courses/main/*.json', { import: 'default' });
+
+/** 問題データと、そこから作った出題の元 */
+type Content = { lessons: readonly Lesson[]; bank: ExamItem[] };
+let contentPromise: Promise<Content> | null = null;
+/**
+ * 問題データ (全部のレッスンの本文) を読む。始めるとき・途中の回が残っているときだけ読み、一度読めば使い回す
+ * (始める前の案内の画面を開いたときに、問題データの大きな JS を読まないため)
+ */
+function loadContent(): Promise<Content> {
+  // 出題の元は本編だけなので、本編のファイルだけを読む
+  contentPromise ??= Promise.all(Object.entries(MAIN_FILES).map(async ([k, load]) => [k, await load()] as const)).then((files) => {
+    const lessons = sortLessons(Object.fromEntries(files));
+    return { lessons, bank: examBank(lessons) };
+  });
+  return contentPromise;
+}
+
+/**
  * 模擬試験の画面 (/gantlo/exam/)。本編 4 週から週ごとに 10 問ずつ選んで 60 分で解き、最後にまとめて採点する。
  * 解いている間は正誤を見せない。時間が切れたら、答えていない問題を不正解として採点する。
  * 解いている途中の回 (回の id・出題・答え・期限) は localStorage の別のキー (gantlo.exam.v1) に残し、読み直したり閉じて開き直したりすると
@@ -78,8 +103,25 @@ type Saved = RestoredExam;
 export default function Exam({ progress, updateProgress }: Props) {
   const [run, setRun] = useState<Run | null>(null);
   const [done, setDone] = useState<Done | null>(null);
-  // 開いたときに残っていた途中の回 (もう記録した回は捨てる)。期限の前なら続けるかを聞き、過ぎていれば時間切れとして採点する
-  const [saved, setSaved] = useState<Saved | null>(() => loadExamRun(examBank(), undefined, progress));
+  const [content, setContent] = useState<Content | null>(null);
+  // 開いたときに残っていた途中の回 (もう記録した回は捨てる)。期限の前なら続けるかを聞き、過ぎていれば時間切れとして採点する。
+  // 残っていれば問題データを読んでから突き合わせる (それまでは「読み込んでいます」)
+  const [saved, setSaved] = useState<Saved | null>(null);
+  const [checking, setChecking] = useState(() => savedRunId() !== null);
+  const [starting, setStarting] = useState(false);
+  useEffect(() => {
+    if (!checking) return;
+    let alive = true;
+    loadContent().then((c) => {
+      if (!alive) return;
+      setContent(c);
+      setSaved(loadExamRun(c.bank, undefined, loadProgress()));
+      setChecking(false);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [checking]);
 
   const finish = useCallback(
     (r: Pick<Run, 'runId' | 'items' | 'answers'>, timeUp: boolean) => {
@@ -99,25 +141,30 @@ export default function Exam({ progress, updateProgress }: Props) {
   // 期限を過ぎた回は、開いたときに 1 回だけ時間切れとして採点する。
   // 採点の前に localStorage にまだ残っているかを読み直す。記録は回の id で 1 回だけ (lib/exam.ts の recordExam)
   useEffect(() => {
-    if (!saved || Date.now() < saved.deadline) return;
-    const still = loadExamRun(examBank(), undefined, loadProgress());
+    if (!saved || !content || Date.now() < saved.deadline) return;
+    const still = loadExamRun(content.bank, undefined, loadProgress());
     if (!still || still.runId !== saved.runId) return;
     finish(still, true);
-  }, [saved, finish]);
+  }, [saved, content, finish]);
 
   // 解いている間は、答えるたびに出題・答え・期限を残す。残っている回がこの回でなければ (別のタブが採点した・新しく始めた) 残し直さない
   useEffect(() => {
     if (run) saveExamRun(toSavedExam(run.items, run.answers, run.deadline, run.runId, { index: run.index, marks: run.marks }), undefined, { onlyIfSame: true });
   }, [run]);
 
-  const start = () => {
+  const start = async () => {
+    if (starting) return;
+    setStarting(true);
+    const c = await loadContent();
+    setContent(c);
+    setStarting(false);
     // 続きの案内の回が期限を過ぎていれば、新しく始める前に時間切れとして 1 回だけ記録する
     const now = Date.now();
     if (saved && now >= saved.deadline) updateProgress((p) => recordExpiredRun(p, saved, new Date(now)).progress);
     clearExamRun();
     setSaved(null);
     setDone(null);
-    const next: Run = { runId: newRunId(), items: pickExam(undefined, examRandom(window.location.search)), answers: [], index: 0, deadline: now + LIMIT_MS, shownAt: now, marks: [], reviewing: false };
+    const next: Run = { runId: newRunId(), items: pickExam(c.bank, examRandom(window.location.search)), answers: [], index: 0, deadline: now + LIMIT_MS, shownAt: now, marks: [], reviewing: false };
     saveExamRun(toSavedExam(next.items, next.answers, next.deadline, next.runId, { index: 0 }));
     setRun(next);
     scrollToTop();
@@ -135,9 +182,15 @@ export default function Exam({ progress, updateProgress }: Props) {
   };
 
   if (run) return <Running run={run} setRun={setRun} onFinish={finish} onQuit={quit} />;
-  if (done) return <ResultView done={done} onRetry={start} />;
+  if (done) return <ResultView done={done} lessons={content?.lessons ?? []} onRetry={start} />;
+  if (checking)
+    return (
+      <div className="page" aria-busy="true">
+        <Text type="supporting">読み込んでいます。</Text>
+      </div>
+    );
   if (saved && Date.now() < saved.deadline) return <ResumePrompt saved={saved} onResume={() => resume(saved)} onRestart={start} onExpire={() => finish(saved, true)} />;
-  return <Intro progress={progress} onStart={start} />;
+  return <Intro progress={progress} onStart={start} isStarting={starting} />;
 }
 
 /**
@@ -168,7 +221,7 @@ function ResumePrompt({ saved, onResume, onRestart, onExpire }: { saved: Saved; 
   );
 }
 
-function Intro({ progress, onStart }: { progress: Progress; onStart: () => void }) {
+function Intro({ progress, onStart, isStarting }: { progress: Progress; onStart: () => void; isStarting: boolean }) {
   const isWide = useMediaQuery(WIDE_QUERY);
   const exams = progress.exams ?? [];
   return (
@@ -212,7 +265,7 @@ function Intro({ progress, onStart }: { progress: Progress; onStart: () => void 
         </Text>
       </section>
       <p>
-        <Button variant="primary" label="模擬試験を始める" onClick={onStart} width={isWide ? undefined : '100%'} size="lg" />
+        <Button variant="primary" label="模擬試験を始める" onClick={onStart} isLoading={isStarting} width={isWide ? undefined : '100%'} size="lg" />
       </p>
       <section aria-labelledby="exam-history">
         <h2 id="exam-history" className="result__sub">
@@ -364,7 +417,14 @@ function Running({
           <HStack gap={2} wrap="wrap">
             <Button label="前の問題" onClick={() => go(run.index - 1)} isDisabled={run.index === 0} size={isWide ? 'md' : 'lg'} />
             <Button label="次の問題 (答えずに)" onClick={() => (run.index + 1 < total ? go(run.index + 1) : setRun({ ...run, reviewing: true }))} size={isWide ? 'md' : 'lg'} />
-            <ToggleButton label="あとで見直す" isPressed={marked} onPressedChange={() => setRun({ ...run, marks: toggleMark(run.marks, run.index) })} size={isWide ? 'md' : 'lg'} />
+            {/* 押した状態は aria-pressed で伝える (ToggleButton は使わない。押す操作の仕組みを丸ごと読み、模擬試験の画面の JS が 20 KB 増えるため) */}
+            <Button
+              variant={marked ? 'primary' : 'secondary'}
+              label="あとで見直す"
+              aria-pressed={marked}
+              onClick={() => setRun({ ...run, marks: toggleMark(run.marks, run.index) })}
+              size={isWide ? 'md' : 'lg'}
+            />
             <Button variant="ghost" label="一覧と採点へ" onClick={() => setRun({ ...run, reviewing: true })} size={isWide ? 'md' : 'lg'} />
           </HStack>
           <details className="exam-slots__box">
@@ -411,11 +471,11 @@ function ExamSlots({ total, answers, marks, current, onGo }: { total: number; an
   );
 }
 
-function ResultView({ done, onRetry }: { done: Done; onRetry: () => void }) {
+function ResultView({ done, lessons, onRetry }: { done: Done; lessons: readonly Lesson[]; onRetry: () => void }) {
   const isWide = useMediaQuery(WIDE_QUERY);
   const { items, answers, result } = done;
   const status = examDone(result.correct, result.total, result.passed, result.timeUp);
-  const reread = result.weakest ? lessonsToReread(items, answers, result.weakest.week) : [];
+  const reread = result.weakest ? lessonsToReread(items, answers, result.weakest.week, lessons) : [];
   const body = JSON.stringify(
     {
       correct: result.correct,

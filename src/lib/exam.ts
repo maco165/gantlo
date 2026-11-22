@@ -1,6 +1,6 @@
 // 模擬試験 (本編 4 週の総まとめ)。問題を週ごとに同じ数だけ選び、解いている間は正誤を見せず、最後にまとめて採点する。
 // 画面 (src/screens/Exam.tsx) から切り離して、選び方・採点・記録をテストする (tests/exam.test.ts)。
-import { LESSONS } from '../content/index';
+// 問題データ (content/index.ts) はここでは読まず、呼ぶ側が渡す (模擬試験の画面は、始めるか途中の回を読み直すときにだけ問題データを読む)。
 import type { Lesson, Question } from '../content/types';
 import { XP_PER_CORRECT } from './grade';
 import { shuffleItems } from './order';
@@ -41,7 +41,7 @@ export function weekOf(lesson: Pick<Lesson, 'id' | 'course'>): ExamWeek | null {
 export type ExamItem = { question: Question; lesson: Lesson; week: ExamWeek };
 
 /** 出題の元: 本編の採点する問題 (実習は採点しないので出さない) */
-export function examBank(lessons: readonly Lesson[] = LESSONS): ExamItem[] {
+export function examBank(lessons: readonly Lesson[]): ExamItem[] {
   const out: ExamItem[] = [];
   for (const lesson of lessons) {
     const week = weekOf(lesson);
@@ -55,7 +55,7 @@ export function examBank(lessons: readonly Lesson[] = LESSONS): ExamItem[] {
  * 週ごとに EXAM_PER_WEEK 問を重ならずに選び、全体の並びと、4 択の選択肢・並べ替えの項目を混ぜる。
  * ある週の問題が足りなければ、その週はあるだけ出す (問題データの検査は tests/exam.test.ts が持つ)
  */
-export function pickExam(bank: readonly ExamItem[] = examBank(), random: () => number = Math.random): ExamItem[] {
+export function pickExam(bank: readonly ExamItem[], random: () => number = Math.random): ExamItem[] {
   const picked = EXAM_WEEKS.flatMap(({ week }) => shuffled(bank.filter((b) => b.week === week), random).slice(0, EXAM_PER_WEEK));
   return shuffled(picked, random).map((b) => ({
     ...b,
@@ -100,9 +100,9 @@ export function gradeExam(items: readonly ExamItem[], answers: readonly (ExamAns
 }
 
 /** 読み直すレッスン: いちばん低い週で、間違えた (答えなかった) 問題のあるレッスン (問題データの順) */
-export function lessonsToReread(items: readonly ExamItem[], answers: readonly (ExamAnswer | undefined)[], week: ExamWeek): Lesson[] {
+export function lessonsToReread(items: readonly ExamItem[], answers: readonly (ExamAnswer | undefined)[], week: ExamWeek, lessons: readonly Lesson[]): Lesson[] {
   const ids = new Set(items.filter((it, i) => it.week === week && answers[i]?.correct !== true).map((it) => it.lesson.id));
-  return LESSONS.filter((l) => ids.has(l.id));
+  return lessons.filter((l) => ids.has(l.id));
 }
 
 /** その回 (runId) をもう記録したか */
@@ -216,7 +216,7 @@ const isPermutation = (ids: unknown, of: readonly string[]) =>
  */
 export type RestoredExam = { runId: string; items: ExamItem[]; answers: (ExamAnswer | undefined)[]; deadline: number; index: number; marks: number[] };
 
-export function fromSavedExam(raw: unknown, bank: readonly ExamItem[] = examBank()): RestoredExam | null {
+export function fromSavedExam(raw: unknown, bank: readonly ExamItem[]): RestoredExam | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const r = raw as Partial<Record<keyof SavedExam, unknown>>;
   if (r.v !== 1 || typeof r.runId !== 'string' || r.runId === '' || r.runId.length > 64 || !Array.isArray(r.items) || !Array.isArray(r.answers) || typeof r.deadline !== 'number' || !Number.isFinite(r.deadline)) return null;
@@ -261,7 +261,7 @@ export function fromSavedExam(raw: unknown, bank: readonly ExamItem[] = examBank
  * 途中の回を読む。無い・読めない・形が違うときは null (壊れた中身は消して、次から最初の画面にする)。
  * progress を渡すと、もう記録した回 (別のタブで採点した回など) の保存も捨てる
  */
-export function loadExamRun(bank?: readonly ExamItem[], storage: ExamStorage | undefined = safeLocalStorage(), progress?: Progress): RestoredExam | null {
+export function loadExamRun(bank: readonly ExamItem[], storage: ExamStorage | undefined = safeLocalStorage(), progress?: Progress): RestoredExam | null {
   if (!storage) return null;
   try {
     const text = storage.getItem(EXAM_SAVE_KEY);

@@ -1,11 +1,11 @@
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
-import { lazy, Suspense, useState, type KeyboardEvent } from 'react';
+import { useState, type KeyboardEvent } from 'react';
 import StatusLine from '../components/StatusLine';
 import Waterfall from '../components/Waterfall';
-import { LESSONS } from '../content/index';
+import SummaryCard from '../components/SummaryCard';
+import { CATALOG, type LessonMeta } from '../content/catalog';
 import { STAGES } from '../content/stages';
-import type { Lesson } from '../content/types';
 import { stageStates } from '../lib/journey';
 import { CALENDAR_WEEKS, FORECAST_DAYS, LEVEL_MIN, calendarTotals, reviewForecast, studyCalendar } from '../lib/calendar';
 import { freezeCountText, freezeText, weeklyTargetText } from '../lib/habits';
@@ -17,8 +17,6 @@ import { progressStatus } from '../lib/status';
 
 const WEEKDAYS = ['日', '月', '火', '水', '木', '金', '土'];
 
-// まとめのカード (canvas で描く PNG) は、押したときに描くので部品ごと後から読む
-const SummaryCard = lazy(() => import('../components/SummaryCard'));
 
 /** YYYY-MM-DD の曜日 (端末の時刻の暦で) */
 function weekday(day: string): string {
@@ -101,7 +99,7 @@ function StudyCalendar({ cells }: { cells: { day: string; count: number; studied
  * 進捗の画面 (/gantlo/progress/) = GET /me/stats への応答。
  * 正答率・この 7 日の XP・コースごとの進み具合・旅の 8 段の学習状況を、このブラウザの記録 (gantlo.v1) から出す
  */
-export default function ProgressScreen({ progress, now = new Date(), lessons = LESSONS }: { progress: Progress; now?: Date; lessons?: readonly Lesson[] }) {
+export default function ProgressScreen({ progress, now = new Date(), lessons = CATALOG }: { progress: Progress; now?: Date; lessons?: readonly LessonMeta[] }) {
   const acc = accuracy(progress, lessons);
   const days = weeklyXp(progress, now);
   const weekTotal = days.reduce((s, d) => s + d.xp, 0);
@@ -263,9 +261,7 @@ export default function ProgressScreen({ progress, now = new Date(), lessons = L
         <h2 id="prog-card-title" className="prog__title">
           学習のまとめのカード
         </h2>
-        <Suspense fallback={<Text type="supporting">読み込んでいます。</Text>}>
-          <SummaryCard progress={progress} now={now} lessons={lessons} />
-        </Suspense>
+        <SummaryCard progress={progress} now={now} lessons={lessons} />
       </section>
 
       <section className="prog" aria-labelledby="prog-courses-title">

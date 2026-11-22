@@ -7,7 +7,7 @@ import { useState } from 'react';
 import StatusLine from '../components/StatusLine';
 import { clearExamRun } from '../lib/examSave';
 import { downloadBlob, downloadProgress } from '../lib/download';
-import { WEEKDAY_LABELS, icsFileName, isTime, studyPlanIcs } from '../lib/ics';
+import { WEEKDAY_LABELS, isTime } from '../lib/icsFields';
 import {
   GOAL_CHOICES,
   MAX_IMPORT_BYTES,
@@ -42,11 +42,13 @@ export default function Settings({ progress, updateProgress }: Props) {
   const [icsTime, setIcsTime] = useState('20:00');
   const [icsDays, setIcsDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
   const toggleDay = (d: number) => setIcsDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d].sort()));
-  const exportIcs = () => {
+  const exportIcs = async () => {
     if (!isTime(icsTime) || icsDays.length === 0) {
       setOutcome({ status: ICS_INVALID, request: 'GET /me/calendar.ics' });
       return;
     }
+    // .ics を作る処理 (時刻帯の切り替わりの計算) は押したときに読む (設定の画面を開いたときの JS に入れない)
+    const { studyPlanIcs, icsFileName } = await import('../lib/ics');
     downloadBlob(new Blob([studyPlanIcs({ time: icsTime, days: icsDays, now: new Date() })], { type: 'text/calendar' }), icsFileName);
     setOutcome({ status: ICS_DONE, request: 'GET /me/calendar.ics' });
   };

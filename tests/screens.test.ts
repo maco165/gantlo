@@ -258,11 +258,13 @@ describe('模擬試験の途中の回 (A3)', () => {
     const [p, update] = useProgress();
     return createElement(StrictMode, null, createElement(Exam, { progress: p, updateProgress: update }));
   }
-  const items = pickExam(examBank(), seededRandom(3));
+  const items = pickExam(examBank(LESSONS), seededRandom(3));
 
   it('期限を過ぎた途中の回は、開くと時間切れとして記録し、途中の回を消す (2 回記録しないことは tests/exam.test.ts の recordExpiredRun)', async () => {
     saveExamRun(toSavedExam(items, [{ correct: true, code: 200 }, { correct: false, code: 400 }], Date.now() - 1000, 'run-old'));
     await act(async () => root.render(createElement(ExamProbe)));
+    // 途中の回があると問題データ (本編のファイル) を後から読んでから突き合わせるので、採点が済むまで待つ
+    for (let i = 0; i < 50 && text('.status__code') !== '408'; i++) await act(async () => new Promise((r) => setTimeout(r, 20)));
     expect(text('.status__code')).toBe('408');
     const p = loadProgress();
     expect(p.exams).toHaveLength(1);
@@ -273,6 +275,7 @@ describe('模擬試験の途中の回 (A3)', () => {
   it('期限の前なら「続きから解く / やめて最初から」を出し、続きから解くと答えた次の問題から始まる', async () => {
     saveExamRun(toSavedExam(items, [{ correct: true, code: 200 }], Date.now() + 30 * 60_000, 'run-now'));
     await act(async () => root.render(createElement(ExamProbe)));
+    for (let i = 0; i < 50 && !host.querySelector('[data-testid="exam-resume"]'); i++) await act(async () => new Promise((r) => setTimeout(r, 20)));
     expect(host.querySelector('[data-testid="exam-resume"]')).not.toBeNull();
     expect(text('.status__code')).toBe('206');
     const button = (label: string) => [...host.querySelectorAll('button')].find((b) => b.textContent?.trim() === label);

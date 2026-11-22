@@ -54,7 +54,7 @@ describe('出題の元 (本編の問題データ)', () => {
   });
 
   it('どの週にも、実習を除いて EXAM_PER_WEEK 問以上ある。実習は出題の元に入らない', () => {
-    const bank = examBank();
+    const bank = examBank(LESSONS);
     for (const { week } of EXAM_WEEKS) expect(bank.filter((b) => b.week === week).length, `第 ${week} 週`).toBeGreaterThanOrEqual(EXAM_PER_WEEK);
     expect(bank.some((b) => b.question.kind === 'lab')).toBe(false);
     expect(bank.every((b) => b.lesson.course === 'main')).toBe(true);
@@ -63,7 +63,7 @@ describe('出題の元 (本編の問題データ)', () => {
 
 describe('pickExam', () => {
   it('40 問を、各週 10 問ずつ重ならずに選ぶ', () => {
-    const items = pickExam(examBank(), seeded(1));
+    const items = pickExam(examBank(LESSONS), seeded(1));
     expect(items).toHaveLength(EXAM_TOTAL);
     expect(EXAM_TOTAL).toBe(40);
     for (const { week } of EXAM_WEEKS) expect(items.filter((it) => it.week === week)).toHaveLength(EXAM_PER_WEEK);
@@ -71,16 +71,16 @@ describe('pickExam', () => {
   });
 
   it('開くたびに (乱数が違えば) 選び直し、週が並んだままにならない', () => {
-    const a = pickExam(examBank(), seeded(1)).map((it) => it.question.id);
-    const b = pickExam(examBank(), seeded(2)).map((it) => it.question.id);
+    const a = pickExam(examBank(LESSONS), seeded(1)).map((it) => it.question.id);
+    const b = pickExam(examBank(LESSONS), seeded(2)).map((it) => it.question.id);
     expect(a).not.toEqual(b);
     expect(new Set(a)).not.toEqual(new Set(b));
-    const weeks = pickExam(examBank(), seeded(3)).map((it) => it.week);
+    const weeks = pickExam(examBank(LESSONS), seeded(3)).map((it) => it.week);
     expect(weeks).not.toEqual([...weeks].sort());
   });
 
   it('4 択の選択肢を混ぜても、正解の id は選択肢の中にある', () => {
-    for (const it of pickExam(examBank(), seeded(4))) {
+    for (const it of pickExam(examBank(LESSONS), seeded(4))) {
       if (it.question.kind !== 'choice') continue;
       const q = it.question as ChoiceQuestion;
       expect(q.choices.map((c) => c.id)).toContain(q.answer);
@@ -90,7 +90,7 @@ describe('pickExam', () => {
 
 /** 第 1〜4 週を 10 問ずつ持つ合成の 40 問 (週の順に並べる) */
 function fakeItems(): ExamItem[] {
-  const bank = examBank();
+  const bank = examBank(LESSONS);
   return EXAM_WEEKS.flatMap(({ week }) => bank.filter((b) => b.week === week).slice(0, EXAM_PER_WEEK));
 }
 /** 週ごとの正解の数から答えを作る (週の中で先頭から正解にする) */
@@ -147,7 +147,7 @@ describe('lessonsToReread', () => {
     const items = fakeItems();
     const answers = items.map((it, i) => (it.week === 2 && i % 2 === 0 ? wrong : it.week === 2 && i % 3 === 0 ? undefined : right));
     const want = new Set(items.filter((it, i) => it.week === 2 && answers[i]?.correct !== true).map((it) => it.lesson.id));
-    const got = lessonsToReread(items, answers, 2);
+    const got = lessonsToReread(items, answers, 2, LESSONS);
     expect(got.map((l: Lesson) => l.id)).toEqual(LESSONS.filter((l) => want.has(l.id)).map((l) => l.id));
     expect(got.every((l) => weekOf(l) === 2)).toBe(true);
   });
@@ -232,7 +232,7 @@ describe('表示の部品', () => {
   });
 
   it('正しい答えの文は、種類ごとに模範解答・選択肢の文・正しい順を出す', () => {
-    for (const it of examBank()) {
+    for (const it of examBank(LESSONS)) {
       const t = expectedText(it.question);
       expect(t.length, it.question.id).toBeGreaterThan(0);
       if (it.question.kind === 'choice') expect(t).toBe(it.question.choices.find((c) => c.id === (it.question as ChoiceQuestion).answer)?.text);
@@ -241,7 +241,7 @@ describe('表示の部品', () => {
 });
 
 describe('模擬試験の種 (検査で出題を固定する)', () => {
-  const ids = (r: () => number) => pickExam(undefined, r).map((x) => `${x.question.id}:${JSON.stringify(x.question)}`);
+  const ids = (r: () => number) => pickExam(examBank(LESSONS), r).map((x) => `${x.question.id}:${JSON.stringify(x.question)}`);
   it('同じ種なら、選ぶ問題・並び・選択肢の順まで同じ', () => {
     expect(ids(examRandom('?seed=7'))).toEqual(ids(examRandom('?seed=7')));
     expect(ids(seededRandom(7))).toEqual(ids(examRandom('?seed=7')));
@@ -262,7 +262,7 @@ describe('模擬試験の種 (検査で出題を固定する)', () => {
 });
 
 describe('途中の回の保存と読み直し (A3)', () => {
-  const bank = examBank();
+  const bank = examBank(LESSONS);
   const items = pickExam(bank, seeded(7));
   const answers: ExamAnswer[] = [right, wrong, right];
   const memory = () => {
@@ -360,7 +360,7 @@ describe('途中の回の保存と読み直し (A3)', () => {
 });
 
 describe('見直しの印と前へ・一覧から移る (#55)', () => {
-  const bank = examBank();
+  const bank = examBank(LESSONS);
   const items = pickExam(bank, seeded(11));
   const right = { correct: true, code: 200 };
   const wrong = { correct: false, code: 400 };

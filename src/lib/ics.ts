@@ -3,9 +3,9 @@
 // 時刻は端末の時刻帯 (Intl の timeZone) の壁時計で書き、TZID に対応する VTIMEZONE を、端末の時刻帯の規則から作って添える。
 import { ORIGIN } from './site';
 
-/** 曜日 (Date#getDay の 0 = 日 … 6 = 土) と RFC 5545 の BYDAY の名前 */
-export const WEEKDAY_CODES = ['SU', 'MO', 'TU', 'WE', 'TH', 'FR', 'SA'] as const;
-export const WEEKDAY_LABELS = ['日', '月', '火', '水', '木', '金', '土'] as const;
+import { WEEKDAY_CODES, isTime } from './icsFields';
+
+export { WEEKDAY_CODES, WEEKDAY_LABELS, isTime } from './icsFields';
 
 export type StudyPlanIcs = {
   /** 学ぶ時刻 (HH:MM、端末の時刻帯の壁時計) */
@@ -24,7 +24,6 @@ export type StudyPlanIcs = {
   years?: number;
 };
 
-export const isTime = (v: string): boolean => /^([01]\d|2[0-3]):[0-5]\d$/.test(v);
 
 /** TEXT の値の escape (RFC 5545 3.3.11)。\ ; , と改行 */
 export const escapeText = (s: string): string => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');

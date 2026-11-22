@@ -1,6 +1,6 @@
 // 問題ごとの到達 (まだ解いていない・直近で間違えた・1 回正解・2 回続けて正解) と、コースごとの数。
 // 数えるのは採点する問題 (実習は採点しないので入らない) で、問題データにある問題だけ
-import type { Lesson } from '../content/types';
+import { isGraded, type LessonMeta } from '../content/catalog';
 import { inRowOf, type AnswerRecord, type Progress } from './progress';
 import { COURSES, type CourseId } from './route';
 
@@ -25,11 +25,11 @@ export function masteryOf(a: AnswerRecord | undefined): Mastery {
 
 export type MasteryCounts = Record<Mastery, number> & { total: number };
 
-export function countMastery(p: Progress, lessons: readonly Lesson[]): MasteryCounts {
+export function countMastery(p: Progress, lessons: readonly LessonMeta[]): MasteryCounts {
   const out: MasteryCounts = { new: 0, wrong: 0, once: 0, twice: 0, total: 0 };
   for (const l of lessons)
     for (const q of l.questions) {
-      if (q.kind === 'lab') continue;
+      if (!isGraded(q)) continue;
       out[masteryOf(p.answers[q.id])]++;
       out.total++;
     }
@@ -37,7 +37,7 @@ export function countMastery(p: Progress, lessons: readonly Lesson[]): MasteryCo
 }
 
 /** コースごとの到達の数 (コースの順。問題の無いコースも 0 で入れる) */
-export function courseMastery(p: Progress, lessons: readonly Lesson[]): { course: CourseId; title: string; counts: MasteryCounts }[] {
+export function courseMastery(p: Progress, lessons: readonly LessonMeta[]): { course: CourseId; title: string; counts: MasteryCounts }[] {
   return COURSES.map((c) => ({ course: c.id, title: c.title, counts: countMastery(p, lessons.filter((l) => l.course === c.id)) }));
 }
 

@@ -1,6 +1,6 @@
 // 学習のまとめのカード (1080×1350 の PNG)。中身の数を集め (summaryOf)、canvas に描く (drawSummary)。
 // 個人を特定する情報 (名前・端末・答えの中身・日付と時刻の細かい記録) は入れない。入れるのは期間・数・連続日数・コースごとの到達だけ
-import type { Lesson } from '../content/types';
+import { isGraded, type LessonMeta } from '../content/catalog';
 import { courseMastery, MASTERY_LABELS, MASTERY_ORDER, share, type MasteryCounts } from './mastery';
 import { currentStreak, dayKey, rangeDays, studiedDays, type Progress } from './progress';
 import { SITE_NAME, SITE_TAGLINE } from './site';
@@ -19,13 +19,13 @@ export type Summary = {
   courses: { title: string; counts: MasteryCounts }[];
 };
 
-export function summaryOf(p: Progress, now: Date, lessons: readonly Lesson[]): Summary {
+export function summaryOf(p: Progress, now: Date, lessons: readonly LessonMeta[]): Summary {
   const days = studiedDays(p);
   const spanDays = days.length > 0 ? rangeDays(days[0], dayKey(now)) : 0;
   return {
     spanDays,
     studied: days.length,
-    answered: lessons.flatMap((l) => l.questions).filter((q) => q.kind !== 'lab' && (p.answers[q.id]?.right ?? 0) + (p.answers[q.id]?.wrong ?? 0) > 0).length,
+    answered: lessons.flatMap((l) => l.questions).filter((q) => isGraded(q) && (p.answers[q.id]?.right ?? 0) + (p.answers[q.id]?.wrong ?? 0) > 0).length,
     streak: currentStreak(p, now),
     courses: courseMastery(p, lessons)
       .filter((c) => c.counts.total > 0)

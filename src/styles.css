@@ -1382,6 +1382,11 @@ code {
 .summary-card p {
   margin: 0;
 }
+@media (max-width: 767.98px) {
+  .summary-card .btn {
+    width: 100%;
+  }
+}
 .summary-card__preview {
   width: 100%;
   max-width: 24rem;

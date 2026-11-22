@@ -12,7 +12,7 @@ describe('レッスンの目録 (ホームが最初に読む軽いデータ)', (
       ...(l.shortTitle !== undefined ? { shortTitle: l.shortTitle } : {}),
       course: l.course,
       ...(l.stage !== undefined ? { stage: l.stage } : {}),
-      questions: l.questions.map((q) => ({ id: q.id })),
+      questions: l.questions.map((q) => (q.kind === 'lab' ? { id: q.id, lab: true } : { id: q.id })),
     }));
     expect(CATALOG).toEqual(want);
     expect(findLessonMeta('main-w1-l1')?.title).toBe(findLesson('main-w1-l1')?.title);
