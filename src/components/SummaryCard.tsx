@@ -10,6 +10,8 @@ import type { Status } from '../lib/status';
 const SAVED: Status = { code: 200, reason: 'OK', ja: 'まとめのカード (PNG) を保存しました' };
 const SHARED: Status = { code: 200, reason: 'OK', ja: 'まとめのカードを共有に渡しました' };
 const FAILED: Status = { code: 500, reason: 'Internal Server Error', ja: 'このブラウザではカードの画像を作れませんでした' };
+const MADE: Status = { code: 201, reason: 'Created', ja: 'まとめのカードを作りました。保存か共有を選べます' };
+const SHARE_FAILED: Status = { code: 500, reason: 'Internal Server Error', ja: 'この端末では共有できませんでした。保存してから送ってください' };
 
 /**
  * 学習のまとめのカード (1080×1350 の PNG)。押したときに描き、保存と、端末が画像の共有に対応していれば共有を出す
@@ -54,15 +56,21 @@ export default function SummaryCard({ progress, now, lessons }: { progress: Prog
     setOutcome({ status: SAVED, request: 'GET /me/summary.png' });
   };
 
-  const shareCard = async () => {
-    const blob = await make();
-    if (!blob) return;
-    try {
-      await navigator.share({ files: [new File([blob], cardFileName(now), { type: 'image/png' })], title: 'gantlo の学習のまとめ' });
-      setOutcome({ status: SHARED, request: 'POST /me/summary.png/share' });
-    } catch {
-      // 共有の画面を閉じた (AbortError) ときは何も出さない
-    }
+  /** 見本を作る (共有は、作ってある画像を押したその場で渡す。描くのを待ってから share を呼ぶと、押した操作から時間がたって断られうるため) */
+  const makePreview = async () => {
+    if (await make()) setOutcome({ status: MADE, request: 'POST /me/summary.png' });
+  };
+
+  const shareCard = () => {
+    if (!preview) return;
+    // 渡すのは画像 (files) だけ。文・URL・題は付けない
+    navigator.share({ files: [new File([preview.blob], cardFileName(now), { type: 'image/png' })] }).then(
+      () => setOutcome({ status: SHARED, request: 'POST /me/summary.png/share' }),
+      (e: unknown) => {
+        // 共有の画面を閉じた (AbortError) ときは何も出さない。ほかの失敗は画面に出す
+        if ((e as { name?: string } | null)?.name !== 'AbortError') setOutcome({ status: SHARE_FAILED, request: 'POST /me/summary.png/share' });
+      },
+    );
   };
 
   return (
@@ -76,7 +84,12 @@ export default function SummaryCard({ progress, now, lessons }: { progress: Prog
         <button type="button" className="btn" onClick={save}>
           GET まとめのカードを保存 (PNG)
         </button>
-        {canShareFiles && (
+        {canShareFiles && !preview && (
+          <button type="button" className="btn" onClick={makePreview}>
+            共有するカードを作る
+          </button>
+        )}
+        {canShareFiles && preview && (
           <button type="button" className="btn" onClick={shareCard}>
             共有する
           </button>

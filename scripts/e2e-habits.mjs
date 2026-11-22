@@ -189,14 +189,26 @@ export async function runHabits(browser, { base, check, noHorizontalOverflow }) 
     window.__shared = [];
     navigator.canShare = (d) => Array.isArray(d?.files);
     navigator.share = async (d) => {
+      if (window.__fail) throw new DOMException(window.__fail, window.__fail);
       window.__shared.push({ keys: Object.keys(d), files: (d.files ?? []).map((f) => ({ name: f.name, type: f.type, size: f.size })), text: d.text, url: d.url });
     };
   });
   const page = await context.newPage();
   await page.goto(`${base}progress/`);
+  // 先にカードを作り、押したその場で share に渡す
+  await page.getByRole('button', { name: '共有するカードを作る' }).click();
   await page.getByRole('button', { name: '共有する' }).click();
   await page.waitForFunction(() => window.__shared.length > 0);
   const shared = await page.evaluate(() => window.__shared[0]);
-  check(shared.files.length === 1 && shared.files[0].type === 'image/png' && shared.files[0].size > 1000 && shared.text === undefined && shared.url === undefined, `[phone まとめのカード] 共有では PNG を files で渡し、文と URL は付けない (${JSON.stringify(shared)})`);
+  check(JSON.stringify(shared.keys) === '["files"]' && shared.files.length === 1 && shared.files[0].type === 'image/png' && shared.files[0].size > 1000 && shared.text === undefined && shared.url === undefined, `[phone まとめのカード] 共有では PNG を files だけで渡し、文・URL・題は付けない (${JSON.stringify(shared)})`);
+  // 断られた (NotAllowedError) ときは画面に出し、閉じた (AbortError) ときは何も出さない
+  await page.evaluate(() => (window.__fail = 'AbortError'));
+  await page.getByRole('button', { name: '共有する' }).click();
+  await page.waitForTimeout(200);
+  check((await page.getByText('この端末では共有できませんでした').count()) === 0, `[phone まとめのカード] 共有の画面を閉じた (AbortError) ときは何も出さない`);
+  await page.evaluate(() => (window.__fail = 'NotAllowedError'));
+  await page.getByRole('button', { name: '共有する' }).click();
+  await page.getByText('この端末では共有できませんでした').waitFor();
+  check(true, `[phone まとめのカード] 共有を断られた (NotAllowedError) ときは画面に出す`);
   await context.close();
 }
