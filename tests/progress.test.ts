@@ -581,3 +581,15 @@ describe('時刻帯を西へ移って日付が戻ったとき', () => {
     expect(completeReview(next, 3, at('2026-11-25')).streak.count).toBe(6);
   });
 });
+
+describe('問題やレッスンの鍵の __proto__ (R-015)', () => {
+  it('answers と lessons の __proto__・constructor の鍵は読まず、prototype を差し替えない', () => {
+    const text = '{"v":1,"streak":{"count":0,"lastDay":null},"xp":{"total":0,"byDay":{}},"lessons":{"__proto__":{"done":true,"best":1,"at":""}},"answers":{"__proto__":{"right":1,"wrong":0,"last":""},"q1":{"right":1,"wrong":0,"last":""}}}';
+    const p = parseProgressText(text)!;
+    expect(Object.getPrototypeOf(p.answers)).toBe(Object.prototype);
+    expect(Object.getPrototypeOf(p.lessons)).toBe(Object.prototype);
+    expect(Object.keys(p.answers)).toEqual(['q1']);
+    expect((p.answers as Record<string, unknown>).right).toBeUndefined();
+    expect((p.lessons as Record<string, unknown>).done).toBeUndefined();
+  });
+});

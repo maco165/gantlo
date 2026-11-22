@@ -163,7 +163,8 @@ function cleanRecords<T>(raw: unknown, clean: (v: Record<string, unknown>) => T 
   const out: Record<string, T> = {};
   if (!isObject(raw)) return out;
   for (const [key, value] of Object.entries(raw)) {
-    if (!isObject(value)) continue;
+    // __proto__ などの鍵に代入すると、記録の prototype を差し替えてしまう (R-015)
+    if (!isObject(value) || UNSAFE_KEYS.has(key)) continue;
     const c = clean(value);
     if (c !== null) out[key] = c;
   }
