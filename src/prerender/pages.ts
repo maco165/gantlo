@@ -77,9 +77,19 @@ export function kindSummary(questions: readonly Question[]): string {
 const byText = <T extends { text: string }>(xs: readonly T[]) => [...xs].sort((x, y) => x.text.localeCompare(y.text, 'ja'));
 
 /**
+ * 並べ替えの項目を本文に書く並び。文字の順にし、それがたまたま正しい順と同じなら、1 つずらす
+ * (先頭を末尾へ。2 項目以上なら必ず正しい順と違う並びになる)
+ */
+export function pageOrderItems(q: Extract<Question, { kind: 'order' }>): { id: string; text: string }[] {
+  const sorted = byText(q.items);
+  const same = sorted.length >= 2 && sorted.every((it, i) => it.id === q.answer[i]);
+  return same ? [...sorted.slice(1), sorted[0]] : sorted;
+}
+
+/**
  * 問題 1 つの本文。画面で答える前に見えるもの (種類・問題文・空欄を伏せたコード・選択肢・並べる項目・実習の手順) だけを書き、
  * 正解・解説・出典・実習で観察できること (expected) は書かない。選択肢と項目は文字の順に並べ替える
- * (データの順は並べ替えの正しい順で、画面では混ぜて出すため)
+ * (データの順は並べ替えの正しい順で、画面では混ぜて出すため。文字の順が正しい順と同じなら 1 つずらす)
  */
 export function questionHtml(q: Question): string {
   const parts = [`<p>${esc(q.prompt)} (${esc(kindLabel(q))})</p>`];
@@ -89,7 +99,7 @@ export function questionHtml(q: Question): string {
     if (q.code) parts.push(code(q.code.text));
     parts.push(`<ul>${(q.fixedOrder ? q.choices : byText(q.choices)).map((c) => `<li>${esc(c.text)}</li>`).join('')}</ul>`);
   }
-  if (q.kind === 'order') parts.push(`<p>並べる項目 (順不同):</p><ul>${byText(q.items).map((i) => `<li>${esc(i.text)}</li>`).join('')}</ul>`);
+  if (q.kind === 'order') parts.push(`<p>並べる項目 (順不同):</p><ul>${pageOrderItems(q).map((i) => `<li>${esc(i.text)}</li>`).join('')}</ul>`);
   if (q.kind === 'lab') parts.push(`<ol>${q.steps.map((s) => `<li>${esc(s.text)}${s.command ? code(s.command) : ''}</li>`).join('')}</ol>`);
   return `<li>${parts.join('')}</li>`;
 }

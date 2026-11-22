@@ -155,7 +155,26 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
     }
   });
 
-  it('並べ替えの項目と 4 択の選択肢は、データの順 (正しい順・正解の位置) ではなく文字の順に書く (位置を決めた 4 択は除く)', () => {
+  it('穴埋めのコードは空欄を伏せ字 (____) にして空欄の数だけ持ち、{{blank}} も実行結果の例 (output) も書かない', () => {
+    let fills = 0;
+    for (const l of LESSONS) {
+      const doc = new DOMParser().parseFromString(renderPage(template, pages.find((p) => p.path === `lesson/${l.id}/`)!), 'text/html');
+      const items = [...doc.querySelectorAll('#root main > ol > li')];
+      l.questions.forEach((q, i) => {
+        const text = items[i].textContent ?? '';
+        expect(text, q.id).not.toContain('{{blank}}');
+        if (q.kind === 'command' || q.kind === 'http') {
+          fills++;
+          const pre = items[i].querySelector(':scope > pre')?.textContent ?? '';
+          expect(pre.split('____').length - 1, q.id).toBe(q.blanks.length);
+          if (q.kind === 'command' && q.output) expect(text, q.id).not.toContain(q.output.trim());
+        }
+      });
+    }
+    expect(fills).toBeGreaterThan(0);
+  });
+
+  it('並べ替えの項目は正しい順と違う並びに、4 択の選択肢はデータの順 (正解の位置) ではなく文字の順に書く (位置を決めた 4 択は除く)', () => {
     const byText = (xs: string[]) => [...xs].sort((x, y) => x.localeCompare(y, 'ja'));
     let orders = 0;
     for (const l of LESSONS) {
@@ -166,7 +185,10 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
         const listed = [...items[i].querySelectorAll(':scope > ul > li')].map((li) => li.textContent ?? '');
         if (q.kind === 'order') {
           orders++;
-          expect(listed, q.id).toEqual(byText(q.items.map((x) => x.text)));
+          // 項目はそろっていて、並びは正しい順と違う (文字の順がたまたま正しい順と同じ問題もあるため)
+          expect(byText(listed), q.id).toEqual(byText(q.items.map((x) => x.text)));
+          const answerText = q.answer.map((id) => q.items.find((x) => x.id === id)!.text);
+          if (q.items.length >= 2) expect(listed, `${q.id} が正しい順のまま`).not.toEqual(answerText);
         }
         if (q.kind === 'choice') expect(listed, q.id).toEqual(q.fixedOrder ? q.choices.map((c) => c.text) : byText(q.choices.map((c) => c.text)));
       });
