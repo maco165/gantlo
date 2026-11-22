@@ -19,11 +19,12 @@ import {
   weekOf,
   fromSavedExam,
   loadExamRun,
+  recordExpiredRun,
   toSavedExam,
   type ExamAnswer,
   type ExamItem,
 } from '../src/lib/exam';
-import { EXAM_SAVE_KEY, clearExamRun, saveExamRun } from '../src/lib/examSave';
+import { EXAM_SAVE_KEY, clearExamRun, saveExamRun, savedRunId } from '../src/lib/examSave';
 import { XP_PER_CORRECT } from '../src/lib/grade';
 import { MAX_EXAM_RECORDS, STORAGE_KEY, emptyProgress, normalizeProgress } from '../src/lib/progress';
 import { examDone } from '../src/lib/status';
@@ -266,18 +267,19 @@ describe('途中の回の保存と読み直し (A3)', () => {
   };
 
   it('出題 (問題の id と、混ぜた選択肢・項目の並び)・答え・期限を残し、同じ回に読み直せる', () => {
-    const saved = toSavedExam(items, answers, 1_800_000_000_000);
+    const saved = toSavedExam(items, answers, 1_800_000_000_000, 'run-1');
     const back = fromSavedExam(JSON.parse(JSON.stringify(saved)), bank);
     expect(back).not.toBeNull();
     expect(back!.items.map((it) => it.question)).toEqual(items.map((it) => it.question));
     expect(back!.items.map((it) => [it.lesson.id, it.week])).toEqual(items.map((it) => [it.lesson.id, it.week]));
     expect(back!.answers).toEqual(answers);
     expect(back!.deadline).toBe(1_800_000_000_000);
+    expect(back!.runId).toBe('run-1');
   });
 
   it('localStorage の別のキー (gantlo.exam.v1) に置き、進捗のキー (gantlo.v1) は触らない。消すとキーごと無くなる', () => {
     const s = memory();
-    saveExamRun(toSavedExam(items, answers, 1), s);
+    saveExamRun(toSavedExam(items, answers, 1, 'run-1'), s);
     expect([...s.m.keys()]).toEqual([EXAM_SAVE_KEY]);
     expect(EXAM_SAVE_KEY).not.toBe(STORAGE_KEY);
     expect(loadExamRun(bank, s)?.answers).toEqual(answers);
@@ -287,13 +289,15 @@ describe('途中の回の保存と読み直し (A3)', () => {
   });
 
   it('形が違う・問題データに無い問題・同じ問題が 2 回・選択肢や項目の並びが合わない・答えが多すぎる中身は読まず、消す', () => {
-    const good = toSavedExam(items, answers, 1);
+    const good = toSavedExam(items, answers, 1, 'run-1');
     const choiceAt = good.items.findIndex((it) => bank.find((b) => b.question.id === it.id)?.question.kind === 'choice');
     expect(choiceAt).toBeGreaterThanOrEqual(0);
     const bad: unknown[] = [
       null,
       'x',
       { ...good, v: 2 },
+      { ...good, runId: undefined },
+      { ...good, runId: '' },
       { ...good, deadline: 'soon' },
       { ...good, deadline: Number.POSITIVE_INFINITY },
       { ...good, items: [] },
@@ -312,5 +316,40 @@ describe('途中の回の保存と読み直し (A3)', () => {
     s.setItem(EXAM_SAVE_KEY, JSON.stringify({ ...good, v: 2 }));
     expect(loadExamRun(bank, s)).toBeNull();
     expect(s.m.size).toBe(0);
+  });
+
+  it('期限を過ぎた回の採点 (recordExpiredRun) は、何回呼んでも記録は 1 件 (開いたときの effect が 2 回走っても・2 つのタブでも。R-003)', () => {
+    const run = fromSavedExam(toSavedExam(items, answers, 1, 'run-x'), bank)!;
+    const once = recordExpiredRun(emptyProgress(), run, new Date('2026-11-23T10:00:00Z')).progress;
+    const twice = recordExpiredRun(once, run, new Date('2026-11-23T10:00:05Z')).progress;
+    expect(once.exams).toHaveLength(1);
+    expect(once.exams![0]).toMatchObject({ timeUp: true, runId: 'run-x', correct: 2, total: items.length });
+    expect(twice).toBe(once);
+    // 別の回なら記録が増える
+    const other = recordExpiredRun(once, { ...run, runId: 'run-y' }, new Date('2026-11-23T10:01:00Z')).progress;
+    expect(other.exams).toHaveLength(2);
+    // 回の id は記録の読み直しでも残る
+    expect(normalizeProgress(JSON.parse(JSON.stringify(once)))?.exams?.[0].runId).toBe('run-x');
+  });
+
+  it('もう記録した回の保存は読み直さずに捨てる (別のタブで採点した回が戻らない。指摘 4)', () => {
+    const s = memory();
+    saveExamRun(toSavedExam(items, answers, Date.now() + 60_000, 'run-done'), s);
+    const recorded = recordExpiredRun(emptyProgress(), fromSavedExam(toSavedExam(items, answers, 1, 'run-done'), bank)!, new Date()).progress;
+    expect(loadExamRun(bank, s, emptyProgress())?.runId).toBe('run-done');
+    expect(loadExamRun(bank, s, recorded)).toBeNull();
+    expect(s.m.size).toBe(0);
+  });
+
+  it('走っている画面は、残っている回が自分の回のときだけ残し直す (別のタブが採点して消した回を戻さない。指摘 4)', () => {
+    const s = memory();
+    const mine = toSavedExam(items, answers, 1, 'run-a');
+    expect(saveExamRun(mine, s, { onlyIfSame: true })).toBe(false);
+    expect(s.m.size).toBe(0);
+    saveExamRun(mine, s);
+    expect(saveExamRun({ ...mine, answers: [right] }, s, { onlyIfSame: true })).toBe(true);
+    saveExamRun(toSavedExam(items, answers, 1, 'run-b'), s);
+    expect(saveExamRun(mine, s, { onlyIfSame: true })).toBe(false);
+    expect(savedRunId(s)).toBe('run-b');
   });
 });

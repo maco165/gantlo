@@ -26,17 +26,20 @@ import {
   lessonsToReread,
   examRandom,
   examBank,
+  isRecordedRun,
   loadExamRun,
   pickExam,
   recordExam,
+  recordExpiredRun,
   toSavedExam,
   type ExamAnswer,
   type ExamItem,
   type ExamResult,
+  type RestoredExam,
 } from '../lib/exam';
-import { clearExamRun, saveExamRun } from '../lib/examSave';
+import { clearExamRun, newRunId, saveExamRun, savedRunId } from '../lib/examSave';
 import { XP_PER_CORRECT } from '../lib/grade';
-import type { Progress } from '../lib/progress';
+import { loadProgress, type Progress } from '../lib/progress';
 import { lessonHref, scrollToTop } from '../lib/route';
 import { examDone, examIntroStatus, examResumeStatus, type Status } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
@@ -48,31 +51,34 @@ const LIMIT_MS = EXAM_MINUTES * 60_000;
 /** 並べ替えの問題を出してから答えを受け付けるまでの間 (2 度押しで次の問題を送らないため) */
 const ORDER_GUARD_MS = 400;
 
-/** 解いている回。shownAt は今の問題を出した時刻 (並べ替えの 2 度押しの止めに使う) */
-type Run = { items: ExamItem[]; answers: (ExamAnswer | undefined)[]; index: number; deadline: number; shownAt: number };
+/** 解いている回。runId は回の id (保存と記録で同じ回を見分ける)。shownAt は今の問題を出した時刻 (並べ替えの 2 度押しの止めに使う) */
+type Run = { runId: string; items: ExamItem[]; answers: (ExamAnswer | undefined)[]; index: number; deadline: number; shownAt: number };
 type Done = { items: ExamItem[]; answers: (ExamAnswer | undefined)[]; result: ExamResult };
 
 /** 残した途中の回 (lib/exam.ts の loadExamRun が読み直したもの) */
-type Saved = NonNullable<ReturnType<typeof loadExamRun>>;
+type Saved = RestoredExam;
 
 /**
  * 模擬試験の画面 (/gantlo/exam/)。本編 4 週から週ごとに 10 問ずつ選んで 60 分で解き、最後にまとめて採点する。
  * 解いている間は正誤を見せない。時間が切れたら、答えていない問題を不正解として採点する。
- * 解いている途中の回 (出題・答え・期限) は localStorage の別のキー (gantlo.exam.v1) に残し、読み直したり閉じて開き直したりすると
- * 「続きから解く / やめて最初から」を出す。期限 (始めてから 60 分) は閉じている間も進み、過ぎていれば時間切れとして採点する。
+ * 解いている途中の回 (回の id・出題・答え・期限) は localStorage の別のキー (gantlo.exam.v1) に残し、読み直したり閉じて開き直したりすると
+ * 「続きから解く / やめて最初から」を出す。期限 (始めてから 60 分) は閉じている間も進み、過ぎていれば時間切れとして採点する
+ * (開いたとき・案内を出している間に期限が来たとき・案内から新しく始めるとき)。採点した回は id を記録に残し、同じ回を 2 回記録しない。
  * 終えた・やめたときは残した回を消す。やめた回は記録しない
  */
 export default function Exam({ progress, updateProgress }: Props) {
   const [run, setRun] = useState<Run | null>(null);
   const [done, setDone] = useState<Done | null>(null);
-  // 開いたときに残っていた途中の回。期限の前なら続けるかを聞き、過ぎていれば下の effect で時間切れとして採点する
-  const [saved, setSaved] = useState<Saved | null>(() => loadExamRun(examBank()));
+  // 開いたときに残っていた途中の回 (もう記録した回は捨てる)。期限の前なら続けるかを聞き、過ぎていれば時間切れとして採点する
+  const [saved, setSaved] = useState<Saved | null>(() => loadExamRun(examBank(), undefined, progress));
 
   const finish = useCallback(
-    (r: Pick<Run, 'items' | 'answers'>, timeUp: boolean) => {
-      clearExamRun();
+    (r: Pick<Run, 'runId' | 'items' | 'answers'>, timeUp: boolean) => {
+      // 残っているのがこの回のときだけ消す (別のタブが始めた新しい回は消さない)
+      if (savedRunId() === r.runId) clearExamRun();
       const result = gradeExam(r.items, r.answers, timeUp);
-      updateProgress((p) => recordExam(p, r.items, r.answers, result, new Date()));
+      // 別のタブがこの回をもう採点していれば (ブラウザの記録に id がある)、記録しない
+      if (!isRecordedRun(loadProgress(), r.runId)) updateProgress((p) => recordExam(p, r.items, r.answers, result, new Date(), r.runId));
       setRun(null);
       setSaved(null);
       setDone({ items: r.items, answers: r.answers, result });
@@ -82,48 +88,59 @@ export default function Exam({ progress, updateProgress }: Props) {
   );
 
   // 期限を過ぎた回は、開いたときに 1 回だけ時間切れとして採点する。
-  // 採点の前に localStorage にまだ残っているかを読み直し、消してから記録する (StrictMode で effect が 2 回走っても 2 回記録しない)
+  // 採点の前に localStorage にまだ残っているかを読み直す。記録は回の id で 1 回だけ (lib/exam.ts の recordExam)
   useEffect(() => {
     if (!saved || Date.now() < saved.deadline) return;
-    const still = loadExamRun(examBank());
-    if (!still) return;
+    const still = loadExamRun(examBank(), undefined, loadProgress());
+    if (!still || still.runId !== saved.runId) return;
     finish(still, true);
   }, [saved, finish]);
 
-  // 解いている間は、答えるたびに出題・答え・期限を残す
+  // 解いている間は、答えるたびに出題・答え・期限を残す。残っている回がこの回でなければ (別のタブが採点した・新しく始めた) 残し直さない
   useEffect(() => {
-    if (run) saveExamRun(toSavedExam(run.items, run.answers, run.deadline));
+    if (run) saveExamRun(toSavedExam(run.items, run.answers, run.deadline, run.runId), undefined, { onlyIfSame: true });
   }, [run]);
 
   const start = () => {
+    // 続きの案内の回が期限を過ぎていれば、新しく始める前に時間切れとして 1 回だけ記録する
+    const now = Date.now();
+    if (saved && now >= saved.deadline) updateProgress((p) => recordExpiredRun(p, saved, new Date(now)).progress);
     clearExamRun();
     setSaved(null);
     setDone(null);
-    const now = Date.now();
-    setRun({ items: pickExam(undefined, examRandom(window.location.search)), answers: [], index: 0, deadline: now + LIMIT_MS, shownAt: now });
+    const next: Run = { runId: newRunId(), items: pickExam(undefined, examRandom(window.location.search)), answers: [], index: 0, deadline: now + LIMIT_MS, shownAt: now };
+    saveExamRun(toSavedExam(next.items, next.answers, next.deadline, next.runId));
+    setRun(next);
     scrollToTop();
   };
 
   const resume = (s: Saved) => {
     setSaved(null);
-    setRun({ items: s.items, answers: s.answers, index: s.answers.length, deadline: s.deadline, shownAt: Date.now() });
+    setRun({ runId: s.runId, items: s.items, answers: s.answers, index: s.answers.length, deadline: s.deadline, shownAt: Date.now() });
     scrollToTop();
   };
 
   const quit = () => {
-    clearExamRun();
+    if (run && savedRunId() === run.runId) clearExamRun();
     setRun(null);
   };
 
   if (run) return <Running run={run} setRun={setRun} onFinish={finish} onQuit={quit} />;
   if (done) return <ResultView done={done} onRetry={start} />;
-  if (saved && Date.now() < saved.deadline) return <ResumePrompt saved={saved} onResume={() => resume(saved)} onRestart={start} />;
+  if (saved && Date.now() < saved.deadline) return <ResumePrompt saved={saved} onResume={() => resume(saved)} onRestart={start} onExpire={() => finish(saved, true)} />;
   return <Intro progress={progress} onStart={start} />;
 }
 
-/** 途中の回が残っているときの画面。続きから解くか、その回をやめて最初から始めるかを選ぶ (やめた回は記録しない) */
-function ResumePrompt({ saved, onResume, onRestart }: { saved: Saved; onResume: () => void; onRestart: () => void }) {
+/**
+ * 途中の回が残っているときの画面。続きから解くか、その回をやめて最初から始めるかを選ぶ (期限の前にやめた回は記録しない)。
+ * 案内を出している間に期限が来たら、時間切れとして採点する (onExpire)
+ */
+function ResumePrompt({ saved, onResume, onRestart, onExpire }: { saved: Saved; onResume: () => void; onRestart: () => void; onExpire: () => void }) {
   const isWide = useMediaQuery(WIDE_QUERY);
+  useEffect(() => {
+    const id = window.setTimeout(onExpire, Math.max(0, saved.deadline - Date.now()));
+    return () => window.clearTimeout(id);
+  }, [saved, onExpire]);
   const width = isWide ? undefined : '100%';
   const answered = saved.answers.length;
   return (

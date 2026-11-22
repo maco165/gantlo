@@ -12,7 +12,8 @@ export type LessonRecord = { done: boolean; best: number; at: string };
 export type AnswerRecord = { right: number; wrong: number; last: string; stage?: number; nextReview?: string };
 
 /** 模擬試験の 1 回の記録。at は終えた時刻 (ISO)、timeUp は時間が切れて終わったか */
-export type ExamRecord = { at: string; correct: number; total: number; timeUp: boolean };
+/** 模擬試験の回の記録。runId は採点した回の id (同じ回を 2 回記録しないため。途中の回の保存 gantlo.exam.v1 と同じ id) */
+export type ExamRecord = { at: string; correct: number; total: number; timeUp: boolean; runId?: string };
 
 /** 復習の間隔 (日)。間違えたら翌日、復習で続けて正解するたびに 3 日後・7 日後 */
 export const REVIEW_INTERVALS = [1, 3, 7] as const;
@@ -176,7 +177,7 @@ export function normalizeProgress(raw: unknown): Progress | null {
       const total = Math.floor(e.total);
       const correct = Math.floor(e.correct);
       if (total <= 0 || correct > total) return [];
-      return [{ at: e.at, correct, total, timeUp: e.timeUp === true }];
+      return [{ at: e.at, correct, total, timeUp: e.timeUp === true, ...(typeof e.runId === 'string' && e.runId.length <= 64 ? { runId: e.runId } : {}) }];
     });
     if (exams.length > 0) out.exams = exams.slice(0, MAX_EXAM_RECORDS);
   }

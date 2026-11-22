@@ -105,17 +105,22 @@ export function lessonsToReread(items: readonly ExamItem[], answers: readonly (E
   return LESSONS.filter((l) => ids.has(l.id));
 }
 
+/** その回 (runId) をもう記録したか */
+export const isRecordedRun = (p: Progress, runId: string | undefined): boolean => runId !== undefined && (p.exams ?? []).some((e) => e.runId === runId);
+
 /**
  * 結果を記録に残す。問題ごとの答えは復習の予定に入れ (間違えた・答えなかった問題は翌日)、正解 1 問ごとに XP を足して連続日数を進め、
- * 回の記録を新しい順の先頭に足す (MAX_EXAM_RECORDS 回まで)
+ * 回の記録を新しい順の先頭に足す (MAX_EXAM_RECORDS 回まで)。runId を渡すと記録に残し、同じ回をもう記録していれば何もしない
+ * (2 つのタブや effect の 2 回の呼び出しで、同じ回を 2 回記録しない)
  */
-export function recordExam(p: Progress, items: readonly ExamItem[], answers: readonly (ExamAnswer | undefined)[], result: ExamResult, now: Date): Progress {
+export function recordExam(p: Progress, items: readonly ExamItem[], answers: readonly (ExamAnswer | undefined)[], result: ExamResult, now: Date, runId?: string): Progress {
+  if (isRecordedRun(p, runId)) return p;
   let next = p;
   items.forEach((it, i) => {
     next = recordAnswer(next, it.question.id, answers[i]?.correct === true, now);
   });
   next = completeReview(next, result.correct * XP_PER_CORRECT, now);
-  const rec: ExamRecord = { at: now.toISOString(), correct: result.correct, total: result.total, timeUp: result.timeUp };
+  const rec: ExamRecord = { at: now.toISOString(), correct: result.correct, total: result.total, timeUp: result.timeUp, ...(runId !== undefined ? { runId } : {}) };
   return { ...next, exams: [rec, ...(p.exams ?? [])].slice(0, MAX_EXAM_RECORDS) };
 }
 
@@ -158,9 +163,10 @@ export function examRandom(search: string): () => number {
 }
 
 /** 途中の回 (出題・答え・期限) を残す形にする。答えは前から順に埋まるので、答えた数が次に出す問題の位置になる */
-export function toSavedExam(items: readonly ExamItem[], answers: readonly (ExamAnswer | undefined)[], deadline: number): SavedExam {
+export function toSavedExam(items: readonly ExamItem[], answers: readonly (ExamAnswer | undefined)[], deadline: number, runId: string): SavedExam {
   return {
     v: 1,
+    runId,
     items: items.map(({ question: q }) => (q.kind === 'choice' ? { id: q.id, order: q.choices.map((c) => c.id) } : q.kind === 'order' ? { id: q.id, order: q.items.map((it) => it.id) } : { id: q.id })),
     answers: answers.filter((a): a is ExamAnswer => a !== undefined).map((a) => ({ correct: a.correct, code: a.code })),
     deadline,
@@ -174,10 +180,12 @@ const isPermutation = (ids: unknown, of: readonly string[]) =>
  * 残した途中の回を、出題の元 (examBank) と突き合わせて読み直す。形が違う・問題データから消えた問題がある・
  * 同じ問題が 2 回ある・選択肢や項目の並びが今の問題と合わない・答えが問題の数以上、のどれかなら null (最初から)
  */
-export function fromSavedExam(raw: unknown, bank: readonly ExamItem[] = examBank()): { items: ExamItem[]; answers: ExamAnswer[]; deadline: number } | null {
+export type RestoredExam = { runId: string; items: ExamItem[]; answers: ExamAnswer[]; deadline: number };
+
+export function fromSavedExam(raw: unknown, bank: readonly ExamItem[] = examBank()): RestoredExam | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const r = raw as Partial<Record<keyof SavedExam, unknown>>;
-  if (r.v !== 1 || !Array.isArray(r.items) || !Array.isArray(r.answers) || typeof r.deadline !== 'number' || !Number.isFinite(r.deadline)) return null;
+  if (r.v !== 1 || typeof r.runId !== 'string' || r.runId === '' || r.runId.length > 64 || !Array.isArray(r.items) || !Array.isArray(r.answers) || typeof r.deadline !== 'number' || !Number.isFinite(r.deadline)) return null;
   if (r.items.length === 0 || r.items.length > EXAM_TOTAL || r.answers.length >= r.items.length) return null;
   const byId = new Map(bank.map((b) => [b.question.id, b]));
   const items: ExamItem[] = [];
@@ -204,17 +212,23 @@ export function fromSavedExam(raw: unknown, bank: readonly ExamItem[] = examBank
     if (typeof x?.correct !== 'boolean' || typeof x.code !== 'number' || !Number.isInteger(x.code)) return null;
     answers.push({ correct: x.correct, code: x.code });
   }
-  return { items, answers, deadline: r.deadline };
+  return { runId: r.runId, items, answers, deadline: r.deadline };
 }
 
-/** 途中の回を読む。無い・読めない・形が違うときは null (壊れた中身は消して、次から最初の画面にする) */
-export function loadExamRun(bank?: readonly ExamItem[], storage: ExamStorage | undefined = safeLocalStorage()) {
+/**
+ * 途中の回を読む。無い・読めない・形が違うときは null (壊れた中身は消して、次から最初の画面にする)。
+ * progress を渡すと、もう記録した回 (別のタブで採点した回など) の保存も捨てる
+ */
+export function loadExamRun(bank?: readonly ExamItem[], storage: ExamStorage | undefined = safeLocalStorage(), progress?: Progress): RestoredExam | null {
   if (!storage) return null;
   try {
     const text = storage.getItem(EXAM_SAVE_KEY);
     if (!text) return null;
     const run = fromSavedExam(JSON.parse(text), bank);
-    if (!run) storage.removeItem(EXAM_SAVE_KEY);
+    if (!run || (progress && isRecordedRun(progress, run.runId))) {
+      storage.removeItem(EXAM_SAVE_KEY);
+      return null;
+    }
     return run;
   } catch {
     // JSON として読めない中身も消す
@@ -225,4 +239,13 @@ export function loadExamRun(bank?: readonly ExamItem[], storage: ExamStorage | u
     }
     return null;
   }
+}
+
+/**
+ * 期限を過ぎた途中の回を、時間切れとして採点して記録する。同じ回をもう記録していれば記録は変えない (何回呼んでも 1 件)。
+ * 画面 (Exam.tsx) は開いたとき・続きの案内の間に期限が来たとき・案内から新しく始めるときに呼ぶ
+ */
+export function recordExpiredRun(p: Progress, run: RestoredExam, now: Date): { progress: Progress; result: ExamResult } {
+  const result = gradeExam(run.items, run.answers, true);
+  return { progress: recordExam(p, run.items, run.answers, result, now, run.runId), result };
 }

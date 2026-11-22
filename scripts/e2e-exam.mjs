@@ -9,6 +9,8 @@
 //   6. 途中でやめると記録しない
 //   7. 時計を進めて 60 分を過ぎると、408 Request Timeout・答えていない問題の数 (X-Unanswered) が出て、時間切れの回として残る
 //   8. 並べ替えを出した直後 (0.4 秒の間) の送るは受け付けない (2 度押しの 2 回目で次の問題を送らない)
+//  11. 続きの案内を出したまま期限を過ぎる・期限を過ぎてから新しく始めると、時間切れとして 1 回だけ記録する
+//  12. 2 つのタブで同じ回を解いても記録は 1 回で、採点した回の保存は戻らない (PC の幅)
 //  10. 途中で読み直すと「続きから解く / やめて最初から」が出て (206)、続きから解くと答えた次の問題から同じ回を解ける。
 //      やめて最初からを選ぶと、記録せずに新しい回を始める。やめる・終えると途中の回 (gantlo.exam.v1) は消える
 //   9. 横にはみ出さず、文が切れない。390 幅では始める・答えを送る・やめるのボタンの押せる範囲が 44px 以上。外へ何も送らず、ページのエラーが無い
@@ -260,6 +262,62 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     check(unanswered.startsWith('38'), `${tag} 答えていない 38 問を X-Unanswered に出す (${unanswered.split('\n')[0]})`);
     const p2 = await stored();
     check(p2?.exams?.length === 2 && p2.exams[0].timeUp === true && p2.exams[0].correct === 2, `${tag} 時間切れの回が新しい順の先頭に残る (${JSON.stringify(p2?.exams?.[0])})`);
+
+    // 11. 続きの案内を出したまま期限を過ぎると、時間切れとして 1 回だけ記録する (案内の間の時計と、案内から新しく始めるとき)
+    const answerOne = async (pg) => {
+      await pg.locator('[data-testid="exam-run"]').waitFor();
+      const id = await currentId(pg);
+      await answerExam(pg, byId.get(id).q, true);
+      await pg.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, id);
+    };
+    await page.goto(`${base}exam/?seed=${EXAM_SEED}`);
+    await page.getByRole('button', { name: '模擬試験を始める' }).click();
+    await answerOne(page);
+    await page.reload();
+    await page.getByTestId('exam-resume').waitFor();
+    await context.clock.fastForward('01:01:00');
+    await page.getByRole('heading', { level: 1, name: /模擬試験の結果/ }).waitFor();
+    const p3 = await stored();
+    check((await statusCode()) === '408' && p3?.exams?.length === 3 && p3.exams[0].timeUp === true && p3.exams[0].correct === 1, `${tag} 続きの案内を出したまま期限が来ると、時間切れ (408) として記録する (${p3?.exams?.length} 回)`);
+    check((await savedRun()) === null, `${tag} 期限で採点した回の保存は消える`);
+    await page.goto(`${base}exam/?seed=${EXAM_SEED}`);
+    await page.getByRole('button', { name: '模擬試験を始める' }).click();
+    await answerOne(page);
+    await page.reload();
+    await page.getByTestId('exam-resume').waitFor();
+    // 時刻だけを進める (案内の時計はまだ鳴らない) → 案内から新しく始める
+    await context.clock.setSystemTime((await page.evaluate(() => Date.now())) + 61 * 60_000);
+    await page.getByRole('button', { name: 'やめて最初から' }).click();
+    await page.locator('[data-testid="exam-run"]').waitFor();
+    const p4 = await stored();
+    check(p4?.exams?.length === 4 && p4.exams[0].timeUp === true && p4.exams[0].correct === 1, `${tag} 期限を過ぎた回は、案内から新しく始める前に時間切れとして 1 回だけ記録する (${p4?.exams?.length} 回)`);
+    check((await page.locator('.lesson-bar__progress').innerText()).includes('1 / 40 問'), `${tag} 期限を過ぎた回のあとも、新しい回は 1 問目から`);
+    await page.getByRole('button', { name: '模擬試験をやめる (記録しません)' }).click();
+    await page.getByRole('button', { name: '模擬試験を始める' }).waitFor();
+
+    // 12. 2 つのタブで同じ回を解いても、記録は 1 回だけで、採点した回の保存は戻らない (PC の幅だけで見る。39 問を解くため)
+    if (!phone) {
+      await page.getByRole('button', { name: '模擬試験を始める' }).click();
+      await answerOne(page);
+      const tabB = await context.newPage();
+      tabB.on('pageerror', (e) => errors.push(e.message));
+      await tabB.goto(`${base}exam/?seed=${EXAM_SEED}`);
+      await tabB.getByTestId('exam-resume').waitFor();
+      await tabB.getByRole('button', { name: '続きから解く' }).click();
+      for (let i = 1; i < TOTAL; i++) await answerOne(tabB);
+      await tabB.getByRole('heading', { level: 1, name: /模擬試験の結果/ }).waitFor();
+      const before = (await stored())?.exams?.length;
+      check(before === 5 && (await savedRun()) === null, `${tag} もう 1 つのタブで続きを終えると 1 回記録し、保存は消える (${before} 回)`);
+      // 元のタブでもう 1 問答えても、採点された回の保存は戻らない
+      await answerOne(page);
+      check((await savedRun()) === null, `${tag} 元のタブで答えても、採点された回の保存は戻らない`);
+      const tabC = await context.newPage();
+      await tabC.goto(`${base}exam/?seed=${EXAM_SEED}`);
+      await tabC.getByRole('button', { name: '模擬試験を始める' }).waitFor();
+      check((await tabC.getByTestId('exam-resume').count()) === 0 && (await stored())?.exams?.length === 5, `${tag} 新しいタブでは続きの案内を出さず、記録は 1 回のまま`);
+      await tabC.close();
+      await tabB.close();
+    }
 
     check(outside.length === 0, `${tag} サイトの外へ何も送らない ${outside.join(' ')}`);
     check(errors.length === 0, `${tag} ページのエラーが無い ${errors.join(' / ')}`);
