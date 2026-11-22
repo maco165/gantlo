@@ -7,6 +7,7 @@ import { gothicTheme } from '@astryxdesign/theme-gothic/built';
 import { lazy, Suspense, useEffect } from 'react';
 import AppSideNav, { AppMobileNav } from './components/AppSideNav';
 import Breadcrumbs from './components/Breadcrumbs';
+import ChunkErrorBoundary from './components/ChunkErrorBoundary';
 import MobileBar from './components/MobileBar';
 import { findLessonMeta } from './content/catalog';
 import { documentTitle, PAGE_TITLES, titleOf } from './lib/pageMeta';
@@ -70,17 +71,19 @@ export default function App() {
           <MobileBar />
           <Breadcrumbs route={route} />
           {/* 画面の JS を読んでいる間は、読み込み中とだけ出す。見出し (h1) は画面と一緒に出す
-              (見出しが出たら画面ができた、と読む人や検査を待たせないため)。key で画面ごとに待ちをやり直す */}
-          <Suspense
-            key={route.name === 'page' ? route.page : route.name}
-            fallback={
-              <div className="page" aria-busy="true">
-                <Text type="supporting">読み込んでいます。</Text>
-              </div>
-            }
-          >
-            {screen}
-          </Suspense>
+              (見出しが出たら画面ができた、と読む人や検査を待たせないため)。key で画面ごとに待ちをやり直す。
+              画面の JS を読めなければ、白紙にせず「読み込めませんでした」と読み直すボタンを出す */}
+          <ChunkErrorBoundary key={route.name === 'page' ? route.page : route.name}>
+            <Suspense
+              fallback={
+                <div className="page" aria-busy="true">
+                  <Text type="supporting">読み込んでいます。</Text>
+                </div>
+              }
+            >
+              {screen}
+            </Suspense>
+          </ChunkErrorBoundary>
         </AppShell>
       </Theme>
     </InternationalizationProvider>

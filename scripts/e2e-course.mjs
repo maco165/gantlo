@@ -7,6 +7,8 @@
 //   3. 全部済ませると 200 で、次のレッスンのボタンは出ず「全部済ませました」と出る
 //   4. メニューのコースに「準備中」が付かず、開いたコースの行が選ばれた印 (aria-current) になる
 //   5. 390 幅で、次のレッスンのボタンと表のレッスンのリンクの押せる範囲が 44px 以上。横にはみ出さない。ページのエラーが無い
+//   7. 画面の JS (レッスンのチャンク) を読めないとき、1 回だけ読み直し、それでも読めなければ白紙にせず
+//      「読み込めませんでした」と読み直すボタンを出す (新しい版を出したあとの開いたままのタブ)
 //   6. JS で描いた画面にもパンくずが出る (コースは ホーム › コース、レッスンは ホーム › コース › レッスン)。ホームのリンクでホームへ戻る
 // E2E_SHOT_DIR を付けると、各幅の途中 (206) のコースの画面の写しをそこに置く
 import { COURSE_ORDER, loadLessons } from './e2e-lessons.mjs';
@@ -152,6 +154,29 @@ export async function runCourse(browser, { base, check, noHorizontalOverflow }) 
     check(doneStates.length === own.length && doneStates.every((s) => s === 'done'), `${all}: 全部の行が済み (${doneStates.join(',')})`);
 
     check(errors.length === 0, `${tag} ページのエラーが無い ${errors.join(' / ')}`);
+    await context.close();
+  }
+
+  // 7. レッスンのチャンクを 404 にして、ホームからレッスンのリンクを押す
+  {
+    const tag = '[チャンクが読めない]';
+    const context = await browser.newContext({ viewport: { width: 1280, height: 860 } });
+    const page = await context.newPage();
+    let blocked = 0;
+    await page.route(/\/assets\/LessonPage-[^/]+\.js$/, (route) => {
+      blocked++;
+      return route.fulfill({ status: 404, body: 'not found' });
+    });
+    await page.goto(base);
+    await page.locator('.net__row a').first().waitFor();
+    await page.locator('.net__row a').first().click();
+    const alert = page.getByRole('alert');
+    await alert.waitFor({ timeout: 15_000 }).catch(() => {});
+    check(await alert.getByRole('heading', { name: '読み込めませんでした' }).isVisible(), `${tag} 白紙にせず「読み込めませんでした」を出す`);
+    check(await alert.getByRole('button', { name: '読み直す' }).isVisible(), `${tag} 読み直すボタンを出す`);
+    check((await page.locator('#root').evaluate((r) => r.childElementCount)) > 0, `${tag} #root が空にならない`);
+    check((await page.evaluate(() => sessionStorage.getItem('gantlo.chunkReloadAt'))) !== null && blocked >= 2, `${tag} 1 回だけ読み直してから受け皿を出す (チャンクを読みに行った回数 ${blocked})`);
+    check((await page.locator('nav.astryx-side-nav').count()) > 0, `${tag} 左のメニューは残る`);
     await context.close();
   }
 }
