@@ -61,6 +61,7 @@ export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 export const clip = (s: string, n = 120) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 // href も escape する (用語集の出典の URL などデータから来る値が属性を閉じないように)
 const a = (href: string, text: string) => `<a href="${esc(href)}">${esc(text)}</a>`;
+const aExternal = (href: string, text: string) => `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(text)}</a>`;
 const back = `<p>${a(homeHref, `${SITE_NAME} のホーム`)}</p>`;
 /** BASE からの相対の道 (ディレクトリの名前に使う) */
 const rel = (href: string) => href.slice(BASE.length);
@@ -169,7 +170,7 @@ export function aboutBody(): string[] {
   return [
     ...ABOUT_LEAD.map((p) => `<p>${esc(p)}</p>`),
     '<h2>ソースコード</h2>',
-    `<p>${esc(ABOUT_SOURCE)} ${a(REPO_URL, 'GitHub のリポジトリ')}</p>`,
+    `<p>${esc(ABOUT_SOURCE)} ${aExternal(REPO_URL, 'GitHub のリポジトリ')}</p>`,
     '<h2>問題の誤りを見つけたら</h2>',
     `<p>${esc(ABOUT_ISSUE)} ${a(NEW_ISSUE_URL, 'Issue を書く')}</p>`,
     '<h2>知っておくこと</h2>',
@@ -213,7 +214,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
       '<h2>画面</h2>',
       `<ul>${(Object.keys(PAGE_TITLES) as PageName[]).map((p) => `<li>${a(pageHref(p), PAGE_TITLES[p])}</li>`).join('')}</ul>`,
       '<p>進み具合はブラウザの localStorage にだけ残り、サーバーには送りません。表示には JavaScript を使います。</p>',
-      `<p><a href="${REPO_URL}">GitHub のリポジトリ</a></p>`,
+      `<p>${aExternal(REPO_URL, 'GitHub のリポジトリ')}</p>`,
     ].join('\n'),
   });
 
