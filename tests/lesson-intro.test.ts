@@ -97,6 +97,9 @@ describe('レッスンの要点', () => {
     const folded = host.querySelector('details[data-testid="lesson-intro-folded"]') as HTMLDetailsElement;
     expect(folded.open).toBe(false);
     expect(folded.textContent).toContain('メソッドを区別できる');
+    // 畳んだ要点の見出しは h2 (レッスン名の h1 のすぐ下。問題文の h2 と同じ段で、h1 → h3 と段を飛ばさない)
+    expect(folded.querySelectorAll('h3, h4, h5, h6')).toHaveLength(0);
+    expect(folded.querySelectorAll('h2').length).toBeGreaterThan(0);
   });
 
   it('復習では要点を出さない (畳んだものも)', async () => {
