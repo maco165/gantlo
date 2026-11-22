@@ -106,13 +106,16 @@ export function IntroGate({ intro, total, onStart }: { intro: Intro; total: numb
   );
 }
 
-/** 問題を解いている間の要点。畳んでおき、開けば読める (済みのレッスンと、始めたあと) */
+/**
+ * 問題を解いている間の要点。畳んでおき、開けば読める (済みのレッスンと、始めたあと)。
+ * 中の見出しは h2 (レッスン名の h1 のすぐ下。後ろの問題文の h2 と同じ段で、段を飛ばさない)
+ */
 export function IntroFolded({ intro }: { intro: Intro }) {
   return (
     <details className="intro-folded" data-testid="lesson-intro-folded">
       <summary>{INTRO_SUMMARY}</summary>
       <div className="intro-folded__body">
-        <IntroBody intro={intro} h="h3" />
+        <IntroBody intro={intro} h="h2" />
       </div>
     </details>
   );

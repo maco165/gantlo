@@ -33,6 +33,10 @@ export async function checkIntroGate(page, lesson, tag, width, { check, noHorizo
   check((await gate.count()) === 0 && (await folded.getAttribute('open')) === null, `${tag} 「問題を始める」で 1 問目が出て、要点は畳まれる`);
   await folded.locator('summary', { hasText: SUMMARY }).click();
   check(await folded.getByText(intro.goals[0]).isVisible(), `${tag} 畳んだ要点は開けば読める`);
+  // 見出しの段を飛ばさない: レッスンの画面の見出しを上から並べ、h1 の次は h2 まで、前の段 +1 を超えない
+  const levels = await page.locator('.lesson').evaluate((el) => [...el.querySelectorAll('h1, h2, h3, h4, h5, h6')].filter((h) => h.offsetParent !== null).map((h) => Number(h.tagName[1])));
+  const jump = levels.findIndex((lv, k) => (k === 0 ? lv !== 1 : lv > levels[k - 1] + 1));
+  check(levels.length > 2 && jump < 0, `${tag} 畳んだ要点を開いても、見出しの段を飛ばさない (h${levels.join(' → h')})`);
   await folded.locator('summary').click();
 }
 
