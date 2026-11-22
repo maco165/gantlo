@@ -306,6 +306,17 @@ export async function runContrast(browser, { base, check }) {
     await page.goto(`${base}about/`);
     await page.locator('h1', { hasText: 'このサイトについて' }).waitFor();
     await measure('このサイトについて', ['このサイトについて', 'GitHub のリポジトリを開く', 'Issue を書く', '記録の置き場所']);
+
+    // 試す画面: 送る前 (外へ送ることの断り・選ぶ所) と、応答 (差し替え) を出したあと
+    await page.route(/^https:\/\/(httpbin\.org|api\.github\.com)\//, (route) =>
+      route.fulfill({ status: 404, headers: { 'access-control-allow-origin': new URL(base).origin, 'content-type': 'application/json' }, body: '{"ok":false}' }),
+    );
+    await page.goto(`${base}try/`);
+    await page.getByTestId('try-notice').waitFor();
+    await measure('試す (送る前)', ['送る (外のサービスへ)', '送り先と道']);
+    await page.getByRole('button', { name: '送る (外のサービスへ)' }).click();
+    await page.getByTestId('try-result').waitFor();
+    await measure('試す (応答)', ['本物の応答']);
     await context.close();
 
     // 模擬試験: 始める前・残り 5 分を切った途中 (残り時間が誤りの色)・時間切れの結果 (408 と未回答の行)。時計を進めるので別の context で開く

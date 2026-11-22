@@ -30,6 +30,7 @@ const Plan = lazy(() => import('./screens/Plan'));
 const ProgressScreen = lazy(() => import('./screens/ProgressScreen'));
 const Review = lazy(() => import('./screens/Review'));
 const Settings = lazy(() => import('./screens/Settings'));
+const Try = lazy(() => import('./screens/Try'));
 
 export default function App() {
   const { route, nav, close } = useRoute();
@@ -49,6 +50,7 @@ export default function App() {
   else if (route.name === 'page' && route.page === 'glossary') screen = <Glossary key={nav} />;
   else if (route.name === 'page' && route.page === 'settings') screen = <Settings key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'about') screen = <About />;
+  else if (route.name === 'page' && route.page === 'try') screen = <Try key={nav} />;
   else if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'course') screen = <CourseScreen key={route.course} course={route.course} progress={progress} />;
   else if (route.name === 'lesson') {

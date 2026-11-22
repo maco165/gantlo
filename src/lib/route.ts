@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 
 // 経路は # の無い URL (/gantlo/plan/ など) で、History API で切り替える。
 // 検索エンジンは # の後ろを別のページとして扱わないため。
-export type PageName = 'plan' | 'review' | 'exam' | 'progress' | 'glossary' | 'settings' | 'about';
+export type PageName = 'plan' | 'review' | 'exam' | 'progress' | 'glossary' | 'settings' | 'about' | 'try';
 export type CourseId = 'main' | 'spring' | 'tech-history' | 'mgmt-history' | 'security';
 export type Route =
   | { name: 'home' }
@@ -15,7 +15,7 @@ export type Route =
 /** サイトの置き場所 (vite の base。/gantlo/) */
 export const BASE = import.meta.env.BASE_URL;
 
-const PAGES: readonly PageName[] = ['plan', 'review', 'exam', 'progress', 'glossary', 'settings', 'about'];
+const PAGES: readonly PageName[] = ['plan', 'review', 'exam', 'progress', 'glossary', 'settings', 'about', 'try'];
 export const COURSES: readonly { id: CourseId; title: string }[] = [
   { id: 'main', title: '本編 4 週' },
   { id: 'spring', title: 'Spring Boot の流れ' },
@@ -104,7 +104,8 @@ export function useRoute(): { route: Route; nav: number; close: number } {
       if (!a) return;
       e.preventDefault();
       const url = new URL(a.href, window.location.href);
-      if (url.pathname !== window.location.pathname) window.history.pushState(null, '', url.pathname);
+      // 道と ? の後ろ (試す画面の ?preset= など) を残す。# は残さない
+      if (url.pathname + url.search !== window.location.pathname + window.location.search) window.history.pushState(null, '', url.pathname + url.search);
       go(url.pathname);
       scrollToTop();
     };

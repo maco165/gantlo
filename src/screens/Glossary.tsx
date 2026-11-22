@@ -7,7 +7,8 @@ import StatusLine from '../components/StatusLine';
 import { SORTED, TERMS } from '../content/glossary';
 import { findLessonMeta as findLesson } from '../content/catalog';
 import { searchTerms, STANDARD_COUNT, type GlossaryTerm } from '../lib/glossary';
-import { COURSES, lessonHref } from '../lib/route';
+import { COURSES, lessonHref, pageHref } from '../lib/route';
+import { PRESETS } from '../lib/tryApi';
 import { glossaryStatus } from '../lib/status';
 
 const courseTitle = (id: string) => COURSES.find((c) => c.id === id)?.title ?? id;
@@ -43,6 +44,11 @@ function Entry({ t }: { t: GlossaryTerm }) {
               <Link href={lessonHref(l.id)}>{`${courseTitle(l.course)} ${l.title}`}</Link>
             </Joined>
           ))}
+        </p>
+      )}
+      {Object.hasOwn(PRESETS, t.id) && (
+        <p className="gloss__meta tap-links">
+          <Link href={`${pageHref('try')}?preset=${encodeURIComponent(t.id)}`}>{`試す: ${t.term} を本物の API で`}</Link>
         </p>
       )}
       <p className="gloss__meta tap-links">
