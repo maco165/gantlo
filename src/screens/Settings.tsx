@@ -6,7 +6,8 @@ import { Text } from '@astryxdesign/core/Text';
 import { useState } from 'react';
 import StatusLine from '../components/StatusLine';
 import { clearExamRun } from '../lib/examSave';
-import { downloadProgress } from '../lib/download';
+import { downloadBlob, downloadProgress } from '../lib/download';
+import { WEEKDAY_LABELS, icsFileName, isTime, studyPlanIcs } from '../lib/ics';
 import {
   GOAL_CHOICES,
   MAX_IMPORT_BYTES,
@@ -19,7 +20,7 @@ import {
   setProfile,
   type Progress,
 } from '../lib/progress';
-import { IMPORT_DONE, IMPORT_INVALID, IMPORT_TOO_LARGE, RESET_DONE, SAVE_FAILED, goalSaved, type Status } from '../lib/status';
+import { ICS_DONE, ICS_INVALID, IMPORT_DONE, IMPORT_INVALID, IMPORT_TOO_LARGE, RESET_DONE, SAVE_FAILED, goalSaved, type Status } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
 type Props = { progress: Progress; updateProgress: (fn: (p: Progress) => Progress) => void };
@@ -37,6 +38,18 @@ export default function Settings({ progress, updateProgress }: Props) {
   const [loaded, setLoaded] = useState<Progress | null>(null);
   const [outcome, setOutcome] = useState<Outcome | null>(null);
   const [confirmReset, setConfirmReset] = useState(false);
+  // 学ぶ予定の .ics (記録には残さない。書き出すたびに選ぶ)
+  const [icsTime, setIcsTime] = useState('20:00');
+  const [icsDays, setIcsDays] = useState<number[]>([0, 1, 2, 3, 4, 5, 6]);
+  const toggleDay = (d: number) => setIcsDays((ds) => (ds.includes(d) ? ds.filter((x) => x !== d) : [...ds, d].sort()));
+  const exportIcs = () => {
+    if (!isTime(icsTime) || icsDays.length === 0) {
+      setOutcome({ status: ICS_INVALID, request: 'GET /me/calendar.ics' });
+      return;
+    }
+    downloadBlob(new Blob([studyPlanIcs({ time: icsTime, days: icsDays, now: new Date() })], { type: 'text/calendar' }), icsFileName);
+    setOutcome({ status: ICS_DONE, request: 'GET /me/calendar.ics' });
+  };
   const width = isWide ? undefined : '100%';
   const size = isWide ? 'md' : 'lg';
 
@@ -101,6 +114,31 @@ export default function Settings({ progress, updateProgress }: Props) {
           ))}
         </SegmentedControl>
         <Text type="supporting">ホームの X-Today-XP に、今日の XP と目標が出ます。1 問正解で 3 XP、実習で 10 XP です。</Text>
+      </section>
+
+      <section className="settings__section" aria-labelledby="settings-ics">
+        <h2 id="settings-ics" className="settings__title">
+          学ぶ予定をカレンダーに入れる
+        </h2>
+        <p className="plan__field">
+          <label htmlFor="settings-ics-time">時刻</label>
+          <input id="settings-ics-time" type="time" value={icsTime} onChange={(e) => setIcsTime(e.target.value)} />
+        </p>
+        <fieldset className="settings__days">
+          <legend>曜日 (全部なら毎日)</legend>
+          {[1, 2, 3, 4, 5, 6, 0].map((d) => (
+            <label key={d} className="settings__day">
+              <input type="checkbox" checked={icsDays.includes(d)} onChange={() => toggleDay(d)} />
+              {WEEKDAY_LABELS[d]}
+            </label>
+          ))}
+        </fieldset>
+        <p className="settings__row">
+          <Button label="GET 予定を書き出す (.ics)" onClick={exportIcs} width={width} size={size} />
+        </p>
+        <Text type="supporting">
+          選んだ時刻と曜日に 15 分の予定を繰り返す .ics のファイルを作ります。時刻はこの端末の時刻帯で書きます。中身はサイトの URL と短い文だけで、記録は入れません。
+        </Text>
       </section>
 
       <section className="settings__section" aria-labelledby="settings-records">

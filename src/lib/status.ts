@@ -94,6 +94,12 @@ export function goalSaved(xp: number): Status {
   return { code: 200, reason: 'OK', ja: `1 日の目標を ${xp} XP にしました` };
 }
 
+/** 学ぶ予定の .ics を作った (GET /me/calendar.ics) */
+export const ICS_DONE: Status = { code: 200, reason: 'OK', ja: '学ぶ予定のファイル (.ics) を作りました。カレンダーのアプリで開くと予定に入ります' };
+
+/** .ics の曜日が 1 つも選ばれていない・時刻の形が違う。作らない */
+export const ICS_INVALID: Status = { code: 422, reason: 'Unprocessable Content', ja: '曜日を 1 つ以上選び、時刻を入れてください' };
+
 /** 記録を読み込んで置き換えた (PUT /me) */
 export const IMPORT_DONE: Status = { code: 200, reason: 'OK', ja: '読み込んだ記録に置き換えました' };
 

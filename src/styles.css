@@ -585,6 +585,35 @@ code {
   width: 5.5rem;
 }
 
+/* 設定: 学ぶ予定 (.ics) の曜日。押せる高さはボタンと同じ (狭い画面では 44px) */
+.settings__days {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-3);
+}
+.settings__days legend {
+  padding: 0;
+  margin-bottom: var(--spacing-1);
+  color: var(--color-text-secondary);
+}
+.settings__day {
+  min-height: var(--size-element-lg);
+  min-width: var(--size-element-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  cursor: pointer;
+}
+.settings__day input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+
 /* 計画のガントチャート (横の軸はレッスンの数) */
 .gantt__rows {
   list-style: none;
