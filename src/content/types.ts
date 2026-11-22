@@ -2,7 +2,7 @@
 // 欄の意味と例は docs/content-format.md にある。
 import type { CourseId } from '../lib/route';
 
-/** 穴埋めの空欄の中身の種類。header-name と media-type は大文字と小文字を区別せずに採点する */
+/** 穴埋めの空欄の中身の種類。header-name と media-type は大文字と小文字を区別せずに採点する (header-name は認証の方式の名前など、規格が大文字と小文字を区別しない語にも使う) */
 export type BlankMatch = 'text' | 'header-name' | 'media-type';
 
 /** 空欄 1 つぶんの正解 */

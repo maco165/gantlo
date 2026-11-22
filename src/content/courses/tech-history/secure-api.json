@@ -255,14 +255,15 @@
               ]
             },
             {
-              "answers": ["Bearer", "bearer"],
+              "answers": ["Bearer"],
+              "match": "header-name",
               "wrong": [
                 { "answer": "Basic", "why": "Basic は、利用者の ID とパスワードで認証する方式です (RFC 7617)。アクセストークンを送る方式ではありません。" },
                 { "answer": "Token", "why": "RFC 6750 の方式の名前は Token ではありません。資格情報の書き方は、決まった方式の名前と空白とトークンです。" }
               ]
             }
           ],
-          "explanation": "RFC 6750 の第 2.1 節は、Authorization のヘッダーで Bearer の認証の方式を使ってアクセストークンを送る、と書き、この例を載せています。認証の方式の名前は大文字と小文字を区別しない token なので (RFC 9110 の 11.1)、bearer と書いても同じです。パスワードそのものではなく、権限を絞ったトークンを渡すのが OAuth の答えです。",
+          "explanation": "RFC 6750 の第 2.1 節は、Authorization のヘッダーで Bearer の認証の方式を使ってアクセストークンを送る、と書き、この例を載せています。認証の方式の名前は大文字と小文字を区別しない token なので (RFC 9110 の 11.1)、bearer や BEARER と書いても同じです。パスワードそのものではなく、権限を絞ったトークンを渡すのが OAuth の答えです。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc6750#section-2.1",
             "https://www.rfc-editor.org/rfc/rfc9110#section-11.1"
