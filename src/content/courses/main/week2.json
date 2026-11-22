@@ -205,9 +205,10 @@
             { "id": "d", "text": "192.0.2.1", "why": "これはレコードの中身 (RDATA) で、引いたアドレスそのものです。" }
           ],
           "answer": "a",
-          "explanation": "dig の答えの行は、名前・TTL・クラス・種類・中身の順に並びます。レコードの欄は RFC 1035 の 4.1.3 にあり、TTL はキャッシュしてよい秒数です。キャッシュを持つリゾルバに問い合わせると、残りの秒数が減って見えることがあります。",
+          "explanation": "dig の答えの行は、名前・TTL・クラス・種類・中身の順に並びます (RFC 1035 5.1 のマスターファイルの書き方と同じ並び)。各欄の意味は RFC 1035 の 4.1.3 にあり、TTL はキャッシュしてよい秒数です。キャッシュを持つリゾルバに問い合わせると、残りの秒数が減って見えることがあります。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc1035#section-4.1.3",
+            "https://www.rfc-editor.org/rfc/rfc1035#section-5.1",
             "https://www.rfc-editor.org/rfc/rfc1035#section-3.2.4"
           ]
         },
@@ -612,10 +613,11 @@
             { "text": "各行の 2 つ目の欄 (TTL) を見て、少し待ってからもう一度打ち、値を比べる" }
           ],
           "expected": "example.com. のあとに TTL、IN、A (または AAAA)、アドレスが並んだ行が出ます。アドレスと TTL の値は時期と使うリゾルバによって違います。キャッシュを持つリゾルバに問い合わせると、2 回目は TTL が減って見えることがあります。",
-          "explanation": "+noall で表示をいったん全部消し、+answer で答えのセクションだけを出しています (dig の説明)。行の欄の並びは RFC 1035 の 4.1.3 のレコードの形 (名前・種類・クラス・TTL・中身) に対応します。",
+          "explanation": "+noall で表示をいったん全部消し、+answer で答えのセクションだけを出しています (dig の説明)。行の欄は、名前・TTL・クラス・種類・中身の順に並びます。これは RFC 1035 5.1 のマスターファイルの書き方の並びで、DNS のメッセージの中の形 (4.1.3) では名前・種類・クラス・TTL・長さ・中身の順です。",
           "sources": [
             "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility",
-            "https://www.rfc-editor.org/rfc/rfc1035#section-4.1.3"
+            "https://www.rfc-editor.org/rfc/rfc1035#section-4.1.3",
+            "https://www.rfc-editor.org/rfc/rfc1035#section-5.1"
           ]
         },
         {
