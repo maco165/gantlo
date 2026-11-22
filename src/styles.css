@@ -1223,3 +1223,67 @@ code {
   margin: 0;
   padding-left: 1.25rem;
 }
+
+/* ハンドブック (screens/Handbook.tsx)。本文は読みやすい幅に収め、コードの枠は横にはみ出さず折り返す */
+.hb {
+  max-width: 48rem;
+}
+.hb-list,
+.hb-links {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.hb-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.hb-card__title {
+  margin: 0;
+  font-size: var(--text-heading-4-size);
+  font-weight: var(--text-heading-4-weight);
+}
+.hb-toc {
+  padding: var(--spacing-3) var(--spacing-4);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+}
+.hb-toc__title {
+  margin: 0 0 var(--spacing-1);
+  font-size: var(--text-heading-5-size, 1rem);
+  font-weight: 600;
+}
+.hb-toc ol {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+.hb-toc a {
+  display: inline-block;
+  min-height: 44px;
+  line-height: 44px;
+  color: var(--color-text-primary);
+}
+.hb-section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+  scroll-margin-top: 4rem;
+}
+.hb-section__title {
+  margin: 0;
+  font-size: var(--text-heading-4-size);
+  font-weight: var(--text-heading-4-weight);
+}
+.hb-section__text {
+  margin: 0;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.hb-section__sources {
+  margin: 0;
+}

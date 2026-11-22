@@ -3,12 +3,14 @@
 // 使い方: node scripts/check-content.mjs [ファイル ...]   (省略すると src/content/courses/*/*.json の全部)
 // 置き場所の決まりは courses/ の下のファイルにだけ当てる。環境変数 GANTLO_COURSES_DIR で courses/ の場所を差し替えられる (検査のテスト用)。
 // 通れば "OK <ファイル>" を出して終了コード 0。1 つでも違えば "NG <ファイル> <id>: <理由>" を出して終了コード 1。
+// ファイルを指定しないときは、ハンドブック (src/content/handbook/) も検査する (checkHandbook。GANTLO_HANDBOOK_DIR で場所を差し替えられる)。
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { basename, dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const COURSES_DIR = resolve(process.env.GANTLO_COURSES_DIR || join(ROOT, 'src/content/courses'));
+const HANDBOOK_DIR = resolve(process.env.GANTLO_HANDBOOK_DIR || join(ROOT, 'src/content/handbook'));
 const BLANK = '{{blank}}';
 const KINDS = ['command', 'http', 'order', 'choice', 'lab'];
 const TOOLS = ['curl', 'dig', 'openssl'];
@@ -35,6 +37,10 @@ const FIELDS = {
   option: ['id', 'text', 'why'],
   step: ['text', 'command'],
   code: ['format', 'text'],
+  handbookTopic: ['id', 'standard', 'title', 'summary', 'lessons', 'terms'],
+  handbookSection: ['heading', 'text', 'code', 'output', 'note', 'sources'],
+  handbookCode: ['language', 'text'],
+  handbookSource: ['label', 'url'],
 };
 
 /**
@@ -231,6 +237,119 @@ export function checkFiles(files, { stages, courseIds }) {
   return { ok: !failed, lines };
 }
 
+/**
+ * ハンドブックの検査。目録 (<dir>/topics.json) と項目ごとの本文 (<dir>/sections/<id>.json) を見る。
+ * 目録の項目には本文のファイルが要り、本文のファイルには目録の項目が要る。どの節にも https の出典が 1 つ以上要る。
+ * 扱う規格・関係するレッスン・用語は、用語集とレッスンに実在する id に限る (両向きのリンクが壊れないように)
+ */
+export function checkHandbook(dir, { lessonIds, termIds, standardIds }) {
+  const lines = [];
+  let failed = false;
+  const topicsFile = join(dir, 'topics.json');
+  const sectionsDir = join(dir, 'sections');
+  const name = relative(ROOT, topicsFile);
+  const errors = [];
+  const ng = (file, id, reason) => errors.push(`NG ${file} ${id}: ${reason}`);
+  const onlyFields = (obj, allowed, file, id, prefix = '') => {
+    if (obj && typeof obj === 'object' && !Array.isArray(obj)) for (const k of Object.keys(obj)) if (!allowed.includes(k)) ng(file, id, `知らない欄 ${prefix}${k}`);
+  };
+  let topics = [];
+  try {
+    const data = JSON.parse(readFileSync(topicsFile, 'utf8'));
+    onlyFields(data, ['topics'], name, '-');
+    if (!Array.isArray(data?.topics) || data.topics.length === 0) ng(name, '-', 'topics (項目の配列) がありません');
+    else topics = data.topics;
+  } catch (e) {
+    ng(name, '-', `読めません (${e.message})`);
+  }
+  const sectionFiles = existsSync(sectionsDir) ? readdirSync(sectionsDir).filter((f) => f.endsWith('.json')) : [];
+  const seen = new Set();
+  for (const [i, t] of topics.entries()) {
+    const id = isNonEmptyString(t?.id) ? t.id : `topics[${i}]`;
+    onlyFields(t, FIELDS.handbookTopic, name, id);
+    if (!isNonEmptyString(t?.id) || !ID_PATTERN.test(t.id)) ng(name, id, 'id は英小文字・数字・- にします');
+    else if (seen.has(t.id)) ng(name, id, 'id が重なっています');
+    seen.add(t?.id);
+    if (!isNonEmptyString(t?.title)) ng(name, id, 'title がありません');
+    else if (t.title.length > LESSON_TAB_TITLE_MAX) ng(name, id, `title は ${LESSON_TAB_TITLE_MAX} 字までにします (<title> を 35 字に収めるため)`);
+    if (!isNonEmptyString(t?.summary)) ng(name, id, 'summary がありません');
+    if (!standardIds.includes(t?.standard)) ng(name, id, `standard (${t?.standard}) が用語集の規格の語にありません`);
+    if (!Array.isArray(t?.lessons)) ng(name, id, 'lessons (配列) がありません');
+    else for (const l of t.lessons) if (!lessonIds.includes(l)) ng(name, id, `lessons の ${l} が問題データにありません`);
+    if (!Array.isArray(t?.terms) || t.terms.length === 0) ng(name, id, 'terms (用語集の語の id) がありません');
+    else {
+      for (const term of t.terms) if (!termIds.includes(term)) ng(name, id, `terms の ${term} が用語集にありません`);
+      if (new Set(t.terms).size !== t.terms.length) ng(name, id, 'terms に同じ語が重なっています');
+    }
+    if (Array.isArray(t?.lessons) && new Set(t.lessons).size !== t.lessons.length) ng(name, id, 'lessons に同じレッスンが重なっています');
+
+    const file = join(sectionsDir, `${t?.id}.json`);
+    const fname = relative(ROOT, file);
+    if (!existsSync(file)) {
+      ng(fname, id, '本文のファイルがありません');
+      continue;
+    }
+    let sections;
+    try {
+      const data = JSON.parse(readFileSync(file, 'utf8'));
+      onlyFields(data, ['sections'], fname, id);
+      sections = data?.sections;
+    } catch (e) {
+      ng(fname, id, `読めません (${e.message})`);
+      continue;
+    }
+    if (!Array.isArray(sections) || sections.length === 0) {
+      ng(fname, id, 'sections (節の配列) がありません');
+      continue;
+    }
+    // 見出し・段落は画面の key と目次に使うので、項目の中で重ねない
+    const headings = sections.map((s) => s?.heading);
+    if (new Set(headings).size !== headings.length) ng(fname, id, '節の見出しが重なっています');
+    for (const [si, s] of sections.entries()) {
+      const sid = `${id} sections[${si}]`;
+      if (Array.isArray(s?.text) && new Set(s.text).size !== s.text.length) ng(fname, sid, '同じ段落が重なっています');
+      const urls = Array.isArray(s?.sources) ? s.sources.map((x) => x?.url) : [];
+      if (new Set(urls).size !== urls.length) ng(fname, sid, 'sources に同じ URL が重なっています');
+      onlyFields(s, FIELDS.handbookSection, fname, sid);
+      if (!isNonEmptyString(s?.heading)) ng(fname, sid, 'heading がありません');
+      if (!Array.isArray(s?.text) || s.text.length === 0 || !s.text.every(isNonEmptyString)) ng(fname, sid, 'text (段落の配列) がありません');
+      if (s?.code !== undefined) {
+        onlyFields(s.code, FIELDS.handbookCode, fname, sid, 'code.');
+        if (!isNonEmptyString(s.code?.language) || !isNonEmptyString(s.code?.text)) ng(fname, sid, 'code は language と text を持ちます');
+      }
+      if (s?.output !== undefined && (!isNonEmptyString(s.output) || s.code === undefined)) ng(fname, sid, 'output は code のある節に、空でない文字列で書きます');
+      if (s?.note !== undefined && !isNonEmptyString(s.note)) ng(fname, sid, 'note が空です');
+      if (!Array.isArray(s?.sources) || s.sources.length === 0) ng(fname, sid, 'sources (出典) がありません');
+      for (const [ri, src] of (Array.isArray(s?.sources) ? s.sources : []).entries()) {
+        onlyFields(src, FIELDS.handbookSource, fname, sid, `sources[${ri}].`);
+        if (!isNonEmptyString(src?.label)) ng(fname, sid, `sources[${ri}] に label がありません`);
+        if (!isHttpsUrl(src?.url)) ng(fname, sid, `sources[${ri}] の url が https の URL ではありません`);
+        // 書き出す HTML の属性に入るので空白・" < > を入れない。RFC は節まで指す (用語集の検査 src/lib/glossary.ts と同じ決まり)
+        else if (/[\s"<>]/.test(src.url)) ng(fname, sid, `sources[${ri}] の url に空白・" < > を入れません`);
+        else if (new URL(src.url).hostname === 'www.rfc-editor.org' && !/^https:\/\/www\.rfc-editor\.org\/rfc\/rfc\d+#section-\d+(?:\.\d+)*$/.test(src.url)) ng(fname, sid, `sources[${ri}] の RFC は節まで指します (${src.url})`);
+      }
+    }
+    lines.push(`OK ${fname}`);
+  }
+  for (const f of sectionFiles) if (!seen.has(basename(f, '.json'))) ng(relative(ROOT, join(sectionsDir, f)), basename(f, '.json'), '目録 (topics.json) にない項目の本文です');
+  if (errors.length) {
+    failed = true;
+    return { ok: false, lines: errors };
+  }
+  return { ok: !failed, lines: [`OK ${name}`, ...lines] };
+}
+
+/** 問題データのファイルから、レッスンの id を集める (読めないファイルは飛ばす。そのファイルは checkFiles が NG にする) */
+function lessonIdsOf(files) {
+  return files.flatMap((f) => {
+    try {
+      return JSON.parse(readFileSync(f, 'utf8')).lessons.map((l) => l.id);
+    } catch {
+      return [];
+    }
+  });
+}
+
 function defaultFiles() {
   if (!existsSync(COURSES_DIR)) return [];
   return readdirSync(COURSES_DIR, { withFileTypes: true })
@@ -255,5 +374,16 @@ if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) 
     courseIds: readIds('src/lib/route.ts', 'COURSES'),
   });
   for (const line of lines) console.log(line);
-  process.exit(ok ? 0 : 1);
+  let handbookOk = true;
+  if (args.length === 0) {
+    const glossary = JSON.parse(readFileSync(join(ROOT, 'src/content/glossary.json'), 'utf8')).terms;
+    const hb = checkHandbook(HANDBOOK_DIR, {
+      lessonIds: lessonIdsOf(files),
+      termIds: glossary.map((t) => t.id),
+      standardIds: glossary.filter((t) => t.standard !== undefined).map((t) => t.id),
+    });
+    for (const line of hb.lines) console.log(line);
+    handbookOk = hb.ok;
+  }
+  process.exit(ok && handbookOk ? 0 : 1);
 }

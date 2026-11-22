@@ -115,6 +115,9 @@ export function glossaryStatus(hits: number, query: string): Status {
   return { code: 204, reason: 'No Content', ja: '見つかりませんでした。英語・略語・別の言い方でも探せます' };
 }
 
+/** ハンドブックの一覧と項目 (GET /handbook) */
+export const HANDBOOK_OK: Status = { code: 200, reason: 'OK', ja: '規格の流れを実例で説明します' };
+
 /** このサイトについて (GET /about) */
 export const ABOUT_OK: Status = { code: 200, reason: 'OK', ja: 'このサイトの説明です' };
 

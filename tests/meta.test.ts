@@ -13,6 +13,7 @@ import { LESSON_LIST_HEADING } from '../src/lib/courses';
 import { SITE_NAME, SITE_TAGLINE } from '../src/lib/site';
 import { renderPage, sitemapXml } from '../src/prerender/html';
 import { SORTED } from '../src/content/glossary';
+import { HANDBOOK } from '../src/content/handbook-all';
 import { NOT_FOUND_PAGE, ORIGIN, sitePages, type SitePage } from '../src/prerender/pages';
 
 /** 検索に載せない、一人ひとりの記録の画面 (R-7 の「全ページ」は検索に載せる全ページと読む) */
@@ -86,7 +87,7 @@ describe('iOS のホーム画面の画像 (apple-touch-icon)', { timeout: 30_000
 
 describe('書き出すページの一覧', () => {
   it('ホーム・メニューの画面・全コース・全レッスンがそろう', () => {
-    const expected = ['', ...Object.keys(PAGE_TITLES).map((p) => `${p}/`), ...COURSES.map((c) => `course/${c.id}/`), ...LESSONS.map((l) => `lesson/${l.id}/`)];
+    const expected = ['', ...Object.keys(PAGE_TITLES).map((p) => `${p}/`), 'handbook/', ...HANDBOOK.map((t) => `handbook/${t.id}/`), ...COURSES.map((c) => `course/${c.id}/`), ...LESSONS.map((l) => `lesson/${l.id}/`)];
     expect(pages.map((p) => p.path).sort()).toEqual([...expected].sort());
   });
 });
@@ -455,11 +456,28 @@ describe('JS なしの HTML のページどうしのリンク', () => {
       inner(doc.querySelector('#root')!)
         .filter((h) => {
           const [p, hash] = h.split('#');
-          return !paths.has(p) || (p === 'glossary/' && hash !== undefined && !termIds.has(hash));
+          if (!paths.has(p)) return true;
+          if (hash === undefined) return false;
+          // # はそのページにある id を指す (用語集の語・ハンドブックの節)
+          const target = docs.find((d) => d.page.path === p)!.doc;
+          return p === 'glossary/' ? !termIds.has(hash) : !target.getElementById(hash);
         })
         .map((h) => `${page.path} → ${h}`),
     );
     expect(broken).toEqual([]);
+  });
+  it('ハンドブックの項目は、用語集の語とレッスンに両向きにつながる (項目 → 語・レッスン、語・レッスン → 項目)', () => {
+    expect(HANDBOOK.length).toBeGreaterThan(0);
+    const docOfPath = (path: string) => docs.find(({ page }) => page.path === path)!.doc;
+    for (const t of HANDBOOK) {
+      const path = `handbook/${t.id}/`;
+      const root = docOfPath(path).querySelector('#root')!;
+      expect(inner(root, 'glossary/').filter((h) => h.startsWith('glossary/#term-')).sort(), t.id).toEqual(t.terms.map((id) => `glossary/#term-${id}`).sort());
+      expect(inner(root, 'lesson/').sort(), t.id).toEqual(t.lessons.map((id) => `lesson/${id}/`).sort());
+      const dd = (id: string) => glossary.getElementById(`term-${id}`)!.nextElementSibling!;
+      expect(t.terms.filter((id) => !inner(dd(id), 'handbook/').includes(path)), `${t.id} 用語集 → 項目`).toEqual([]);
+      expect(t.lessons.filter((id) => !inner(docOfPath(`lesson/${id}/`).querySelector('#root')!, 'handbook/').includes(path)), `${t.id} レッスン → 項目`).toEqual([]);
+    }
   });
   it('用語集の語とレッスンは両向きにつながる (語 → 出てくるレッスン、レッスン → 出てくる用語)', () => {
     const pairs = [...glossary.querySelectorAll('dt[id]')].flatMap((dt) => inner(dt.nextElementSibling!, 'lesson/').map((l) => [dt.id, l] as const));

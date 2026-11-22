@@ -270,6 +270,15 @@ try {
   await shoot('progress-phone', phone, 'progress/', (page) => page.locator('.prog__table tbody tr').first().waitFor());
   await shoot('glossary-phone', phone, 'glossary/', (page) => page.locator('article.gloss').first().waitFor());
   await shoot('about-phone', phone, 'about/');
+  await shoot('handbook-phone', phone, 'handbook/', (page) => page.locator('.hb-card').first().waitFor());
+  await shoot('handbook-http-phone', phone, 'handbook/http/', async (page) => {
+    // 最初の節の試すコマンドと出力の例が見える位置まで送る
+    await page.locator('#s1').waitFor();
+    await page.evaluate(() => {
+      document.getElementById('s1').scrollIntoView({ block: 'start' });
+      document.getElementById('astryx-app-shell-main')?.scrollBy(0, -(document.querySelector('.mobile-bar')?.getBoundingClientRect().height ?? 0) - 16);
+    });
+  });
   await shoot('menu-phone', phone, '', async (page) => {
     await page.getByRole('button', { name: 'メニューを開く' }).click();
     await page.waitForTimeout(500);
