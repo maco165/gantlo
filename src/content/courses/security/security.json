@@ -108,8 +108,11 @@
           "code": "printf 'hello' | openssl dgst {{blank}}",
           "blanks": [
             {
-              "answers": [
-                "-sha256"
+              "answers": ["-sha256"],
+              "wrong": [
+                { "answer": "-md5", "why": "-md5 は MD5 という別のハッシュ関数を選びます。手元では 16 進で 32 文字の短いダイジェストが出て、SHA-256 の値にはなりません。" },
+                { "answer": "-sha1", "why": "-sha1 は SHA-1 を選びます。SHA-1 のダイジェストは 160 ビット (16 進で 40 文字) で、SHA-256 とは別の関数です (FIPS 180-4 の 1 章の表)。" },
+                { "answer": "sha256", "why": "先頭の - が無いと、オプションではなく、ハッシュするファイルの名前として読まれます。手元では「No such file or directory」で失敗します。" }
               ]
             }
           ],
@@ -493,8 +496,11 @@
           "code": "openssl verify {{blank}} ca.crt server.crt",
           "blanks": [
             {
-              "answers": [
-                "-CAfile"
+              "answers": ["-CAfile"],
+              "wrong": [
+                { "answer": "-untrusted", "why": "-untrusted は、鎖を組むのに使う信頼しない証明書 (ふつうは中間の CA) を渡すオプションです。信頼の起点にならないので、手元では self-signed certificate in certificate chain で失敗します。" },
+                { "answer": "-CApath", "why": "-CApath は、信頼する証明書を集めたディレクトリを渡すオプションです。ファイルを渡すと、手元では「Not a directory」で止まります。" },
+                { "answer": "--cacert", "why": "--cacert は curl で検証用の CA の証明書を渡すオプションです。openssl verify には無く、Unknown option になります。" }
               ]
             }
           ],
@@ -727,14 +733,18 @@
           "code": "POST /transfer HTTP/1.1\nHost: localhost:8080\n{{blank}}: SESSION=4f1c9e2a\nContent-Type: application/x-www-form-urlencoded\n\namount=1000&to=savings&{{blank}}=9b0e7c41-6d2f",
           "blanks": [
             {
-              "answers": [
-                "Cookie"
-              ],
-              "match": "header-name"
+              "answers": ["Cookie"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "Set-Cookie", "why": "Set-Cookie は、サーバーが応答で値を保存させる見出しです。保存した値を要求で送り返すのは、別の見出しです (RFC 6265 4.1 と 4.2)。" },
+                { "answer": "Origin", "why": "Origin は、要求を出したページの出どころを示す見出しです。OWASP は、この値が宛先と合うかを確かめる対策を挙げており、判別の材料になる側です。" }
+              ]
             },
             {
-              "answers": [
-                "_csrf"
+              "answers": ["_csrf"],
+              "wrong": [
+                { "answer": "X-CSRF-TOKEN", "why": "X-CSRF-TOKEN は、Spring Security がトークンを読む見出し (ヘッダー) の名前です。本文の引数の名前は別にあります。" },
+                { "answer": "XSRF-TOKEN", "why": "XSRF-TOKEN は、CookieCsrfTokenRepository がトークンを書き込む先の名前です。要求の引数として読む名前ではありません。" }
               ]
             }
           ],
@@ -1183,8 +1193,11 @@
           "code": "openssl req {{blank}} -newkey ec -pkeyopt ec_paramgen_curve:P-256 -noenc -keyout ca.key -out ca.crt -days 30 -subj \"/CN=My Lab CA\"",
           "blanks": [
             {
-              "answers": [
-                "-x509"
+              "answers": ["-x509"],
+              "wrong": [
+                { "answer": "-new", "why": "-new は、新しい署名要求 (CSR) を作るオプションです。手元では -days を無視するという警告が出て、証明書ではなく CSR ができます。" },
+                { "answer": "-CA", "why": "-CA は、すでにある CA の証明書を渡し、その鍵で新しい証明書に署名させるオプションです。これから作る CA そのものの証明書には使えません。" },
+                { "answer": "-verify", "why": "-verify は、署名要求の自己署名を確かめるオプションです。出てくるのは CSR のままです。" }
               ]
             }
           ],
@@ -1284,8 +1297,11 @@
           "code": "openssl s_client -connect 127.0.0.1:8443 -servername localhost {{blank}} ca.crt",
           "blanks": [
             {
-              "answers": [
-                "-CAfile"
+              "answers": ["-CAfile"],
+              "wrong": [
+                { "answer": "-cert", "why": "-cert は、サーバーに求められたときに見せる、クライアントの証明書を渡すオプションです。手元では鍵が無いと言われて止まります。" },
+                { "answer": "-chainCAfile", "why": "-chainCAfile は、クライアントの証明書の鎖を組むための証明書を渡すオプションです。サーバーの証明書の検証には使われず、手元では Verify return code: 21 (unable to verify the first certificate) で終わります。" },
+                { "answer": "--cacert", "why": "--cacert は curl で検証用の CA の証明書を渡すオプションです。openssl s_client には無く、Unknown option になります。" }
               ]
             }
           ],

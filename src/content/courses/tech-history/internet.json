@@ -122,7 +122,16 @@
           "tool": "dig",
           "prompt": "今: DNS で example.com の IP アドレスだけを短く出したい。答えだけを出す dig のオプションを埋めてください。",
           "code": "dig {{blank}} example.com A",
-          "blanks": [{ "answers": ["+short"] }],
+          "blanks": [
+            {
+              "answers": ["+short"],
+              "wrong": [
+                { "answer": "+answer", "why": "+answer は答えの節 (ANSWER SECTION) を出すかどうかの切り替えで、既定で出す設定です。付けても出力は詳しいままです。" },
+                { "answer": "+noall", "why": "+noall は表示の設定をすべて消すので、これだけでは答えの行も出ません。" },
+                { "answer": "--short", "why": "dig の問い合わせのオプションは + で始まります。--short は手元の dig 9.20 で Invalid option になります。" }
+              ]
+            }
+          ],
           "explanation": "+short は詳しい出力の代わりに答えだけを短く出します (BIND 9 の dig のマニュアル)。昔の 1 つの表の代わりに、今は分散した DNS に問い合わせて名前からアドレスを引いています。",
           "sources": ["https://bind9.readthedocs.io/en/latest/manpages.html"]
         },
@@ -226,7 +235,16 @@
           "tool": "curl",
           "prompt": "古い HTTP/1.0 で要求を送って、違いを見てみたい。HTTP/1.0 を使わせる curl のオプションを埋めてください。",
           "code": "curl -sI {{blank}} https://example.com/",
-          "blanks": [{ "answers": ["--http1.0", "-0"] }],
+          "blanks": [
+            {
+              "answers": ["--http1.0", "-0"],
+              "wrong": [
+                { "answer": "--http1.1", "why": "--http1.1 は HTTP/1.1 を使わせるオプションです。古い版の要求にはなりません。" },
+                { "answer": "-1", "why": "-1 は --tlsv1 の短い形で、TLS 1.0 以上を使わせるオプションです。HTTP の版ではなく TLS の版を決めます。" },
+                { "answer": "--http0.9", "why": "--http0.9 は、ヘッダーの無い HTTP/0.9 の応答を受け入れるかの設定です。要求の版を下げるものではありません。" }
+              ]
+            }
+          ],
           "output": "HTTP/1.1 200 OK\n...",
           "explanation": "-0 (--http1.0) は、curl に既定の版ではなく HTTP/1.0 で要求させます (curl のマニュアル)。HTTP/1.0 は RFC 1945 (1996 年 5 月) にまとめられた版です。ただし応答の版はサーバーが選びます。RFC 9110 の 6.2 は、サーバーは要求のメジャー版以下で自分が準拠する最も高い版で返すべき (SHOULD) と書きます。そのため HTTP/1.1 のサーバーの多くは、HTTP/1.0 の要求にも HTTP/1.1 200 OK で返します (example.com もそうです)。送った要求の行 (> HEAD / HTTP/1.0) は -v を付けると見られます。",
           "sources": [

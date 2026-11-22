@@ -75,8 +75,22 @@
           "prompt": "今: HTTP は MIME のメディアタイプをそのまま使って、本文の種類を伝えます。PNG の画像を返すレスポンスの空欄を埋めてください。",
           "code": "HTTP/1.1 200 OK\n{{blank}}: {{blank}}\nContent-Length: 2048\n\n(PNG の画像のバイト列)",
           "blanks": [
-            { "answers": ["Content-Type"], "match": "header-name" },
-            { "answers": ["image/png"], "match": "media-type" }
+            {
+              "answers": ["Content-Type"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "Content-Encoding", "why": "Content-Encoding は、本文に掛けた圧縮などの符号化を伝えるヘッダーです。本文がどんな種類のデータかは伝えません。" },
+                { "answer": "Accept", "why": "Accept は、クライアントが受け取りたいメディアタイプを伝える要求のヘッダーです。応答の本文の種類を示すものではありません。" }
+              ]
+            },
+            {
+              "answers": ["image/png"],
+              "match": "media-type",
+              "wrong": [
+                { "answer": "png", "why": "メディアタイプは「上位の型/下位の型」の形で書きます。下位の型だけでは足りません。" },
+                { "answer": "image/jpeg", "why": "image/jpeg は JPEG の形式の画像のメディアタイプです。PNG の画像には別の下位の型を使います。" }
+              ]
+            }
           ],
           "explanation": "RFC 9110 の第 8.3.1 節は、HTTP はメディアタイプ (RFC 2046) を Content-Type と Accept のヘッダーで使う、と書いています。メディアタイプは type/subtype の形で、PNG は image/png です。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-8.3.1", "https://www.rfc-editor.org/rfc/rfc9110#section-8.3"]
@@ -101,7 +115,16 @@
           "tool": "curl",
           "prompt": "API に「JSON で返してほしい」と伝えるために、Accept のヘッダーを付けて送ります。ヘッダーを足す curl のオプションを埋めてください。",
           "code": "curl {{blank}} \"Accept: application/json\" https://example.com/",
-          "blanks": [{ "answers": ["-H", "--header"] }],
+          "blanks": [
+            {
+              "answers": ["-H", "--header"],
+              "wrong": [
+                { "answer": "-d", "why": "-d は本文のデータを送るオプションで、HTTP では POST で送ります。ヘッダーを足すものではありません。" },
+                { "answer": "-A", "why": "-A (--user-agent) は User-Agent のヘッダーの値だけを決めるオプションです。Accept などほかのヘッダーは足せません。" },
+                { "answer": "-h", "why": "小文字の -h は使い方の説明 (--help) を出すオプションです。大文字と小文字で意味が違います。" }
+              ]
+            }
+          ],
           "explanation": "-H (--header) は要求にヘッダーを足します (curl のマニュアル)。Accept はクライアントが受け取りたいメディアタイプを伝えるヘッダーで、MIME のメディアタイプを値に取ります (RFC 9110 の 8.3.1 と 12.5.1)。",
           "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1"]
         },
@@ -314,8 +337,20 @@
           "prompt": "公開済み (真) で、削除の日時は無し (空) のデータを JSON で書きます。RFC 8259 の決まりで正しい書き方を空欄に埋めてください。",
           "code": "{\n  \"name\": \"gantlo\",\n  \"published\": {{blank}},\n  \"deletedAt\": {{blank}}\n}",
           "blanks": [
-            { "answers": ["true"] },
-            { "answers": ["null"] }
+            {
+              "answers": ["true"],
+              "wrong": [
+                { "answer": "True", "why": "JSON の決まった名前は小文字で書かなければなりません (MUST)。先頭が大文字の True は、使えない名前です。" },
+                { "answer": "\"true\"", "why": "二重引用符で囲むと、真偽値ではなく 4 文字の文字列になります。" }
+              ]
+            },
+            {
+              "answers": ["null"],
+              "wrong": [
+                { "answer": "None", "why": "None は Python で値が無いことを表すオブジェクトの名前です。JSON の決まった名前にはありません。" },
+                { "answer": "\"\"", "why": "\"\" は長さ 0 の文字列という値です。値が無いことを表す決まった名前とは別のものです。" }
+              ]
+            }
           ],
           "explanation": "RFC 8259 の第 3 節は、値はオブジェクト・配列・数・文字列か、false・null・true の 3 つの名前のどれかで、名前は小文字でなければならない (MUST) と書いています。True や NULL は誤りです。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-3"]
@@ -354,7 +389,15 @@
           "tool": "curl",
           "prompt": "JSON の本文を POST で送り、Content-Type と Accept も application/json にしたい。1 つでまとめて指定する curl のオプションを埋めてください。",
           "code": "curl {{blank}} '{\"name\":\"gantlo\"}' https://example.com/api/items",
-          "blanks": [{ "answers": ["--json"] }],
+          "blanks": [
+            {
+              "answers": ["--json"],
+              "wrong": [
+                { "answer": "-d", "why": "-d は本文を POST で送りますが、Content-Type は application/x-www-form-urlencoded になります。JSON の 2 つのヘッダーは付きません。" },
+                { "answer": "--data-binary", "why": "--data-binary は本文をそのまま送るだけで、既定の Content-Type は -d と同じ application/x-www-form-urlencoded です。Accept も付きません。" }
+              ]
+            }
+          ],
           "explanation": "curl のマニュアルによると、--json は --data-binary と、Content-Type: application/json と Accept: application/json の 2 つのヘッダーをまとめて指定する近道です。中身が正しい JSON かどうかは確かめません。",
           "sources": ["https://curl.se/docs/manpage.html"]
         }

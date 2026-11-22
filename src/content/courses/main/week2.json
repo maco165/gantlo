@@ -44,7 +44,16 @@
           "tool": "dig",
           "prompt": "example.com の IPv6 のアドレスを引きたい。問い合わせるレコードの種類を埋めてください。",
           "code": "dig example.com {{blank}}",
-          "blanks": [{ "answers": ["AAAA", "aaaa", "-t AAAA", "-t aaaa"] }],
+          "blanks": [
+            {
+              "answers": ["AAAA", "aaaa", "-t AAAA", "-t aaaa"],
+              "wrong": [
+                { "answer": "A", "why": "A は IPv4 のアドレスを入れる種類で、種類を書かないときに dig が引くものと同じです。IPv6 のアドレスは別の種類に入ります。" },
+                { "answer": "IPv6", "why": "IPv6 はアドレスの版の名前で、レコードの種類の名前ではありません。dig には種類の名前 (mnemonic) を書きます。" },
+                { "answer": "-6", "why": "dig の -6 は、問い合わせを IPv6 で送るように限るオプションです。引くレコードの種類は変わりません。" }
+              ]
+            }
+          ],
           "output": ";; ANSWER SECTION:\nexample.com.\t300\tIN\tAAAA\t2001:db8::1",
           "explanation": "dig は名前の後ろに種類を書くと、その種類のレコードを問い合わせます。何も書かないと A (IPv4 のアドレス) を引きます (dig の -t の説明)。IPv6 のアドレスを入れる種類は AAAA で、RFC 3596 の 2.1 が定めています。出力の例のアドレスは文書用のものです。",
           "sources": [
@@ -167,7 +176,16 @@
           "tool": "dig",
           "prompt": "詳しい出力は要らず、答えのアドレスだけを 1 行ずつ見たい。オプションを埋めてください。",
           "code": "dig {{blank}} example.com",
-          "blanks": [{ "answers": ["+short"] }],
+          "blanks": [
+            {
+              "answers": ["+short"],
+              "wrong": [
+                { "answer": "+noall", "why": "+noall は表示の印を全部消すだけです。ほかの印を足さないと、答えも何も出ません。" },
+                { "answer": "+answer", "why": "+answer は答えのセクションを出すかどうかの印で、既定で出ています。これだけではヘッダーなども詳しい形のまま出ます。" },
+                { "answer": "-short", "why": "dig の - で始まるオプションに short は無く、打つと Invalid option で止まります。問い合わせのオプションは + で始めます。" }
+              ]
+            }
+          ],
           "output": "192.0.2.1",
           "explanation": "+short は答えを簡潔な形で出すオプションです。何も付けないと、ヘッダーや各セクションを含む詳しい形で出します (dig の +short の説明)。出力の例のアドレスは文書用のものです。",
           "sources": ["https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility"]
@@ -213,7 +231,16 @@
           "tool": "dig",
           "prompt": "ルートのサーバーから順に、委任をたどる様子を見たい。オプションを埋めてください。",
           "code": "dig {{blank}} example.com",
-          "blanks": [{ "answers": ["+trace"] }],
+          "blanks": [
+            {
+              "answers": ["+trace"],
+              "wrong": [
+                { "answer": "+recurse", "why": "+recurse は問い合わせの RD (再帰を望む) ビットを立てる印で、既定で立っています。ルートからの委任をたどる様子は出ません。" },
+                { "answer": "+norecurse", "why": "+norecurse は RD ビットを下ろして 1 回問い合わせます。ルートのサーバーに打つと紹介が返るだけで、その先はたどりません。" },
+                { "answer": "+nssearch", "why": "+nssearch は、その名前のゾーンの権威サーバーを探し、各サーバーの SOA を出すオプションです。ルートから順にたどる様子は出しません。" }
+              ]
+            }
+          ],
           "explanation": "+trace を付けると、dig は自分で非再帰の問い合わせを繰り返し、ルートのサーバーからの紹介をたどって、使った各サーバーの答えを出します (dig の +trace の説明)。リゾルバが行う手順 (RFC 1034 5.3.3) を目で見られます。",
           "sources": [
             "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility",
@@ -226,7 +253,15 @@
           "tool": "dig",
           "prompt": "IP アドレス 192.0.2.1 から名前を引く (逆引き) オプションを埋めてください。",
           "code": "dig {{blank}} 192.0.2.1",
-          "blanks": [{ "answers": ["-x"] }],
+          "blanks": [
+            {
+              "answers": ["-x"],
+              "wrong": [
+                { "answer": "-t PTR", "why": "-t は種類を決めるだけなので、192.0.2.1 という文字どおりの名前に PTR を問い合わせます。逆引き用の in-addr.arpa の名前は組み立てません。" },
+                { "answer": "-r", "why": "-r は ${HOME}/.digrc の設定を読まないようにするオプションです。逆引き (reverse) の意味はありません。" }
+              ]
+            }
+          ],
           "explanation": "-x を付けると、dig は 1.2.0.192.in-addr.arpa のような名前を組み立て、種類を PTR、クラスを IN にして問い合わせます (dig の -x の説明)。IPv4 の逆引きの名前の作り方は RFC 1035 の 3.5 にあります。",
           "sources": [
             "https://bind9.readthedocs.io/en/latest/manpages.html#dig-dns-lookup-utility",
@@ -495,7 +530,16 @@
           "tool": "openssl",
           "prompt": "TLS 1.3 だけで接続できるか試したい。版を TLS 1.3 に限るオプションを埋めてください。",
           "code": "openssl s_client -connect example.com:443 {{blank}} -brief </dev/null",
-          "blanks": [{ "answers": ["-tls1_3", "-min_protocol TLSv1.3"] }],
+          "blanks": [
+            {
+              "answers": ["-tls1_3", "-min_protocol TLSv1.3"],
+              "wrong": [
+                { "answer": "-tls1_2", "why": "-tls1_2 は TLS 1.2 だけを申し出て受け入れるオプションです。手元では Protocol version: TLSv1.2 でつながりました。" },
+                { "answer": "-no_tls1_3", "why": "-no_tls1_3 は TLS 1.3 を使わないようにするオプションで、ねらいの逆です。ほかの版でつながってしまいます。" },
+                { "answer": "-max_protocol TLSv1.3", "why": "-max_protocol は使う版の上限だけを決めます。下限を決めないので、相手が TLS 1.3 に対応していなければ古い版でつながります。" }
+              ]
+            }
+          ],
           "output": "CONNECTION ESTABLISHED\nProtocol version: TLSv1.3\nCiphersuite: TLS_AES_256_GCM_SHA384\n...",
           "explanation": "-tls1_3 は TLS 1.3 だけを申し出て受け入れるオプションです (openssl(1) の TLS Version Options)。最低の版を TLS 1.3 にする -min_protocol TLSv1.3 でも、今の OpenSSL では同じ結果になります。-brief は接続の要点だけを出します (openssl-s_client の説明)。相手が TLS 1.3 に対応していなければ、ハンドシェイクが失敗します。",
           "sources": [

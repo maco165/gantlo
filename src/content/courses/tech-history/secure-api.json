@@ -90,7 +90,16 @@
           "tool": "openssl",
           "prompt": "今: サーバーが最新の TLS 1.3 で話せるかを確かめたい。TLS 1.3 だけを使わせる openssl s_client のオプションを埋めてください。",
           "code": "openssl s_client -connect example.com:443 -servername example.com {{blank}} -brief < /dev/null",
-          "blanks": [{ "answers": ["-tls1_3", "-min_protocol TLSv1.3"] }],
+          "blanks": [
+            {
+              "answers": ["-tls1_3", "-min_protocol TLSv1.3"],
+              "wrong": [
+                { "answer": "-tls1_2", "why": "-tls1_2 は TLS 1.2 だけを使わせるオプションです。example.com には TLSv1.2 で接続されます。" },
+                { "answer": "-no_tls1_3", "why": "-no_* の形は、その版を使わないようにするオプションです。TLS 1.3 を止める向きになります。" },
+                { "answer": "--tlsv1.3", "why": "これは curl のオプションの書き方です。openssl s_client に渡すと Unknown option になります。" }
+              ]
+            }
+          ],
           "output": "CONNECTION ESTABLISHED\nProtocol version: TLSv1.3\n...",
           "explanation": "OpenSSL の s_client のマニュアルは、-tls1_3 などで使う版を選べるとし、例に openssl s_client -connect <server address>:443 -tls1_3 を挙げています。-servername は SNI に入れる名前、-brief は接続の要約だけを出します。-min_protocol TLSv1.3 (使う版の下限を TLS 1.3 にする。SSL_CONF_cmd のマニュアル) でも、今は TLS 1.3 より上の版が無いので同じく TLS 1.3 だけで接続します。TLS 1.3 は RFC 8446 (2018 年 8 月) で定められ、今は 2026 年 7 月の RFC 9846 が RFC 8446 を置き換える TLS 1.3 の正本です。",
           "sources": [
@@ -237,8 +246,21 @@
           "prompt": "今: 手に入れたアクセストークンを、API への要求に付けて送ります。RFC 6750 の例に合うように空欄を埋めてください。",
           "code": "GET /resource HTTP/1.1\nHost: server.example.com\n{{blank}}: {{blank}} mF_9.B5f-4.1JqM",
           "blanks": [
-            { "answers": ["Authorization"], "match": "header-name" },
-            { "answers": ["Bearer", "bearer"] }
+            {
+              "answers": ["Authorization"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "WWW-Authenticate", "why": "WWW-Authenticate は、サーバーが使える認証の方式を示す応答のヘッダーです。クライアントがトークンを送るヘッダーではありません。" },
+                { "answer": "Proxy-Authorization", "why": "Proxy-Authorization は、認証を求めるプロキシに向けて資格情報を送るヘッダーです。資源のサーバーに送るものではありません。" }
+              ]
+            },
+            {
+              "answers": ["Bearer", "bearer"],
+              "wrong": [
+                { "answer": "Basic", "why": "Basic は、利用者の ID とパスワードで認証する方式です (RFC 7617)。アクセストークンを送る方式ではありません。" },
+                { "answer": "Token", "why": "RFC 6750 の方式の名前は Token ではありません。資格情報の書き方は、決まった方式の名前と空白とトークンです。" }
+              ]
+            }
           ],
           "explanation": "RFC 6750 の第 2.1 節は、Authorization のヘッダーで Bearer の認証の方式を使ってアクセストークンを送る、と書き、この例を載せています。認証の方式の名前は大文字と小文字を区別しない token なので (RFC 9110 の 11.1)、bearer と書いても同じです。パスワードそのものではなく、権限を絞ったトークンを渡すのが OAuth の答えです。",
           "sources": [
@@ -350,8 +372,20 @@
           "prompt": "OpenAPI 3.0.0 の文書の一番上の階層です。OAS 3.0.0 で必須 (REQUIRED) の欄の名前を空欄に埋めてください。",
           "code": "{\n  \"openapi\": \"3.0.0\",\n  \"{{blank}}\": { \"title\": \"gantlo API\", \"version\": \"1.0.0\" },\n  \"{{blank}}\": {}\n}",
           "blanks": [
-            { "answers": ["info"] },
-            { "answers": ["paths"] }
+            {
+              "answers": ["info"],
+              "wrong": [
+                { "answer": "Info", "why": "OpenAPI の欄の名前は大文字と小文字を区別します。Info Object は欄に入るオブジェクトの型の名前で、欄の名前そのものではありません。" },
+                { "answer": "title", "why": "title は API の題を書く欄ですが、一番上の階層ではなく、題や版をまとめる別のオブジェクトの中に置きます。" }
+              ]
+            },
+            {
+              "answers": ["paths"],
+              "wrong": [
+                { "answer": "path", "why": "単数の path という欄は一番上にありません。欄の名前は 1 文字違っても別の欄になります。" },
+                { "answer": "components", "why": "components は使い回すスキーマなどを入れる欄で、必須 (REQUIRED) ではありません。" }
+              ]
+            }
           ],
           "explanation": "OAS 3.0.0 の第 4.7.1.1 節 (OpenAPI Object の Fixed Fields) で REQUIRED なのは openapi・info・paths です。openapi は使う仕様の版の番号で、API 自体の版 (info.version) とは別だと書かれています。",
           "sources": ["https://spec.openapis.org/oas/v3.0.0.html"]

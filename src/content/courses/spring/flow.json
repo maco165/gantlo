@@ -275,7 +275,16 @@
           "tool": "curl",
           "prompt": "/greeting に応える Controller を持つ Spring Boot のアプリを、server.port を何も設定せずに起動しました。同じマシンから要求を送ります。空欄の番号を埋めてください。",
           "code": "curl -i http://localhost:{{blank}}/greeting",
-          "blanks": [{ "answers": ["8080"] }],
+          "blanks": [
+            {
+              "answers": ["8080"],
+              "wrong": [
+                { "answer": "80", "why": "80 は、http の URL で番号を省いたときに使われる番号です (RFC 9110 4.2.1)。組み込みのサーバーの既定の番号とは別です。" },
+                { "answer": "443", "why": "443 は、https の URL で番号を省いたときに使われる番号です (RFC 9110 4.2.2)。ここでは TLS を使わない http で送っています。" },
+                { "answer": "0", "why": "server.port=0 は、空いている番号を探して使わせる設定です (How-to の Use a Random Unassigned HTTP Port)。要求を送る先の番号にはなりません。" }
+              ]
+            }
+          ],
           "output": "HTTP/1.1 200\nContent-Type: application/json\n...",
           "explanation": "組み込みのサーバーは既定で 8080 番で HTTP の要求を待ちます (Servlet Web Applications の Embedded Servlet Container Support)。番号は server.port で変えられます (How-to の Change the HTTP Port)。-i は応答のヘッダーも表示する curl のオプションです (curl 8.10.0 からの名前は --show-headers)。",
           "sources": [
@@ -388,7 +397,15 @@
           "format": "http",
           "prompt": "Controller が @RestController @RequestMapping(\"/persons\") で、メソッドに @GetMapping(\"/{id}\") が付いています。このメソッドに振り分けられる要求になるよう、空欄のメソッドを埋めてください。",
           "code": "{{blank}} /persons/42 HTTP/1.1\nHost: localhost:8080\nAccept: application/json",
-          "blanks": [{ "answers": ["GET", "HEAD"] }],
+          "blanks": [
+            {
+              "answers": ["GET", "HEAD"],
+              "wrong": [
+                { "answer": "POST", "why": "POST の要求は @PostMapping の付いたメソッドに割り当てられます。@GetMapping は、HTTP のメソッドを特定のものに絞った略記です (Mapping Requests)。" },
+                { "answer": "PUT", "why": "PUT の要求に当たる略記は @PutMapping です。@GetMapping のメソッドには振り分けられません (Mapping Requests)。" }
+              ]
+            }
+          ],
           "explanation": "クラスに付けた @RequestMapping は共通の道を、メソッドに付けた @GetMapping はその先の道と HTTP のメソッドを表します。@GetMapping は GET に絞った @RequestMapping の略記です。{id} の部分は @PathVariable で受け取れます (Spring Web MVC の Mapping Requests)。@GetMapping は HTTP の HEAD も、Controller を変えずにそのまま受けるので、HEAD も別解です (同じ章の HTTP HEAD, OPTIONS)。",
           "sources": [
             "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html#mvc-ann-requestmapping-annotation",
@@ -401,7 +418,16 @@
           "tool": "curl",
           "prompt": "@PostMapping(\"/persons\") のメソッドが @RequestBody Person person を受け取ります。本文を JSON として送り、Content-Type: application/json も付けたい。1 つで両方をこなす curl のオプションを埋めてください。",
           "code": "curl {{blank}} '{\"name\":\"Ann\"}' http://localhost:8080/persons",
-          "blanks": [{ "answers": ["--json"] }],
+          "blanks": [
+            {
+              "answers": ["--json"],
+              "wrong": [
+                { "answer": "-d", "why": "-d は本文を POST で送りますが、Content-Type は application/x-www-form-urlencoded になります (curl の --data の説明)。JSON の Content-Type は付きません。" },
+                { "answer": "-F", "why": "-F は入力済みのフォームをまねて、multipart/form-data で送るオプションです (curl の --form の説明)。JSON の本文にはなりません。" },
+                { "answer": "--data-binary", "why": "--data-binary は本文を手を加えずに送るだけで、Content-Type: application/json のヘッダーは足しません (curl の --data-binary の説明)。" }
+              ]
+            }
+          ],
           "explanation": "--json は、本文をそのまま送る --data-binary と、Content-Type: application/json・Accept: application/json の 2 つのヘッダーをまとめた略記で、POST で送ります (curl の man page、7.82.0 から)。@RequestBody は要求の本文を HttpMessageConverter で読み、オブジェクトに変換します (Spring Web MVC の @RequestBody)。",
           "sources": [
             "https://curl.se/docs/manpage.html",
@@ -446,7 +472,16 @@
           "format": "http",
           "prompt": "Controller のメソッドに @PostMapping と @ResponseStatus(HttpStatus.CREATED) が付いていて、戻り値は void です。正常に終わったときの応答のステータス行の空欄を埋めてください。",
           "code": "HTTP/1.1 {{blank}} Created",
-          "blanks": [{ "answers": ["201"] }],
+          "blanks": [
+            {
+              "answers": ["201"],
+              "wrong": [
+                { "answer": "200", "why": "200 は OK で、要求が成功したことだけを表します (RFC 9110 15.3.1)。ステータス行の理由の語 Created と組む番号ではありません。" },
+                { "answer": "202", "why": "202 は Accepted で、受け付けたが処理はまだ終わっていないことを表します (RFC 9110 15.3.3)。新しい資源を作り終えた印ではありません。" },
+                { "answer": "204", "why": "204 は No Content で、成功したが返す本文が無いことを表します (RFC 9110 15.3.5)。作成を表すコードは別にあります。" }
+              ]
+            }
+          ],
           "explanation": "@ResponseStatus で返すステータスを決められ、HttpStatus.CREATED は 201 Created です。Spring Framework の Mapping Requests の例でも、@PostMapping に @ResponseStatus(HttpStatus.CREATED) を付けて作成を表しています。ステータスやヘッダーを本文と一緒に決めたいときは ResponseEntity を返します (ResponseEntity)。",
           "sources": [
             "https://docs.spring.io/spring-framework/reference/web/webmvc/mvc-controller/ann-requestmapping.html#mvc-ann-requestmapping-annotation",

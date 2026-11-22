@@ -121,7 +121,17 @@
           "format": "http",
           "prompt": "トークンを返す応答です。キャッシュに残さないようにするヘッダーの値を埋めてください。",
           "code": "HTTP/1.1 200 OK\nContent-Type: application/json;charset=UTF-8\nCache-Control: {{blank}}\nPragma: no-cache\n\n{\"access_token\": \"2YotnFZFEjr1zCsicMWpAA\", \"token_type\": \"Bearer\", \"expires_in\": 3600}",
-          "blanks": [{ "answers": ["no-store"], "match": "header-name" }],
+          "blanks": [
+            {
+              "answers": ["no-store"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "no-cache", "why": "no-cache は、保存してもよいが、使う前に必ずサーバーへ確かめ直すという指示です (RFC 9111 5.2.2.4)。保存そのものは止めません。" },
+                { "answer": "private", "why": "private は、共有のキャッシュには保存させないが、利用者だけのキャッシュには保存してよいという指示です (RFC 9111 5.2.2.7)。" },
+                { "answer": "max-age=0", "why": "max-age=0 は、すぐに古くなったとみなす指示です (RFC 9111 5.2.2.1)。保存することまでは禁じません。" }
+              ]
+            }
+          ],
           "explanation": "RFC 6749 の 5.1 は、トークンや資格などの秘密の情報を含む応答に、Cache-Control: no-store と Pragma: no-cache を付けなければならない (MUST) としています。expires_in はアクセストークンの寿命の秒数で、付けることが勧められています (RECOMMENDED)。キャッシュの指示の名前は大文字と小文字を区別せずに比べます (RFC 9111 5.2)。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc6749#section-5.1",
@@ -192,7 +202,15 @@
           "format": "http",
           "prompt": "認可コードグラントで、認可エンドポイントへ送る要求です。response_type の値を埋めてください。",
           "code": "GET /authorize?response_type={{blank}}&client_id=s6BhdRkqt3&state=xyz&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb HTTP/1.1\nHost: server.example.com",
-          "blanks": [{ "answers": ["code"] }],
+          "blanks": [
+            {
+              "answers": ["code"],
+              "wrong": [
+                { "answer": "token", "why": "token は、インプリシットグラントでアクセストークンを直接求めるときの値です (RFC 6749 4.2.1)。認可コードグラントの値ではありません。" },
+                { "answer": "authorization_code", "why": "authorization_code は、認可エンドポイントへの要求ではなく、別の要求の別の引数に入れる値です (RFC 6749 4.1.3)。response_type の値とは違います。" }
+              ]
+            }
+          ],
           "explanation": "RFC 6749 の 4.1.1 は、認可の要求の response_type を必須とし、値を code にしなければならない (MUST) と定めています。client_id は必須、state は勧められ (RECOMMENDED)、redirect_uri と scope は任意です。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-4.1.1"]
         },
@@ -203,8 +221,21 @@
           "prompt": "受け取った認可コードをアクセストークンに換える要求です。本文のメディアタイプと grant_type の値を埋めてください。",
           "code": "POST /token HTTP/1.1\nHost: server.example.com\nAuthorization: Basic czZCaGRSa3F0MzpnWDFmQmF0M2JW\nContent-Type: {{blank}}\n\ngrant_type={{blank}}&code=SplxlOBeZQQYbYS6WxSbIA&redirect_uri=https%3A%2F%2Fclient%2Eexample%2Ecom%2Fcb",
           "blanks": [
-            { "answers": ["application/x-www-form-urlencoded"], "match": "media-type" },
-            { "answers": ["authorization_code"] }
+            {
+              "answers": ["application/x-www-form-urlencoded"],
+              "match": "media-type",
+              "wrong": [
+                { "answer": "application/json", "why": "RFC 6749 のトークンの要求は、引数を JSON ではなくフォームの形で本文に入れます (4.1.3)。JSON で返すのは、トークンの応答のほうです (5.1)。" },
+                { "answer": "multipart/form-data", "why": "multipart/form-data は、ファイルを添えるときなどの複数部分のフォームの形です (curl の -F が使う形)。トークンの要求で決められた形ではありません。" }
+              ]
+            },
+            {
+              "answers": ["authorization_code"],
+              "wrong": [
+                { "answer": "code", "why": "code は、認可エンドポイントへの要求の response_type の値です (4.1.1)。トークンの要求では、認可コードそのものを code の引数に入れます。" },
+                { "answer": "refresh_token", "why": "refresh_token は、リフレッシュトークンで新しいアクセストークンを得るときの grant_type の値です (6)。認可コードを換えるときの値ではありません。" }
+              ]
+            }
           ],
           "explanation": "RFC 6749 の 4.1.3 は、トークンの要求の引数を application/x-www-form-urlencoded の形で本文に入れて送るとし、grant_type を必須で、値を authorization_code にしなければならない (MUST) と定めています。認可の要求に redirect_uri を付けたなら、ここでも同じ値が要ります。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc6749#section-4.1.3"]
@@ -304,8 +335,21 @@
           "prompt": "アクセストークンを付けて資源を求める要求です。ヘッダー名と認証の方式を埋めてください。",
           "code": "GET /resource HTTP/1.1\nHost: server.example.com\n{{blank}}: {{blank}} mF_9.B5f-4.1JqM",
           "blanks": [
-            { "answers": ["Authorization"], "match": "header-name" },
-            { "answers": ["Bearer"], "match": "header-name" }
+            {
+              "answers": ["Authorization"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "WWW-Authenticate", "why": "WWW-Authenticate は、サーバーが応答に付けて、使える認証の方式を知らせるヘッダーです (RFC 9110 11.6.1)。要求で資格を送るヘッダーではありません。" },
+                { "answer": "Proxy-Authorization", "why": "Proxy-Authorization は、認証を求めるプロキシに対して自分を示すヘッダーです (RFC 9110 11.7.2)。リソースサーバーへ資格を送るのは別のヘッダーです。" }
+              ]
+            },
+            {
+              "answers": ["Bearer"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "Basic", "why": "Basic は、利用者名とパスワードを base64 にして送る方式です (RFC 7617 2)。OAuth 2.0 のアクセストークンを送る方式は RFC 6750 で別に定められています。" }
+              ]
+            }
           ],
           "explanation": "RFC 6750 の 2.1 は、Authorization ヘッダーで Bearer の方式を使ってアクセストークンを送る形を定め、クライアントはこの方法を使うべきで (SHOULD)、リソースサーバーは対応しなければならない (MUST) としています。認証の方式の名前は大文字と小文字を区別しません (RFC 9110 11.1)。",
           "sources": [
@@ -319,7 +363,16 @@
           "tool": "curl",
           "prompt": "curl で、Bearer トークンを Authorization ヘッダーに入れて送るオプションを埋めてください。",
           "code": "curl {{blank}} \"mF_9.B5f-4.1JqM\" https://api.example.com/resource",
-          "blanks": [{ "answers": ["--oauth2-bearer"] }],
+          "blanks": [
+            {
+              "answers": ["--oauth2-bearer"],
+              "wrong": [
+                { "answer": "-u", "why": "-u (--user) は利用者名とパスワードを渡すオプションで、HTTP では既定で Basic 認証になります (curl の --basic の説明)。トークンを渡すものではありません。" },
+                { "answer": "-H", "why": "-H は「名前: 値」の形のヘッダーの行を丸ごと受け取るオプションです。トークンの文字列だけを渡しても、資格のヘッダーにはなりません (手元で試すとヘッダーは足されませんでした)。" },
+                { "answer": "--bearer", "why": "curl に --bearer というオプションはありません (curl 8.18.0 は option --bearer: is unknown と出します)。OAuth 2.0 の名前の付いたオプションを使います。" }
+              ]
+            }
+          ],
           "explanation": "--oauth2-bearer は、OAuth 2.0 の Bearer トークンを指定するオプションで、RFC 6750 の形で送ります (curl の --oauth2-bearer の説明)。-H \"Authorization: Bearer ...\" と書いても同じヘッダーになります。",
           "sources": [
             "https://curl.se/docs/manpage.html",
@@ -332,7 +385,16 @@
           "format": "http",
           "prompt": "期限切れのアクセストークンが送られてきました。リソースサーバーの応答の error の値を埋めてください。",
           "code": "HTTP/1.1 401 Unauthorized\nWWW-Authenticate: Bearer realm=\"example\",\n                  error=\"{{blank}}\",\n                  error_description=\"The access token expired\"",
-          "blanks": [{ "answers": ["invalid_token"] }],
+          "blanks": [
+            {
+              "answers": ["invalid_token"],
+              "wrong": [
+                { "answer": "insufficient_scope", "why": "insufficient_scope は、トークンが表す権限の範囲についての値です (RFC 6750 3.1)。トークンの期限切れを伝える値ではありません。" },
+                { "answer": "invalid_request", "why": "invalid_request は、引数が足りない・重なっているなど、要求の形そのものが誤っているときの値で、400 と組みます (RFC 6750 3.1)。" },
+                { "answer": "invalid_grant", "why": "invalid_grant は、トークンエンドポイントが、無効な認可グラントやリフレッシュトークンに返す値です (RFC 6749 5.2)。リソースサーバーの応答の値ではありません。" }
+              ]
+            }
+          ],
           "explanation": "RFC 6750 の 3.1 は、トークンが期限切れ・取り消し済み・形の誤りなどで無効なときの error を invalid_token とし、401 で答えるべきだ (SHOULD) としています。クライアントは新しいアクセストークンを得て送り直してかまいません (MAY)。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc6750#section-3.1"]
         },
@@ -450,7 +512,22 @@
           "format": "json",
           "prompt": "RFC 7519 の例のクレームです。発行者と有効期限を表す、登録済みのクレームの名前を埋めてください。",
           "code": "{\n  \"{{blank}}\": \"joe\",\n  \"{{blank}}\": 1300819380,\n  \"http://example.com/is_root\": true\n}",
-          "blanks": [{ "answers": ["iss"] }, { "answers": ["exp"] }],
+          "blanks": [
+            {
+              "answers": ["iss"],
+              "wrong": [
+                { "answer": "sub", "why": "sub は JWT の主題を表すクレームです (RFC 7519 4.1.2)。JWT を出した者を表すのは別の名前です。" },
+                { "answer": "aud", "why": "aud は JWT の宛先 (受け取るはずの相手) を表すクレームです (RFC 7519 4.1.3)。出した者ではありません。" }
+              ]
+            },
+            {
+              "answers": ["exp"],
+              "wrong": [
+                { "answer": "iat", "why": "iat は JWT を出した時刻を表すクレームです (RFC 7519 4.1.6)。それ以降は受け入れてはならない時刻ではありません。" },
+                { "answer": "nbf", "why": "nbf は、それより前は受け入れてはならない時刻を表すクレームです (RFC 7519 4.1.5)。期限とは逆向きの境目です。" }
+              ]
+            }
+          ],
           "explanation": "RFC 7519 の 4.1 は登録済みのクレームを定め、iss は JWT を出した者 (4.1.1)、exp はそれ以降は処理に受け入れてはならない有効期限 (4.1.4) です。exp の値は NumericDate (1970-01-01T00:00:00Z からの秒数) の数でなければなりません (MUST)。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc7519#section-4.1.1",
