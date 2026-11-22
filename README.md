@@ -107,7 +107,8 @@ flowchart LR
   sched["lib/progress.ts<br/>復習の予定 (1・3・7 日)<br/>読み込みの検査"] --> review
   sched --> settings
   dl["lib/download.ts<br/>Blob と a[download]"] --> settings
-  app --> lesson["screens/LessonScreen.tsx<br/>/lesson/#lt;id#gt;/ を 1 問ずつ解く"]
+  app --> lpage["screens/LessonPage.tsx<br/>全部のデータと一緒に読む"]
+  lpage --> lesson["screens/LessonScreen.tsx<br/>/lesson/#lt;id#gt;/ を 1 問ずつ解く"]
   app --> ni["screens/StatusPage.tsx<br/>501 / 404"]
   app --> course["screens/CourseScreen.tsx<br/>GET /course/#lt;id#gt;"]
   clib["lib/courses.ts<br/>コースの紹介・一覧の見出し"] --> course
@@ -143,6 +144,8 @@ flowchart LR
   stages["content/stages.ts<br/>段の id"] --> check
   courses["lib/route.ts<br/>コースの id"] --> check
   json --> index["content/index.ts<br/>LESSONS・findQuestion"]
+  json -->|?catalog| catalog["content/catalog.ts<br/>目録 (id・題・段・問題の id)"]
+  catalog --> index
   types["content/types.ts<br/>5 種類の型"] --> index
   index --> lesson["screens/LessonScreen.tsx<br/>種類ごとの画面"]
   shuffle["lib/shuffle.ts<br/>4 択を混ぜる"] --> lesson
@@ -202,7 +205,9 @@ flowchart LR
 | `src/components/PlanGantt.tsx` | 計画のガントチャート。表示する期間の切り替え (Astryx の `SegmentedControl`。指定は日付の入力欄 2 つで、空・終わりが始まりより前・2 年を超えるときは軸を変えず、`aria-invalid` とそれぞれの補助の文)、日付の目盛り (狭い画面は軸の 18%、広い画面は 12% の間を空けて字を間引き、右端の字は左へ寄せる)、予定の帯 (端で切れた側は角を丸めない)・判定の色の済みの塗り・今日の線・今ここの縦の印・巻き/遅れのステータスと凡例 (字でも書く)・次のレッスンへのリンク。選んだ期間は設定 (`profile.ganttView`) にすぐ残す |
 | `src/content/types.ts` | 問題データの型。問題は 5 種類 (コマンドの穴埋め・HTTP と JSON の穴埋め・並べ替え・4 択・実習) |
 | `src/content/courses/<course>/*.json` | 問題データ。置けばそのコースに自動でつながる。様式は [docs/content-format.md](docs/content-format.md) |
-| `src/content/index.ts` | 問題データを読み、コースの順に並べる。レッスンと問題を id で引く |
+| `src/content/index.ts` | 問題データを読み、コースの順に並べる。レッスンと問題を id で引く。問題の本文まで含むので、ホーム・メニュー・題・パンくずからは読まない (レッスン・復習・計画などの画面と一緒に読む) |
+| `src/content/catalog.ts`・`catalog-fields.ts` | レッスンの目録 (id・題・短い題・コース・段と問題の id)。ホーム (Network の表・ウォーターフォール・今日の復習の数)・題・パンくずと、`lib/plan.ts`・`journey.ts`・`schedule.ts` の既定のデータはこれを使い、最初の JS に問題の本文を入れない。目録は `vite.config.ts` の `lessonCatalog` が同じ JSON (`?catalog` 付きの読み込み) から作るので、データと食い違わない (`tests/content-index.test.ts` が全部のデータと比べる) |
+| `src/App.tsx` | 経路から画面を選ぶ。ホーム以外の画面は `React.lazy` で開いたときに読む (読み込み中は「読み込んでいます。」だけを出し、見出しは画面と一緒に出す)。トップが最初に読む JS (script と modulepreload を gzip -9 した合計) は 300 KB 以下 (`tests/meta.test.ts` が build のあとに確かめる) |
 | `scripts/check-content.mjs` | 問題データの検査 (`npm run check:content`)。必須の欄・正解と選択肢や項目の食い違い・id の重なり・旅の段・https の出典を見る。CI でも走る |
 | `src/lib/grade.ts` | 採点。前後の空白は無視し、大文字と小文字は区別する。HTTP のヘッダー名とメディアタイプだけは区別しない |
 | `src/lib/progress.ts` | 進捗。localStorage の `gantlo.v1` に JSON で置き、サーバーには送らない。壊れた中身は初期値で読み直す。復習の予定 (`recordAnswer`): 間違えると翌日、予定日以降の正解で 3 日後・7 日後、7 日後も正解で卒業、予定日より前の正解は据え置き。日付は端末の時刻の日付 (`dayKey`) で数え、時差で 1 日ずれない。読み込み (`parseImport`) は 1 MB まで、`v` が 1 で `streak`・`xp`・`lessons`・`answers` がオブジェクトのものだけを読み、読めない理由を返す。目標と計画は、読み込んだ側に無いときだけ今の端末から引き継ぐ。計画の開始日と目安の日数も、読み直し・書き出し・読み込み・記録を消すときに写して残す (壊れた値は読むときに落として既定で補う)。模擬試験の回の記録 (`exams`: 終えた時刻・正答数・問題の数・時間切れか) は、形の合う回だけを 20 回まで読む (正答数が問題の数を超える回は落とす)。記録を消すと回の記録も消える |
@@ -231,7 +236,7 @@ flowchart LR
 | `src/screens/ProgressScreen.tsx`・`src/lib/stats.ts` | 進捗の画面と、その計算。正答率は問題ごとの記録 (`answers`) の正解と不正解の回数を、問題データにある問題だけ足して出す (採点しない実習は入らない)。7 日の XP は今日を含む 7 日を端末の時刻の日付で数える。コースごとに済んだレッスンの数・レッスンの数・正答率を出し、レッスンの無いコースは「準備中」 |
 | `src/content/glossary.json`・`src/content/glossary.ts` | 用語集の語 (`id`・`term`・`aliases`・11 の規格なら `standard`・`description`・`sources`・`lessons`)。様式と、問題を足したとき (問題の PR が入ったあと) に「出てくるレッスン」へのリンクを足す手順は [docs/content-format.md](docs/content-format.md) |
 | `src/lib/glossary.ts` | 用語集の検索と検査。探す語と語の名前・別名・説明を NFKC でそろえ (全角英数・半角カナ)、大文字小文字・ひらがなとカタカナ・中黒の違いを無くして比べ、名前に当たる語を先に出す。ハイフン・「/」・「.」は英数字に挟まれたときだけ消し (`HTTP/2` と `http2`、`Content-Type` と `contenttype`)、語の頭のハイフン (`-I`) は残す。名前は空白を抜いた形でも比べる (`TLS 1.3` を `TLS1.3` で、`OAuth 2.0` を `OAuth2` で引ける)。出典の URL に空白・`"`・`<`・`>` が無いことも見る。`validateGlossary` は id の形と重なり、名前と別名の重なり (そろえた形で比べる)、https の出典、RFC が節まで指すこと、レッスンが実在すること、11 の規格がそろうことを見る (`tests/glossary.test.ts`) |
-| `src/screens/Glossary.tsx` | 用語集の画面。語ごとに `#term-<id>` を持つ。画面とデータ (`glossary.json`) は `src/App.tsx` の `React.lazy` で開いたときに読み、最初の JS に入れない (書き出した HTML には全部の語がある)。出典は新しいタブで開き、出てくるレッスンはサイトの中で開く。「・」の区切りは後ろのリンクと同じ箱に入れ、狭い画面で区切りだけが 1 行を占めないようにする |
+| `src/screens/Glossary.tsx` | 用語集の画面。語ごとに `#term-<id>` を持つ。画面とデータ (`glossary.json`) は、ほかのホーム以外の画面と同じく `src/App.tsx` の `React.lazy` で開いたときに読み、最初の JS に入れない (書き出した HTML には全部の語がある)。出典は新しいタブで開き、出てくるレッスンはサイトの中で開く。「・」の区切りは後ろのリンクと同じ箱に入れ、狭い画面で区切りだけが 1 行を占めないようにする |
 | `scripts/e2e-progress-glossary.mjs` | `scripts/e2e.mjs` から呼ぶ、進捗の画面と用語集の通しの検査。390 幅と 1280 幅で、空の記録と記録を入れたときの正答率・7 日の XP・コースの済み・旅の段・ステータス、用語集の全部の語・出典 (https)・11 の規格の順、全角 (ＨＴＴＰ) と半角カナ (ﾘｿｰｽ) で探せること、当たらないと `204`、レッスンへのリンクで開くこと、placeholder が欄に収まること、390 幅で探す欄・消すボタン・リンクが 44px 以上であることを見る |
 | `src/screens/About.tsx`・`src/lib/about.ts` | このサイトについての画面。文の正本は `about.ts` で、画面と書き出す HTML の本文 (`src/prerender/pages.ts` の `aboutBody`) が同じ文を使う。検索に載せる |
 | `src/lib/breadcrumbs.ts`・`src/components/Breadcrumbs.tsx` | パンくず (ホーム › コース › レッスン、ホーム › 画面) の正本と、画面の上の帯。書き出す HTML の本文と JSON-LD の `BreadcrumbList` も同じ並びを使う。ホームと知らない道には出さない。長い題は文のように折り返す |

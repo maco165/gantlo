@@ -3,9 +3,8 @@ import { Text } from '@astryxdesign/core/Text';
 import LessonNetwork from '../components/LessonNetwork';
 import StatusLine from '../components/StatusLine';
 import Waterfall from '../components/Waterfall';
-import { LESSONS, dueReviewCount } from '../content/index';
+import { CATALOG, dueReviewCount, type LessonMeta } from '../content/catalog';
 import { STAGES } from '../content/stages';
-import type { Lesson } from '../content/types';
 import { stageStates } from '../lib/journey';
 import { currentLesson, planLessons, planOrder } from '../lib/plan';
 import { currentStreak, goalXp, todayXp, type Progress } from '../lib/progress';
@@ -18,7 +17,7 @@ import { progressStatus } from '../lib/status';
  * ホーム = GET /me への応答。進み具合はステータス、記録はレスポンスヘッダーの形で読む。
  * 学ぶ順は保存した計画の順で、計画が無ければ全コースを既定の順 (本編 → 追加のコース) で見せる
  */
-export default function Home({ progress, now = new Date(), lessons = LESSONS }: { progress: Progress; now?: Date; lessons?: readonly Lesson[] }) {
+export default function Home({ progress, now = new Date(), lessons = CATALOG }: { progress: Progress; now?: Date; lessons?: readonly LessonMeta[] }) {
   const states = stageStates(progress, lessons);
   const learned = states.filter((s) => s.learned).length;
   const status = progressStatus(learned, STAGES.length);

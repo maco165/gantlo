@@ -1,7 +1,6 @@
 import { Text } from '@astryxdesign/core/Text';
-import { LESSONS } from '../content/index';
+import { CATALOG, type LessonMeta } from '../content/catalog';
 import { STAGES } from '../content/stages';
-import type { Lesson } from '../content/types';
 import { LESSON_LIST_HEADING } from '../lib/courses';
 import { currentLesson, isDone, planLessons } from '../lib/plan';
 import type { Progress } from '../lib/progress';
@@ -14,12 +13,12 @@ import { COURSES, lessonHref, type CourseId } from '../lib/route';
 export default function LessonNetwork({
   courses,
   progress,
-  lessons = LESSONS,
+  lessons = CATALOG,
   empty = '学ぶ順のコースに、まだレッスンがありません。',
 }: {
   courses: readonly CourseId[];
   progress: Progress;
-  lessons?: readonly Lesson[];
+  lessons?: readonly LessonMeta[];
   /** レッスンが 1 つも無いときの文 */
   empty?: string;
 }) {

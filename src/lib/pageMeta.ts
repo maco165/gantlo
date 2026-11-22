@@ -1,6 +1,6 @@
 // 画面の題の正本。サイトの中で移ったときの document.title (src/App.tsx) と、
 // 書き出す HTML の <title> (src/prerender/pages.ts) が同じものを使う (食い違わないように)
-import { findLesson } from '../content/index';
+import { findLessonMeta as findLesson } from '../content/catalog';
 import type { Lesson } from '../content/types';
 import { COURSES, type PageName, type Route } from './route';
 import { SITE_NAME, SITE_TAGLINE } from './site';

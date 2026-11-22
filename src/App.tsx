@@ -8,25 +8,25 @@ import { lazy, Suspense, useEffect } from 'react';
 import AppSideNav, { AppMobileNav } from './components/AppSideNav';
 import Breadcrumbs from './components/Breadcrumbs';
 import MobileBar from './components/MobileBar';
-import { findLesson } from './content/index';
+import { findLessonMeta } from './content/catalog';
 import { documentTitle, PAGE_TITLES, titleOf } from './lib/pageMeta';
 import { useRoute } from './lib/route';
 import { NOT_FOUND, NOT_IMPLEMENTED } from './lib/status';
 import { useMobileNav } from './lib/useMobileNav';
 import { useProgress } from './lib/useProgress';
-import About from './screens/About';
-import CourseScreen from './screens/CourseScreen';
 import Home from './screens/Home';
-import LessonScreen from './screens/LessonScreen';
-import Plan from './screens/Plan';
-import ProgressScreen from './screens/ProgressScreen';
-import Exam from './screens/Exam';
-import Review from './screens/Review';
-import Settings from './screens/Settings';
 import StatusPage from './screens/StatusPage';
 
-// 用語集の画面とそのデータ (content/glossary.json) は、開いたときに読む (最初の JS を軽くするため)
+// ホーム以外の画面は、開いたときに読む (最初の JS を軽くするため。用語集はそのデータ content/glossary.json も)
+const About = lazy(() => import('./screens/About'));
+const CourseScreen = lazy(() => import('./screens/CourseScreen'));
+const Exam = lazy(() => import('./screens/Exam'));
 const Glossary = lazy(() => import('./screens/Glossary'));
+const LessonPage = lazy(() => import('./screens/LessonPage'));
+const Plan = lazy(() => import('./screens/Plan'));
+const ProgressScreen = lazy(() => import('./screens/ProgressScreen'));
+const Review = lazy(() => import('./screens/Review'));
+const Settings = lazy(() => import('./screens/Settings'));
 
 export default function App() {
   const { route, nav, close } = useRoute();
@@ -43,27 +43,15 @@ export default function App() {
   else if (route.name === 'page' && route.page === 'review') screen = <Review key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'exam') screen = <Exam key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'progress') screen = <ProgressScreen progress={progress} />;
-  else if (route.name === 'page' && route.page === 'glossary') screen = (
-      <Suspense
-        fallback={
-          <div className="page">
-            <h1 className="page__title">{PAGE_TITLES.glossary}</h1>
-            <Text type="supporting">読み込んでいます。</Text>
-          </div>
-        }
-      >
-        <Glossary key={nav} />
-      </Suspense>
-    );
+  else if (route.name === 'page' && route.page === 'glossary') screen = <Glossary key={nav} />;
   else if (route.name === 'page' && route.page === 'settings') screen = <Settings key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'about') screen = <About />;
   else if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'course') screen = <CourseScreen key={route.course} course={route.course} progress={progress} />;
   else if (route.name === 'lesson') {
-    const lesson = findLesson(route.lessonId);
-    // nav を key にして、同じレッスンのリンクを押し直したときも 1 問目から始める
-    screen = lesson ? (
-      <LessonScreen key={`${lesson.id}-${nav}`} lesson={lesson} progress={progress} updateProgress={updateProgress} />
+    // あるかは目録で見る (問題の本文はレッスンの画面と一緒に読む)
+    screen = findLessonMeta(route.lessonId) ? (
+      <LessonPage lessonId={route.lessonId} nav={nav} progress={progress} updateProgress={updateProgress} />
     ) : (
       <StatusPage title={title ?? ''} request={`GET ${window.location.pathname}`} status={NOT_FOUND} />
     );
@@ -81,7 +69,18 @@ export default function App() {
         >
           <MobileBar />
           <Breadcrumbs route={route} />
-          {screen}
+          {/* 画面の JS を読んでいる間は、読み込み中とだけ出す。見出し (h1) は画面と一緒に出す
+              (見出しが出たら画面ができた、と読む人や検査を待たせないため)。key で画面ごとに待ちをやり直す */}
+          <Suspense
+            key={route.name === 'page' ? route.page : route.name}
+            fallback={
+              <div className="page" aria-busy="true">
+                <Text type="supporting">読み込んでいます。</Text>
+              </div>
+            }
+          >
+            {screen}
+          </Suspense>
         </AppShell>
       </Theme>
     </InternationalizationProvider>

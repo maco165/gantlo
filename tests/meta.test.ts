@@ -2,6 +2,7 @@
 // 前半は書き出しと同じ関数で、ページを手元で組み立てて見る (npm test だけで走る)。
 // 後半は npm run build のあとの dist を見る (dist が無ければ飛ばす。CI は build のあとに npm test を走らせる)。
 import { existsSync, readFileSync } from 'node:fs';
+import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LESSONS } from '../src/content/index';
@@ -387,6 +388,18 @@ describe.skipIf(!existsSync(join(DIST, 'sitemap.xml')))('npm run build のあと
       expect(want.length, c.id).toBeGreaterThan(0);
       expect(courseLessonLinks(read(`course/${c.id}/index.html`)), c.id).toEqual(want);
     }
+  });
+
+  it('トップが最初に読む JS (script と modulepreload を gzip -9 した合計) が 300 KB 以下で、問題の本文を含まない', () => {
+    const top = read('index.html');
+    const files = [...new Set([...top.matchAll(/<(?:script type="module"[^>]*src|link rel="modulepreload"[^>]*href)="\/gantlo\/(assets\/[^"]+\.js)"/g)].map((m) => m[1]))];
+    expect(files.length).toBeGreaterThan(0);
+    const total = files.reduce((n, f) => n + gzipSync(readFileSync(join(DIST, f)), { level: 9 }).length, 0);
+    expect(total, `${files.length} 個で ${total} bytes`).toBeLessThanOrEqual(300_000);
+    // 問題の本文 (解説) はレッスンなどの画面と一緒に読む。最初の JS に入っていない
+    const js = files.map((f) => readFileSync(join(DIST, f), 'utf8')).join('');
+    const sample = LESSONS[0].questions[0].explanation.slice(0, 30);
+    expect(js.includes(JSON.stringify(sample).slice(1, -1)) || js.includes(sample)).toBe(false);
   });
 
   it('sitemap.xml は検索に載せる全ページを持ち、robots.txt が sitemap を指し、404.html は検索に載せない', () => {

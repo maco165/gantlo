@@ -1,4 +1,4 @@
-import { findLesson } from '../content/index';
+import { findLessonMeta as findLesson } from '../content/catalog';
 import { breadcrumbs } from '../lib/breadcrumbs';
 import type { Route } from '../lib/route';
 

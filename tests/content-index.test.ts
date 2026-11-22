@@ -2,6 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { LESSONS, dueQuestions, dueReviewCount, findLesson, findQuestion, lessonsOf } from '../src/content/index';
 import { emptyProgress, recordAnswer } from '../src/lib/progress';
 import { STAGES } from '../src/content/stages';
+import { CATALOG, findLessonMeta } from '../src/content/catalog';
+
+describe('レッスンの目録 (ホームが最初に読む軽いデータ)', () => {
+  it('全部のデータと同じレッスンを同じ順に持ち、欄は id・題・短い題・コース・段と問題の id だけ', () => {
+    const want = LESSONS.map((l) => ({
+      id: l.id,
+      title: l.title,
+      ...(l.shortTitle !== undefined ? { shortTitle: l.shortTitle } : {}),
+      course: l.course,
+      ...(l.stage !== undefined ? { stage: l.stage } : {}),
+      questions: l.questions.map((q) => ({ id: q.id })),
+    }));
+    expect(CATALOG).toEqual(want);
+    expect(findLessonMeta('main-w1-l1')?.title).toBe(findLesson('main-w1-l1')?.title);
+  });
+});
 
 describe('問題データの読み込み', () => {
   it('courses/<course>/*.json のレッスンを読み、コースで引ける', () => {
