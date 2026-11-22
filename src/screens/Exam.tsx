@@ -11,6 +11,7 @@ import AnswerResponse from '../components/AnswerResponse';
 import ChoiceQuestionView from '../components/ChoiceQuestionView';
 import FillQuestionView from '../components/FillQuestionView';
 import OrderQuestionView from '../components/OrderQuestionView';
+import ShareButtons from '../components/ShareButtons';
 import StatusLine from '../components/StatusLine';
 import {
   EXAM_MINUTES,
@@ -41,6 +42,7 @@ import { clearExamRun, newRunId, saveExamRun, savedRunId } from '../lib/examSave
 import { XP_PER_CORRECT } from '../lib/grade';
 import { loadProgress, type Progress } from '../lib/progress';
 import { lessonHref, scrollToTop } from '../lib/route';
+import { examShare } from '../lib/share';
 import { examDone, examIntroStatus, examResumeStatus, type Status } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
@@ -423,6 +425,8 @@ function ResultView({ done, onRetry }: { done: Done; onRetry: () => void }) {
           })}
         </List>
       </section>
+
+      <ShareButtons data={examShare(result.correct, result.total)} />
 
       <HStack gap={2} justify={isWide ? 'end' : 'start'} wrap="wrap">
         <Button variant="primary" label="もう一度受ける" onClick={onRetry} width={isWide ? undefined : '100%'} size={isWide ? 'md' : 'lg'} />
