@@ -4,6 +4,37 @@
       "id": "security-l1",
       "title": "暗号の基本 (1) 共通鍵・公開鍵・ハッシュ",
       "course": "security",
+      "intro": {
+        "goals": [
+          "共通鍵暗号と公開鍵暗号を、鍵の使い方で見分ける",
+          "ハッシュ関数が作るダイジェストの性質を読む",
+          "手元のコマンドで、入力が変わるとダイジェストが変わることを確かめる"
+        ],
+        "body": [
+          "試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。",
+          "共通鍵暗号は、暗号化と復号のような対になる操作に、同じ鍵を使います。AES がその例です。公開鍵暗号は、公開鍵と秘密鍵の組を使い、対になる操作に組の別々の方を使います。秘密鍵は持ち主だけが知り、公開鍵は配っても構いません。",
+          "ハッシュ関数は、長さの決まらない入力から、決まった長さの値 (ダイジェスト) を作ります。入力が少しでも変わると、高い確率で別の値になります。SHA-256 のダイジェストは 256 ビットで、16 進では 64 文字です。",
+          "TLS は、これらの部品を組み合わせて通信を守ります。どの部品がどこで働くかは、RFC 8446 の 2 章が描いています。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "暗号の 3 つの部品 (RFC 4949 4 の symmetric cryptography・asymmetric cryptography・hash function)",
+          "items": [
+            { "label": "共通鍵暗号", "note": "対になる操作に同じ鍵を使う。例は AES" },
+            { "label": "公開鍵暗号", "note": "公開鍵と秘密鍵の組を使い、操作ごとに別々の方を使う。例は RSA" },
+            { "label": "ハッシュ関数", "note": "任意の長さの入力から、決まった長さの値を作る" }
+          ]
+        },
+        "tryIt": [
+          { "command": "printf 'hello' | sha256sum", "expect": "16 進で 64 文字のダイジェスト (2cf24dba で始まる値) と - が出ます。" },
+          { "command": "printf 'hello\\n' | sha256sum", "expect": "末尾の改行が 1 つ増えただけで、まったく別の 64 文字 (5891b5b5 で始まる値) になります。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc4949#section-4",
+          "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.180-4.pdf",
+          "https://www.rfc-editor.org/rfc/rfc8446#section-2"
+        ]
+      },
       "questions": [
         {
           "id": "security-l1-q1",
@@ -219,6 +250,42 @@
       "id": "security-l2",
       "title": "暗号の基本 (2) パスワード保存・署名・証明書",
       "course": "security",
+      "intro": {
+        "goals": [
+          "パスワードの保存で、ハッシュと暗号化を見分ける",
+          "署名を作る鍵と確かめる鍵を言い分ける",
+          "証明書の検証が、信頼の起点から鎖をたどることを確かめる"
+        ],
+        "body": [
+          "試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。",
+          "ハッシュは元に戻せない一方向の関数で、暗号化は戻せる双方向の関数です。ソルトは、パスワードごとに一意の乱数の文字列で、ハッシュの計算に加えます。work factor は、ハッシュの計算をくり返す回数です。",
+          "デジタル署名は、秘密鍵で作り、署名した人の公開鍵で確かめます。確かめる側は、署名のときと同じハッシュ関数を使います。",
+          "証明書の検証では、信頼の起点 (trust anchor) から対象の証明書までの鎖をたどります。証明書には有効期間があり、検証は今の日時に対して行います。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "パスワードの保存と署名・証明書の言葉 (OWASP Password Storage Cheat Sheet・FIPS 186-5 の冒頭の告示 3. Explanation・RFC 4949 4)",
+          "items": [
+            { "label": "ソルト", "note": "パスワードごとに一意の乱数。ハッシュの計算に加える" },
+            { "label": "work factor", "note": "ハッシュの計算をくり返す回数。上げると 1 回の計算が重くなる" },
+            { "label": "秘密鍵", "note": "持ち主だけが持つ鍵。署名を作る" },
+            { "label": "公開鍵", "note": "配ってよい鍵。署名を確かめる" },
+            { "label": "信頼の起点", "note": "証明書の鎖の検証を始める、信頼すると決めた点" }
+          ]
+        },
+        "tryIt": [
+          { "command": "openssl genpkey -algorithm EC -pkeyopt ec_paramgen_curve:P-256 -out lab.key && openssl pkey -in lab.key -pubout -out lab.pub", "expect": "何も出ずに、秘密鍵の lab.key と公開鍵の lab.pub ができます。" },
+          { "command": "printf 'hello' > m.txt && openssl pkeyutl -sign -rawin -digest sha256 -inkey lab.key -in m.txt -out m.sig && openssl pkeyutl -verify -rawin -digest sha256 -pubin -inkey lab.pub -in m.txt -sigfile m.sig", "expect": "Signature Verified Successfully と出ます。m.txt を 1 文字変えて検証だけ打ち直すと Signature Verification Failure になります。" }
+        ],
+        "sources": [
+          "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#hashing-vs-encryption",
+          "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html#salting",
+          "https://www.rfc-editor.org/rfc/rfc4949#section-4",
+          "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf",
+          "https://www.rfc-editor.org/rfc/rfc5280#section-6.1",
+          "https://docs.openssl.org/3.5/man1/openssl-pkeyutl/"
+        ]
+      },
       "questions": [
         {
           "id": "security-l2-q1",
@@ -445,6 +512,34 @@
       "title": "Web の攻撃と対策 (1) SQL インジェクション・XSS・CSRF",
       "shortTitle": "攻撃と対策 (1) SQLi・XSS・CSRF",
       "course": "security",
+      "intro": {
+        "goals": [
+          "インジェクションの原因を、入力・場所・解釈の 3 点で書く",
+          "根を断つ対策と、被害を減らす追加の対策を見分ける",
+          "ブラウザが自動で付けるものと、偽の要求のつながりを読む"
+        ],
+        "body": [
+          "試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。",
+          "OWASP は、アプリ自身が作っていない値を、信頼できないデータと呼びます。フォームの入力、URL の引数、利用者が保存したデータ、ほかのサービスの応答などです。",
+          "SQL インジェクションは、信頼できないデータが、問い合わせの SQL の構文の一部になることです。XSS は、そうしたデータが、ブラウザでコードとして扱われる形でページに入ることです。どちらも、値のはずのものが構文として解釈されています。",
+          "OWASP は、根を断つ対策を主に置き、ほかは被害を減らす追加の層として扱います。CSRF は、ブラウザが宛先のサイト向けに保存した印を、どのページから出た要求にも自動で付けることから起きます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "原因を「どこで・何として」で書く (OWASP の SQL Injection・XSS・CSRF のCheat Sheet の Introduction と XSS Defense Philosophy)",
+          "items": [
+            { "label": "SQL インジェクション", "note": "どこで: データベース。何として: SQL の構文" },
+            { "label": "XSS", "note": "どこで: 閲覧する人のブラウザ。何として: HTML やスクリプト" },
+            { "label": "CSRF", "note": "どこで: サーバー。何として: 本人が自分の画面から送った要求" }
+          ]
+        },
+        "sources": [
+          "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html#introduction",
+          "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#xss-defense-philosophy",
+          "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html#other-controls",
+          "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html#introduction"
+        ]
+      },
       "questions": [
         {
           "id": "security-l3-q1",
@@ -656,6 +751,38 @@
       "title": "Web の攻撃と対策 (2) 認証とセッション・IDOR・既知の脆弱性",
       "shortTitle": "攻撃と対策 (2) 認証・IDOR・既知の脆弱性",
       "course": "security",
+      "intro": {
+        "goals": [
+          "認証の失敗とアクセス制御の破れを見分ける",
+          "ログインの後のセッション ID の重みを読む",
+          "依存の部品がどの経路で入っているかを確かめる"
+        ],
+        "body": [
+          "試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。",
+          "OWASP Top 10:2025 の A07 は、認証の失敗の分類です。正しくない利用者を、正規の利用者と認めさせられる弱さを指します。アクセス制御は、利用者が意図された権限の外で動けないようにする決まりで、その破れが A01 です。",
+          "ログインの後、セッション ID は一時的に、そのアプリが使う最も強い認証の方法と同じ重みを持ちます。",
+          "使う部品には、自分で直接書いた依存のほかに、その依存がさらに使う推移的な依存があります。npm ls を使うと、部品が入った経路を木の形で見られます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "このレッスンに関わる OWASP Top 10:2025 の分類 (各分類の Description)",
+          "items": [
+            { "label": "A01 Broken Access Control", "note": "利用者が意図された権限の外で動けてしまう" },
+            { "label": "A03 Software Supply Chain Failures", "note": "ソフトウェアを作り、配り、更新する過程の破れ。依存の脆弱性が原因になりやすい" },
+            { "label": "A07 Authentication Failures", "note": "正しくない利用者を、正規の利用者と認めさせられる" }
+          ]
+        },
+        "tryIt": [
+          { "command": "npm ls vite", "expect": "gantlo の作業コピーのように vite を使うプロジェクトの中で打つと、vite がどの依存を通って入っているかが木の形で出ます。直接の依存と、ほかの部品を通した依存の両方が見えます。" }
+        ],
+        "sources": [
+          "https://owasp.org/Top10/2025/A01_2025-Broken_Access_Control/",
+          "https://owasp.org/Top10/2025/A03_2025-Software_Supply_Chain_Failures/",
+          "https://owasp.org/Top10/2025/A07_2025-Authentication_Failures/",
+          "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html",
+          "https://docs.npmjs.com/cli/v10/commands/npm-ls"
+        ]
+      },
       "questions": [
         {
           "id": "security-l4-q1",
@@ -928,6 +1055,40 @@
       "id": "security-l5",
       "title": "練習用ラボを手元に作る",
       "course": "security",
+      "intro": {
+        "goals": [
+          "練習用のアプリを、外から届かない形で動かす理由を述べる",
+          "待ち受けのアドレスから、届く範囲を読む",
+          "自分の CA で証明書を作るときの、ファイルごとの役目を見分ける"
+        ],
+        "body": [
+          "試すのは自分で用意したラボの中だけにしてください。他人のシステムへの無断の診断は、不正アクセス禁止法などに触れます。",
+          "OWASP Juice Shop と WebGoat は、学ぶためにわざと安全でなく作られたアプリです。WebGoat の README は、動かしている間は機械が非常に攻撃されやすくなると警告しています。そのため WebGoat の既定は、localhost だけで待ち受けます。",
+          "どこから届くかは、どのアドレスで待ち受けているかで決まります。docker でポートを公開する -p には、ホストのポートの前に、待ち受けるホストの IP を書けます。",
+          "ラボの CA の証明書は、自分で自分に署名したものです。それを信頼の起点として渡した相手だけが、その CA が発行した証明書を信頼します。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "自分の CA で証明書を作るときのファイル (RFC 5280 3.1・6.1、openssl-req)",
+          "items": [
+            { "label": "ca.key", "note": "CA の秘密鍵。発行する証明書への署名に使い、外に出さない" },
+            { "label": "ca.crt", "note": "CA の自己署名の証明書。信頼の起点として相手に渡す" },
+            { "label": "server.key", "note": "サーバーの秘密鍵" },
+            { "label": "server.csr", "note": "サーバーの公開鍵と名前を入れた署名要求 (CSR)" },
+            { "label": "server.crt", "note": "CA が CSR に署名して発行したサーバー証明書" }
+          ]
+        },
+        "tryIt": [
+          { "command": "ss -ltn", "expect": "待ち受けている TCP のソケットが並び、Local Address:Port の列に 127.0.0.1:ポート番号 のような、待ち受けのアドレスとポートの組が出ます。" }
+        ],
+        "sources": [
+          "https://github.com/WebGoat/WebGoat",
+          "https://github.com/juice-shop/juice-shop",
+          "https://docs.docker.com/engine/network/port-publishing/",
+          "https://www.rfc-editor.org/rfc/rfc5280#section-6.1",
+          "https://man7.org/linux/man-pages/man8/ss.8.html"
+        ]
+      },
       "questions": [
         {
           "id": "security-l5-q1",
