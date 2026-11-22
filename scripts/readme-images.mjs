@@ -3,6 +3,7 @@
 // - docs/images/banner.png: README の先頭の帯の画像。色と字体は、組み立てたサイトの Gothic テーマのトークンを画面から読んで使う
 //   (gantlo は暗い画面だけなので、帯も暗い 1 枚だけ。README の picture は明るい側にも同じ画像を出す)
 // - public/og.png: URL を共有したときのカードの画像 (1200×630。og:image)。帯と同じトークンと字体で描く
+// - public/apple-touch-icon.png: iOS のホーム画面の画像 (180×180)。favicon.svg の図柄を、角を落とさず不透明の地に描く (iOS は透明を黒で埋め、角は自分で丸めるため)
 // - docs/images/*.png: 組み立てた dist を vite preview で配り、見本の進捗を入れた状態で撮った画面 (スマホ 390 幅と PC 1280 幅)
 // 画面を変えたら走らせ直し、画像も同じ PR でコミットする。
 // 番号は README_IMAGES_PORT (既定 4331)。埋まっていれば --strictPort で止まるので、空いている番号を渡す。
@@ -16,6 +17,7 @@ const { chromium } = require('playwright');
 
 const OUT = new URL('../docs/images/', import.meta.url).pathname;
 const OG = new URL('../public/og.png', import.meta.url).pathname;
+const TOUCH_ICON = new URL('../public/apple-touch-icon.png', import.meta.url).pathname;
 const PORT = Number(process.env.README_IMAGES_PORT ?? 4331);
 const BASE = `http://localhost:${PORT}/gantlo/`;
 mkdirSync(OUT, { recursive: true });
@@ -69,6 +71,12 @@ function bannerHtml(t) {
     </div>
   </div>
 </div>`;
+}
+
+/** iOS のホーム画面の画像 (180×180) の中身。favicon.svg の角の丸み (rx) を外し、地の色で四隅まで塗る */
+function touchIconHtml(svg) {
+  const square = svg.replace(/(<rect width="32" height="32") rx="[^"]*"/, '$1');
+  return `<style>html,body{margin:0}.icon{width:180px;height:180px;background:#101314}.icon svg{display:block;width:180px;height:180px}</style><div class="icon">${square}</div>`;
 }
 
 /** 共有用の画像 (1200×630) の中身。帯と同じ部品を、カードの形に縦に並べる。t は画面から読んだトークン */
@@ -208,6 +216,14 @@ try {
     await og.waitForTimeout(300);
     await og.locator('.og').screenshot({ path: OG });
     await og.close();
+  }
+
+  // iOS のホーム画面の画像。地は favicon.svg の地と同じ色 (index.html の theme-color) で、四隅まで塗る
+  {
+    const icon = await browser.newPage({ viewport: { width: 180, height: 180 }, deviceScaleFactor: 1 });
+    await icon.setContent(touchIconHtml(readFileSync(new URL('../public/favicon.svg', import.meta.url), 'utf8')));
+    await icon.locator('.icon').screenshot({ path: TOUCH_ICON, omitBackground: false });
+    await icon.close();
   }
 
   const shoot = async (name, { width, height }, path, act) => {

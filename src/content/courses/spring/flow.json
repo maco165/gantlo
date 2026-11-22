@@ -3,6 +3,7 @@
     {
       "id": "spring-l1",
       "title": "起動の前半: main・設定の読み込み・コンポーネントスキャン",
+      "shortTitle": "起動の前半: main・設定・コンポーネント走査",
       "course": "spring",
       "questions": [
         {
@@ -119,6 +120,7 @@
     {
       "id": "spring-l2",
       "title": "起動の後半: 自動設定・Bean の生成と DI・組み込み Tomcat",
+      "shortTitle": "起動の後半: 自動設定・DI・組み込み Tomcat",
       "course": "spring",
       "questions": [
         {
@@ -249,6 +251,7 @@
     {
       "id": "spring-l3",
       "title": "リクエストの 4 段: 受信・振り分け・業務処理・応答",
+      "shortTitle": "リクエストの 4 段: 受信から応答まで",
       "course": "spring",
       "questions": [
         {
@@ -397,6 +400,7 @@
     {
       "id": "spring-l4",
       "title": "落とし穴と確かめ方: トランザクションのプロキシと debug",
+      "shortTitle": "落とし穴と確かめ方: プロキシと debug",
       "course": "spring",
       "questions": [
         {

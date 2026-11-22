@@ -30,7 +30,8 @@ node scripts/check-content.mjs <ファイル>   # 1 つだけ
 | 欄 | 必須 | 意味 |
 |---|---|---|
 | `id` | 必須 | 英小文字・数字・`-`。サイト全体で重ねない。本編の `week<N>.json` では `main-w<N>-` で始める (`main-w<N>-l<番号>`)。ほかは `<コース>-l<番号>` を勧める |
-| `title` | 必須 | 題 |
+| `title` | 必須 | 題。画面とページの見出し (h1) に出る |
+| `shortTitle` | 題が 26 字を超えるときは必須 | タブと検索の結果に出す短い題 (`<title>` と `og:title`)。「題 \| gantlo」を 35 字に収めるため、26 字までで、`title` より短くする |
 | `course` | 必須 | コースの id。置いたフォルダと同じにする |
 | `stage` | 本編は必須 | リクエストの旅の段 (`src/content/stages.ts` の id: `uri` `dns` `tcp` `tls` `http` `oauth` `mime` `rest`)。ほかのコースは任意。本編の `week<N>.json` では、`stages.ts` の `week` が N の段にする |
 | `questions` | 必須 | 問題の配列 (1 問以上) |

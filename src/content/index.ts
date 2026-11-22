@@ -1,20 +1,15 @@
 // 問題データの読み込み。src/content/courses/<course>/*.json を置けば、そのコースに自動でつながる
 // (コースや週ごとの PR が同じファイルを触らないため)。中身の検査は scripts/check-content.mjs。
+// 問題の本文まで含む全部のデータなので、ホームから静的に読まない (ホームは目録 content/catalog.ts を使う)。
 import { dueReviewIds, type Progress } from '../lib/progress';
-import { COURSES, type CourseId } from '../lib/route';
+import type { CourseId } from '../lib/route';
+import { sortLessons } from './catalog';
 import type { Lesson, LessonFile, Question } from './types';
 
 const FILES = import.meta.glob<LessonFile>('./courses/*/*.json', { eager: true, import: 'default' });
 
 /** コースの順 (route.ts の COURSES) → ファイル名の順 → ファイルの中の順に並べた、すべてのレッスン */
-export const LESSONS: readonly Lesson[] = Object.entries(FILES)
-  .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
-  .flatMap(([, file]) => file.lessons)
-  .sort((a, b) => courseIndex(a.course) - courseIndex(b.course));
-
-function courseIndex(course: CourseId): number {
-  return COURSES.findIndex((c) => c.id === course);
-}
+export const LESSONS: readonly Lesson[] = sortLessons(FILES);
 
 export function lessonsOf(course: CourseId): Lesson[] {
   return LESSONS.filter((l) => l.course === course);
@@ -35,7 +30,7 @@ export function findQuestion(questionId: string): QuestionRef | undefined {
   return undefined;
 }
 
-export const isKnownQuestion = (questionId: string): boolean => findQuestion(questionId) !== undefined;
+export { dueReviewCount, isKnownQuestion } from './catalog';
 
 /** 今日の復習の問題 (予定の早い順)。問題データから消えた id は出さない */
 export function dueQuestions(p: Progress, now: Date): QuestionRef[] {
@@ -44,5 +39,3 @@ export function dueQuestions(p: Progress, now: Date): QuestionRef[] {
     .filter((r): r is QuestionRef => r !== undefined);
 }
 
-/** 今日の復習の数 (ホームの Retry-After と復習の画面で同じ数を出す) */
-export const dueReviewCount = (p: Progress, now: Date): number => dueQuestions(p, now).length;

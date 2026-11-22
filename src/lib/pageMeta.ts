@@ -1,6 +1,7 @@
 // 画面の題の正本。サイトの中で移ったときの document.title (src/App.tsx) と、
 // 書き出す HTML の <title> (src/prerender/pages.ts) が同じものを使う (食い違わないように)
-import { findLesson } from '../content/index';
+import { findLessonMeta as findLesson } from '../content/catalog';
+import type { Lesson } from '../content/types';
 import { COURSES, type PageName, type Route } from './route';
 import { SITE_NAME, SITE_TAGLINE } from './site';
 
@@ -15,12 +16,22 @@ export function titleOf(route: Route): string | null {
   return null;
 }
 
-/** タブ・履歴・検索の結果に出る題 (サイト名つき) */
+/** <title> の字数の上限 (検索の結果で切られない長さ)。長いレッスンの題は shortTitle に縮める (scripts/check-content.mjs が見る) */
+export const TITLE_MAX = 35;
+
+/** タブ・履歴・検索の結果に出る題 (サイト名つき)。レッスンは短い題があればそちら (画面の見出しは題のまま) */
 export function documentTitle(route: Route): string {
+  if (route.name === 'lesson') {
+    const lesson = findLesson(route.lessonId);
+    if (lesson) return lessonDocumentTitle(lesson);
+  }
   return withSite(titleOf(route));
 }
 
+/** レッスンの <title>。書き出す HTML (差し替えたレッスンでも引ける) と画面のタブが同じものを使う */
+export const lessonDocumentTitle = (lesson: Pick<Lesson, 'title' | 'shortTitle'>): string => withSite(lesson.shortTitle ?? lesson.title);
+
 /** 画面の題にサイト名を付ける。null はホーム */
 export function withSite(title: string | null): string {
-  return title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | ガントチャートで計画する ${SITE_TAGLINE}`;
+  return title ? `${title} | ${SITE_NAME}` : `${SITE_NAME} | ガントで計画する ${SITE_TAGLINE}`;
 }

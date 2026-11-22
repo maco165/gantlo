@@ -1,8 +1,7 @@
 // 計画と学習管理の計算。画面 (screens/Plan.tsx・Home.tsx) はここの結果を描くだけにする。
 // 計画は「学ぶコースを学ぶ順に並べたもの」と、おおよその予定 (開始日・コースごとの目安の日数) で、期限は持たない。
 // 予定の帯と巻き・遅れの計算は schedule.ts に置く。
-import { LESSONS } from '../content/index';
-import type { Lesson } from '../content/types';
+import { CATALOG, type LessonMeta } from '../content/catalog';
 import { copyPlan, type Plan, type Progress } from './progress';
 import { COURSES, type CourseId } from './route';
 
@@ -50,16 +49,16 @@ export function savePlan(p: Progress, courses: readonly CourseId[], schedule: Pi
 }
 
 /** 計画の順に並べたレッスン (1 本のガントチャートの行の順) */
-export function planLessons(courses: readonly CourseId[], lessons: readonly Lesson[] = LESSONS): Lesson[] {
+export function planLessons<L extends LessonMeta = LessonMeta>(courses: readonly CourseId[], lessons: readonly L[] = CATALOG as readonly L[]): L[] {
   return courses.flatMap((c) => lessons.filter((l) => l.course === c));
 }
 
 export const isDone = (p: Progress, lessonId: string) => p.lessons[lessonId]?.done === true;
 
 /** 今ここ: 計画の順で最初の未完了のレッスン。index は計画の中の何番目か (0 始まり)、left はその位置 (%)。全部済めば null */
-export type Here = { lesson: Lesson; index: number; total: number; left: number };
+export type Here<L extends LessonMeta = LessonMeta> = { lesson: L; index: number; total: number; left: number };
 
-export function currentLesson(courses: readonly CourseId[], p: Progress, lessons: readonly Lesson[] = LESSONS): Here | null {
+export function currentLesson<L extends LessonMeta = LessonMeta>(courses: readonly CourseId[], p: Progress, lessons: readonly L[] = CATALOG as readonly L[]): Here<L> | null {
   const ordered = planLessons(courses, lessons);
   const index = ordered.findIndex((l) => !isDone(p, l.id));
   if (index < 0) return null;

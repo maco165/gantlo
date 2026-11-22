@@ -39,7 +39,22 @@ export function renderPage(template: string, page: SitePage): string {
   }
   if (page.canonical === false) html = html.replace(/\s*<link rel="canonical"[^>]*>/, '').replace(/\s*<meta property="og:url"[^>]*>/, '');
   if (page.noindex) html = html.replace('</title>', () => '</title>\n    <meta name="robots" content="noindex" />');
+  if (page.jsonLd?.length) {
+    if (!html.includes('</head>')) throw new Error('prerender: index.html に </head> が見つかりません (構造化データを入れる場所)');
+    html = html.replace('</head>', () => `  <script type="application/ld+json">${jsonLdText(page.jsonLd!)}</script>\n  </head>`);
+  }
   return html;
+}
+
+/**
+ * 構造化データ (schema.org) の JSON。< > & は \u003c などで書き、データの文字で script が閉じないようにする
+ * (JSON としては同じ値に読める)
+ */
+export function jsonLdText(graph: readonly Record<string, unknown>[]): string {
+  return JSON.stringify({ '@context': 'https://schema.org', '@graph': graph })
+    .replace(/</g, '\\u003c')
+    .replace(/>/g, '\\u003e')
+    .replace(/&/g, '\\u0026');
 }
 
 /** 検索に載せるページだけを載せる。lastmod は付けない (作るたびの日付では正しくなく、Google は正しいと分かるときだけ使うため) */

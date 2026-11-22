@@ -1,8 +1,7 @@
 // おおよその予定と、巻き・遅れの計算 (R-20)。画面 (components/PlanGantt.tsx・screens/Home.tsx) はここの結果を描くだけにする。
 // 予定は目安で、期限は持たない。開始日から、学ぶ順にコースごとの目安の日数をつないで帯を引き、済んだ量を今日の予定と比べる。
 // 日付は端末の日付 (YYYY-MM-DD) で数え、日の差は暦の日付どうしで数える (時刻の差で数えないので、時差・夏時間でずれない)。
-import { LESSONS } from '../content/index';
-import type { Lesson } from '../content/types';
+import { CATALOG, type LessonMeta } from '../content/catalog';
 import { currentLesson, isDone, planOrder } from './plan';
 import { addDays, dayKey, isCourseDays, rangeDays, type GanttView, type Plan, type Progress } from './progress';
 import { COURSES, type CourseId } from './route';
@@ -190,7 +189,7 @@ export function buildSchedule(
   input: ScheduleInput,
   p: Progress,
   now: Date,
-  lessons: readonly Lesson[] = LESSONS,
+  lessons: readonly LessonMeta[] = CATALOG,
   view: GanttView = { kind: 'all' },
 ): Schedule {
   const today = dayKey(now);
@@ -334,7 +333,7 @@ export function verdictTone(v: Verdict): 'success' | 'info' | 'error' | null {
  * ホームの X-Schedule の値。計画を一度も保存していないうちは、巻き・遅れを出さず「204 計画なし」にする
  * (組んでいない予定に遅れを言わない)。保存したあとは計画の画面と同じ数え方で「408 2 日遅れ」のように出す
  */
-export function scheduleHeader(p: Progress, now: Date, lessons: readonly Lesson[] = LESSONS): string {
+export function scheduleHeader(p: Progress, now: Date, lessons: readonly LessonMeta[] = CATALOG): string {
   if (!p.plan) return '204 計画なし';
   const s = buildSchedule({ courses: planOrder(p), start: planStart(p, now), days: p.plan.days }, p, now, lessons);
   return `${scheduleStatus(s).code} ${verdictLabel(s.verdict)}`;

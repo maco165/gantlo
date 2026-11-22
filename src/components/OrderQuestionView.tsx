@@ -10,6 +10,7 @@ import { RETRY_AFTER_SECONDS, orderStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
 import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
+import { KIND_LABELS } from '../lib/questionKind';
 
 type Dir = 'up' | 'down';
 
@@ -76,7 +77,7 @@ export default function OrderQuestionView({
 
   return (
     <VStack gap={5}>
-      <QuestionHead kind={`並べ替え · ${head}`} prompt={question.prompt} />
+      <QuestionHead kind={`${KIND_LABELS.order} · ${head}`} prompt={question.prompt} />
 
       <section className="order" aria-labelledby="order-caption">
         <span id="order-caption" className="order__caption">
