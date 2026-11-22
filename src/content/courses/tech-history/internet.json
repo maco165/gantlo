@@ -4,6 +4,37 @@
       "id": "tech-history-l5",
       "title": "ARPANET とインターネット",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "回線交換とパケット交換の違いを説明できる",
+          "IMP・NCP・TCP/IP・DNS の役割を見分ける",
+          "dig で名前からアドレスを引いて確かめる"
+        ],
+        "body": [
+          "1960 年代、計算機どうしをつなぐには、電話の回線交換の網では全く足りないと分かりました。そこで、データを小分けのパケットにして送る網の研究が、いくつかの場所で別々に進みました。",
+          "ARPANET では、IMP というパケット交換機が網の節点になり、そこにホストの計算機をつなぎました。ホストどうしの最初の規約は NCP です。",
+          "NCP は ARPANET の先の網を宛先にできず、届く確かさも ARPANET に頼っていました。いろいろな網をつなぐために TCP/IP が作られ、全ホストの規約をどう移すかが課題になりました。",
+          "ホストには、数字のアドレスを覚えずに済むよう名前が付きます。最初は全ホストの名前を 1 つの表で持てました。今の DNS は、階層のある名前を分散した仕組みでアドレスに引きます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "ARPANET からインターネットへの言葉 (Internet Society「Brief History of the Internet」)",
+          "items": [
+            { "label": "パケット交換", "note": "データを小分けにして送る。回線交換より効率がよいと示された" },
+            { "label": "IMP", "note": "Interface Message Processor。ARPANET のパケット交換機" },
+            { "label": "NCP", "note": "ARPANET の最初のホスト間の規約。端から端の誤りの制御を持たない" },
+            { "label": "TCP/IP", "note": "独立に作られた多くの網をつなぐための規約" },
+            { "label": "DNS", "note": "階層のある名前をアドレスに引く、分散した仕組み" }
+          ]
+        },
+        "tryIt": [
+          { "command": "dig example.com A", "expect": "ANSWER SECTION の行に、example.com の A レコード (IPv4 のアドレス) が出ます。ほかに問い合わせの見出しや、かかった時間なども並びます。" }
+        ],
+        "sources": [
+          "https://www.internetsociety.org/internet/history-internet/brief-history-internet/",
+          "https://bind9.readthedocs.io/en/latest/manpages.html"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l5-q1",
@@ -91,7 +122,16 @@
           "tool": "dig",
           "prompt": "今: DNS で example.com の IP アドレスだけを短く出したい。答えだけを出す dig のオプションを埋めてください。",
           "code": "dig {{blank}} example.com A",
-          "blanks": [{ "answers": ["+short"] }],
+          "blanks": [
+            {
+              "answers": ["+short"],
+              "wrong": [
+                { "answer": "+answer", "why": "+answer は答えの節 (ANSWER SECTION) を出すかどうかの切り替えで、既定で出す設定です。付けても出力は詳しいままです。" },
+                { "answer": "+noall", "why": "+noall は表示の設定をすべて消すので、これだけでは答えの行も出ません。" },
+                { "answer": "--short", "why": "dig の問い合わせのオプションは + で始まります。--short は手元の dig 9.20 で Invalid option になります。" }
+              ]
+            }
+          ],
           "explanation": "+short は詳しい出力の代わりに答えだけを短く出します (BIND 9 の dig のマニュアル)。昔の 1 つの表の代わりに、今は分散した DNS に問い合わせて名前からアドレスを引いています。",
           "sources": ["https://bind9.readthedocs.io/en/latest/manpages.html"]
         },
@@ -119,6 +159,37 @@
       "title": "HTTP",
       "course": "tech-history",
       "stage": "http",
+      "intro": {
+        "goals": [
+          "HTTP の版の番号の読み方を説明できる",
+          "版が変わっても変わらない意味と、変わる送り方を見分ける",
+          "curl で使われた HTTP の版を確かめる"
+        ],
+        "body": [
+          "HTTP の版の番号は、点で区切った 2 つの数字です。上の桁 (メジャー版) はメッセージの書き方を表します。下の桁 (マイナー版) は、送り手が分かる最も高い版を伝えます。",
+          "メソッドやステータスコードなど、HTTP の中心の意味は版が変わっても変わりません。変わるのは回線の上での表し方で、互換の無い変化があると版の番号が上がります。",
+          "応答の版はサーバーが選びます。サーバーは、要求のメジャー版以下で、自分が準拠する最も高い版で返すべき (SHOULD) とされています。",
+          "curl は、https の宛先とは TLS の握手の中で HTTP/2 を話す取り決めを、既定で試みます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "1 本の接続での要求の並べ方 (RFC 7540 1)",
+          "items": [
+            { "label": "HTTP/1.0", "note": "1 本の TCP の接続で、応答を待てる要求は一度に 1 つだけ" },
+            { "label": "HTTP/1.1", "note": "パイプラインを足したが、先頭の詰まり (head-of-line blocking) が残る" },
+            { "label": "HTTP/2", "note": "同じ接続で要求と応答を交互に流し、ヘッダーを効率よく符号化する" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -s -o /dev/null -w '%{http_version}\\n' https://example.com/", "expect": "使われた版が 2 と出ます (手元の curl 8.18.0 で確かめた値)。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9110#section-2.5",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-6.2",
+          "https://www.rfc-editor.org/rfc/rfc7540#section-1",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l6-q1",
@@ -164,7 +235,16 @@
           "tool": "curl",
           "prompt": "古い HTTP/1.0 で要求を送って、違いを見てみたい。HTTP/1.0 を使わせる curl のオプションを埋めてください。",
           "code": "curl -sI {{blank}} https://example.com/",
-          "blanks": [{ "answers": ["--http1.0", "-0"] }],
+          "blanks": [
+            {
+              "answers": ["--http1.0", "-0"],
+              "wrong": [
+                { "answer": "--http1.1", "why": "--http1.1 は HTTP/1.1 を使わせるオプションです。古い版の要求にはなりません。" },
+                { "answer": "-1", "why": "-1 は --tlsv1 の短い形で、TLS 1.0 以上を使わせるオプションです。HTTP の版ではなく TLS の版を決めます。" },
+                { "answer": "--http0.9", "why": "--http0.9 は、ヘッダーの無い HTTP/0.9 の応答を受け入れるかの設定です。要求の版を下げるものではありません。" }
+              ]
+            }
+          ],
           "output": "HTTP/1.1 200 OK\n...",
           "explanation": "-0 (--http1.0) は、curl に既定の版ではなく HTTP/1.0 で要求させます (curl のマニュアル)。HTTP/1.0 は RFC 1945 (1996 年 5 月) にまとめられた版です。ただし応答の版はサーバーが選びます。RFC 9110 の 6.2 は、サーバーは要求のメジャー版以下で自分が準拠する最も高い版で返すべき (SHOULD) と書きます。そのため HTTP/1.1 のサーバーの多くは、HTTP/1.0 の要求にも HTTP/1.1 200 OK で返します (example.com もそうです)。送った要求の行 (> HEAD / HTTP/1.0) は -v を付けると見られます。",
           "sources": [
@@ -228,6 +308,31 @@
       "title": "REST",
       "course": "tech-history",
       "stage": "rest",
+      "intro": {
+        "goals": [
+          "アーキテクチャの様式を制約の集まりとして読む",
+          "REST の資源と表現の違いを見分ける",
+          "表現のデータの形がメディアタイプだと説明できる"
+        ],
+        "body": [
+          "REST の原典は、アーキテクチャの様式を、選んだ制約の集まりとして説明します。制約を 1 つずつ足し、その制約が生む性質を論じる形です。出発点は、制約が 1 つも無い「Null style」です。",
+          "REST の情報の中心の抽象は資源 (resource) です。名前を付けられる情報なら、文書でも画像でも「今日のロサンゼルスの天気」でも資源になれます。",
+          "部品は資源そのものではなく、その表現 (representation) を受け渡します。表現はバイトの列と、そのバイトを説明するメタデータの組です。表現のデータの形をメディアタイプと呼びます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "REST のデータの要素 (REST の原典 5.1.1・5.2.1)",
+          "items": [
+            { "label": "Null style", "note": "制約が 1 つも無い様式。部品のあいだに境目が無い" },
+            { "label": "資源 (resource)", "note": "名前を付けられる情報。ある時点の実体ではなく、実体の集まりへの対応づけ" },
+            { "label": "表現 (representation)", "note": "資源の今の状態か望む状態を表す、バイトの列とメタデータ" },
+            { "label": "メディアタイプ", "note": "表現のデータの形" }
+          ]
+        },
+        "sources": [
+          "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l7-q1",
@@ -333,6 +438,34 @@
       "title": "URI と URL",
       "course": "tech-history",
       "stage": "uri",
+      "intro": {
+        "goals": [
+          "URI・URL・URN の関係を説明できる",
+          "使えない文字を % で表す書き方を読む",
+          "URI の部品ごとの役割を見分ける"
+        ],
+        "body": [
+          "URI は、資源を見分けるための文字列の書き方です。そのうち、資源を取りに行く方法 (場所) も表すものを URL と呼びます。名前の性質を持つものは URN と呼ばれてきました。今の仕様は、広い「URI」の語を使うよう勧めています。",
+          "部品に使えない文字や区切りの文字は、% と 16 進の 2 桁で表します。たとえば空白は %20 です。",
+          "URI はいくつかの部品からできていて、部品ごとに役割が違います。資源を見分けるのは、主に階層のある部品と階層の無い部品の組です。それとは別に、主の資源を手がかりに、その一部分などの二次的な資源を指す部品もあります。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "URI の部品の役割 (RFC 3986 3.1〜3.5。並びは英字の順)",
+          "items": [
+            { "label": "authority", "note": "名前の空間を任された管理者を表す。登録された名前かサーバーのアドレスに、任意でポートや利用者の情報が付く" },
+            { "label": "fragment", "note": "主の資源と追加の情報から、その一部分などの二次的な資源を間接に指す" },
+            { "label": "path", "note": "多くは階層の形のデータ。query と合わせて、スキームと管理者の範囲の中で資源を見分ける" },
+            { "label": "query", "note": "階層の無いデータ。path と合わせて資源を見分ける" },
+            { "label": "scheme", "note": "そのスキームの中での識別子の割り当て方を定めた仕様を指す名前" }
+          ]
+        },
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc3986#section-1.1.3",
+          "https://www.rfc-editor.org/rfc/rfc3986#section-2.1",
+          "https://www.rfc-editor.org/rfc/rfc3986#section-3"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l8-q1",

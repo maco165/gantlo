@@ -19,6 +19,13 @@ describe('セキュリティのコースの注意', () => {
     }
   });
 
+  it('各レッスンの要点 (intro) の説明に注意がある (要点の試すコマンドも、自分で用意したラボの中だけで打つ)', () => {
+    for (const lesson of lessons) {
+      const body = lesson.intro?.body.join('') ?? '';
+      for (const phrase of PHRASES) expect(body, `${lesson.id}: ${phrase}`).toContain(phrase);
+    }
+  });
+
   it('すべての実習 (lab) の prompt に注意がある', () => {
     const labs = lessons.flatMap((l) => l.questions).filter((q) => q.kind === 'lab');
     expect(labs.length).toBeGreaterThan(0);

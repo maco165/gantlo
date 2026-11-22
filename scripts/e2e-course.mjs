@@ -11,7 +11,7 @@
 //      「読み込めませんでした」と読み直すボタンを出す (新しい版を出したあとの開いたままのタブ)
 //   6. JS で描いた画面にもパンくずが出る (コースは ホーム › コース、レッスンは ホーム › コース › レッスン)。ホームのリンクでホームへ戻る
 // E2E_SHOT_DIR を付けると、各幅の途中 (206) のコースの画面の写しをそこに置く
-import { COURSE_ORDER, loadLessons } from './e2e-lessons.mjs';
+import { COURSE_ORDER, loadLessons, startLesson } from './e2e-lessons.mjs';
 
 const COURSE_TITLES = { main: '本編 4 週', spring: 'Spring Boot の流れ', 'tech-history': '技術の歴史', 'mgmt-history': '管理の歴史', security: 'セキュリティ' };
 
@@ -135,6 +135,7 @@ export async function runCourse(browser, { base, check, noHorizontalOverflow }) 
 
     // 2. 次のレッスンのボタンで開く・表の行のリンクで開く
     await nextBtn.click();
+    await startLesson(page);
     await page.getByRole('heading', { name: l2.questions[0].prompt }).waitFor();
     check(new URL(page.url()).pathname === `/gantlo/lesson/${l2.id}/`, `${where}: 次のレッスンのボタンでレッスンが開く (${new URL(page.url()).pathname})`);
     // レッスンの画面の h1 はレッスン名 (書き出す HTML の h1 と同じ)。問題文はその下の h2
@@ -144,7 +145,9 @@ export async function runCourse(browser, { base, check, noHorizontalOverflow }) 
     await page.goBack();
     await page.locator(`.page[data-course="${multi}"] .net__row`).first().waitFor();
     await page.locator(`.net__row[data-lesson="${l1.id}"] .net__name a`).click();
+    // 済んだレッスンは要点を飛ばして 1 問目が出る (要点は畳む)
     await page.getByRole('heading', { name: l1.questions[0].prompt }).waitFor();
+    check((await page.getByTestId('lesson-intro').count()) === 0, `${where}: 済んだレッスンは要点を飛ばして 1 問目が出る`);
     check(new URL(page.url()).pathname === `/gantlo/lesson/${l1.id}/`, `${where}: 表の行のリンクで済んだレッスンも開く (${new URL(page.url()).pathname})`);
 
     // 3. 全部済み

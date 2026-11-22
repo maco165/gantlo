@@ -51,8 +51,10 @@ import {
   orderText,
   pickWalkLesson,
   rightInputs,
+  startLesson,
   unsortedTarget,
 } from './e2e-lessons.mjs';
+import { checkIntroGate, runIntro } from './e2e-intro.mjs';
 import { runNarrow } from './e2e-narrow.mjs';
 import { runProgressAndGlossary } from './e2e-progress-glossary.mjs';
 import { runReviewAndSettings } from './e2e-review-settings.mjs';
@@ -177,7 +179,7 @@ async function aiQuery(page) {
 /** 答えの手がかりになる文 (正解・解説・実行結果の例・見えること・誤りの理由) */
 function secretsOf(q) {
   const out = [q.explanation];
-  if (q.kind === 'command' || q.kind === 'http') for (const b of q.blanks) out.push(...b.answers);
+  if (q.kind === 'command' || q.kind === 'http') for (const b of q.blanks) out.push(...b.answers, ...(b.wrong ?? []).map((w) => w.why));
   if (q.kind === 'command' && q.output) out.push(q.output);
   if (q.kind === 'choice') {
     // 正解の選択肢の文は選択肢として必ず出るので、「正解は「…」」の形で入っていないかを見る
@@ -313,6 +315,7 @@ async function run(browser, name, width, height) {
   // 1 問目: ページの題・何問目か・AI に聞くリンク・押せる範囲
   const q0 = lesson.questions[0];
   await page.goto(LESSON_URL);
+  await checkIntroGate(page, lesson, tag, width, { check, noHorizontalOverflow });
   await page.getByRole('heading', { name: q0.prompt }).waitFor();
   check((await page.title()).startsWith(lesson.title), `${tag} ページの題がレッスン名で始まる (${lesson.id})`);
   check(await page.getByText(`1 / ${n} 問`).first().isVisible(), `${tag} 何問目かが出る`);
@@ -522,6 +525,7 @@ async function run(browser, name, width, height) {
   // ほかのレッスン: 1 周目は全部正しく (大文字と小文字を変えた空欄・実習)、2 周目でメディアタイプを誤る (415)
   for (const extra of extraLessons) {
     await page.goto(`${BASE}lesson/${extra.id}/`);
+    await startLesson(page);
     const e1 = await walk(page, extra, () => 'right', {
       before: async (q) => (q.kind === 'lab' && once('lab-ui') ? await finishLabChecked(page, q, tag, width, phone) : false),
       after: async (q) => {
@@ -681,6 +685,7 @@ try {
   await runExam(browser, { base: BASE, check, noHorizontalOverflow });
   // 390 幅の崩れ (B-025)
   await runNarrow(browser, { base: BASE, check, noHorizontalOverflow });
+  await runIntro(browser, { base: BASE, check, noHorizontalOverflow });
   // テーマと文字のコントラスト (R-16)
   await runContrast(browser, { base: BASE, check });
 } catch (e) {

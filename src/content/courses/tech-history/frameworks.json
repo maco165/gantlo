@@ -4,6 +4,32 @@
       "id": "tech-history-l1",
       "title": "Spring Framework と DI",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "実装を自分で作るクラスが差し替えにくい理由を説明できる",
+          "組み立て役が実装を入れる DI の形を読む",
+          "注入の 3 つの形の違いを見分ける"
+        ],
+        "body": [
+          "あるクラスが、使う相手の実装を自分の中で直接作ると、別の実装に差し替えられません。Fowler の記事は、映画の一覧のクラスが検索の実装を直接作る例で、この困りごとを示しています。",
+          "当時の軽量コンテナは「制御の反転 (IoC)」を売りにしていました。記事は、そこで逆になっているのは何の制御なのかを問い直し、それは実装の探し方だと書いています。",
+          "DI では、組み立て役 (assembler) という別のオブジェクトが、使う側に合う実装を入れます。使う側はインターフェースだけを知っていれば済みます。記事は、実装への依存を外す方法は DI だけではないとも書いています。",
+          "注入の形は 3 つに分けて名付けられています。コンストラクタで渡す形、setter で渡す形、インターフェースを通して渡す形です。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "注入の 3 つの形 (Fowler「Inversion of Control Containers and the Dependency Injection pattern」Forms of Dependency Injection)",
+          "items": [
+            { "label": "Constructor Injection", "note": "コンストラクタの引数で実装を受け取る。番号の呼び名は type 3 IoC" },
+            { "label": "Setter Injection", "note": "setter のメソッドで実装を受け取る。番号の呼び名は type 2 IoC" },
+            { "label": "Interface Injection", "note": "注入用のインターフェースを通して受け取る。番号の呼び名は type 1 IoC" }
+          ]
+        },
+        "sources": [
+          "https://martinfowler.com/articles/injection.html",
+          "https://docs.spring.io/spring-framework/reference/overview.html"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l1-q1",
@@ -86,6 +112,33 @@
       "id": "tech-history-l2",
       "title": "Spring Boot と自動設定",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "自動設定が何を手がかりに設定を組むかを説明できる",
+          "自動設定を有効にする注釈を見分ける",
+          "自分の設定と自動設定が重なる場面を読む"
+        ],
+        "body": [
+          "Spring Boot の自動設定は、アプリの設定を人が書く代わりに、自動で組み立てようとする仕組みです。何を手がかりに組み立てるかが、この仕組みの出発点です。",
+          "自動設定は、使う側が選んで有効にします (opt-in)。主な @Configuration のクラスに注釈を 1 つ付けます。注釈は @EnableAutoConfiguration か @SpringBootApplication です。付けるのはどちらか 1 つだけです。",
+          "自動設定が用意するものと同じものを、自分でも定義することがあります。そのときどちらが使われるかは、公式文書の置き換え (Gradually Replacing) の節にあります。",
+          "特定の自動設定のクラスを丸ごと外すこともできます。注釈の exclude の属性か、spring.autoconfigure.exclude の設定で指定します。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "自動設定を扱う道具 (Spring Boot 参照文書 Auto-configuration)",
+          "items": [
+            { "label": "@SpringBootApplication", "note": "自動設定を有効にする注釈の 1 つ。主な @Configuration のクラスに付ける" },
+            { "label": "@EnableAutoConfiguration", "note": "自動設定を有効にするもう 1 つの注釈。付けるのはどちらか 1 つ" },
+            { "label": "exclude / excludeName", "note": "注釈の属性。外したい自動設定のクラスを、クラスか完全な名前で指定する" },
+            { "label": "spring.autoconfigure.exclude", "note": "外す自動設定のクラスを、注釈でなく設定の値で指定する" }
+          ]
+        },
+        "sources": [
+          "https://docs.spring.io/spring-boot/reference/using/auto-configuration.html",
+          "https://spring.io/blog/2014/04/01/spring-boot-1-0-ga-released"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l2-q1",
@@ -164,6 +217,35 @@
       "id": "tech-history-l3",
       "title": "トランザクション",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "トランザクションの 4 つの性質の意味を見分ける",
+          "コミットとアボートの 2 つの結末を説明できる",
+          "Spring の宣言的な管理と EJB の CMT を比べる"
+        ],
+        "body": [
+          "Gray の論文は、トランザクションの考え方は契約の法から来たと書いています。計算機の上では、トランザクションは系の状態の変換として表されます。",
+          "結末はコミットかアボートのどちらか 1 つだけです。コミットした効果は故障があっても残り、その後のトランザクションでしか変えられません。アボートしたものの効果は 1 つも残りません。",
+          "Spring の利用者の多くは、宣言的なトランザクション管理を選びます。アプリのコードへの影響が最も小さいからです。EJB の CMT と同じくメソッド単位で指定できますが、両者には違いもあります。",
+          "例外が起きたときにロールバックするかどうかは、既定では例外の種類で決まります。既定を変えたいときは、rollbackFor などのロールバックの規則で指定します。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "トランザクションの性質を表す 4 つの言葉 (意味は下の出典の一覧から)",
+          "items": [
+            { "label": "atomicity (原子性)", "note": "全部か無しか。起きるか起きないかのどちらか" },
+            { "label": "consistency (一貫性)", "note": "正しい変換であること" },
+            { "label": "isolation (独立性)", "note": "ほかのトランザクションの作業からどれだけ隔てられているか" },
+            { "label": "durability (永続性)", "note": "効果が故障を越えて残ること" }
+          ]
+        },
+        "sources": [
+          "https://jimgray.azurewebsites.net/papers/thetransactionconcept.pdf",
+          "https://docs.spring.io/spring-framework/reference/data-access/transaction/strategies.html",
+          "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative.html",
+          "https://docs.spring.io/spring-framework/reference/data-access/transaction/declarative/rolling-back.html"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l3-q1",
@@ -250,6 +332,35 @@
       "id": "tech-history-l4",
       "title": "プロキシと AOP",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "AOP が解こうとした「絡まったコード」を説明できる",
+          "join point・pointcut・advice の役割を見分ける",
+          "呼び出しがプロキシを通るかどうかを読む"
+        ],
+        "body": [
+          "Kiczales らは、手続き型でもオブジェクト指向でも、設計の判断の一部をきれいに書けない問題があると述べました。その判断の実装はコードのあちこちに散らばり、絡まった (tangled) コードになります。",
+          "Spring AOP では、join point はいつもメソッドの実行です。pointcut は、どの join point に当てるかを決める条件です。advice は、その点で行う処理です。",
+          "Spring AOP は実行時のプロキシで作られます。プロキシの作り方は、JDK の動的プロキシと CGLIB の 2 つです。どちらを使うかは、対象のオブジェクトの作りで決まります。",
+          "利用側のコードがプロキシへの参照を持つと、その参照への呼び出しはプロキシへの呼び出しになります。そのときプロキシは、関係する advice に処理を回せます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "AOP の言葉 (Spring Framework 参照文書 AOP Concepts)",
+          "items": [
+            { "label": "join point", "note": "実行の途中の点。Spring AOP ではいつもメソッドの実行" },
+            { "label": "pointcut", "note": "join point に当てはまるかを決める条件の式" },
+            { "label": "advice", "note": "join point で行う処理。around・before・after などの種類がある" },
+            { "label": "target object", "note": "advice を受ける対象のオブジェクト。Spring AOP ではいつもプロキシに包まれる" },
+            { "label": "AOP proxy", "note": "aspect の働きを実装するために作るオブジェクト" }
+          ]
+        },
+        "sources": [
+          "https://www.cs.ubc.ca/~gregor/papers/kiczales-ECOOP1997-AOP.pdf",
+          "https://docs.spring.io/spring-framework/reference/core/aop/introduction-defn.html",
+          "https://docs.spring.io/spring-framework/reference/core/aop/proxying.html"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l4-q1",
