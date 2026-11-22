@@ -80,6 +80,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     check((await statusCode()) === '200', `${tag} 始める前は 200 OK`);
     const intro = await page.locator('#astryx-app-shell-main').innerText();
     check(intro.includes('40 問') && intro.includes('60 分') && intro.includes('75% 以上'), `${tag} 問題の数・制限時間・合格の線が出る`);
+    check(intro.includes('合格の目安') && intro.includes('このサイトが決めた目安'), `${tag} 合格の線は目安と書き、公式の基準ではないと断る`);
     check([1, 2, 3, 4].every((w) => intro.includes(`第 ${w} 週`)), `${tag} 出題の範囲に第 1〜4 週が出る`);
     check(intro.includes('まだ受けていません'), `${tag} 空の記録では「まだ受けていません」`);
     let menu = page.locator('nav.astryx-side-nav');

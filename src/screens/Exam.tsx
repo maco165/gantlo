@@ -18,6 +18,7 @@ import {
   EXAM_TOTAL,
   EXAM_WEEKS,
   PASS_MARK,
+  PASS_MARK_NOTE,
   expectedText,
   formatClock,
   gradeExam,
@@ -148,7 +149,7 @@ function Intro({ progress, onStart }: { progress: Progress; onStart: () => void 
     <div className="page">
       <h1 className="page__title">模擬試験</h1>
       <Text type="supporting">
-        本編 4 週の総まとめです。各週から {EXAM_PER_WEEK} 問ずつ、合わせて {EXAM_TOTAL} 問を開くたびに選び直します。解いている間は正誤を出さず、最後にまとめて採点します。
+        本編 4 週の総まとめです。各週から {EXAM_PER_WEEK} 問ずつ、合わせて {EXAM_TOTAL} 問を開くたびに選び直します。解いている間は正誤を出さず、最後にまとめて採点します。{PASS_MARK_NOTE}
       </Text>
       <StatusLine status={examIntroStatus(EXAM_TOTAL, EXAM_MINUTES)} request="GET /exam" />
       <dl className="stats">
@@ -166,7 +167,7 @@ function Intro({ progress, onStart }: { progress: Progress; onStart: () => void 
         </div>
         <div className="stats__item">
           <dt>
-            <Text type="supporting">合格</Text>
+            <Text type="supporting">合格の目安</Text>
           </dt>
           <dd>{pct(PASS_MARK)} 以上</dd>
         </div>
@@ -317,7 +318,7 @@ function ResultView({ done, onRetry }: { done: Done; onRetry: () => void }) {
         status={status}
         request="POST /me/exams"
         headers={[
-          { name: 'X-Result', value: result.passed ? 'pass' : 'fail', ja: `合否 (合格は ${pct(PASS_MARK)} 以上)` },
+          { name: 'X-Result', value: result.passed ? 'pass' : 'fail', ja: `合否 (このサイトの目安で、${pct(PASS_MARK)} 以上を合格とします)` },
           { name: 'X-XP', value: `+${result.correct * XP_PER_CORRECT}`, ja: 'この回で得た XP' },
           ...(result.unanswered > 0 ? [{ name: 'X-Unanswered', value: String(result.unanswered), ja: '時間内に答えられなかった問題の数 (不正解として数えました)' }] : []),
         ]}

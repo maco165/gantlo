@@ -11,8 +11,13 @@ import { shuffleChoices, shuffled } from './shuffle';
 /** 週ごとに出す数。4 週で 40 問 */
 export const EXAM_PER_WEEK = 10;
 export const EXAM_MINUTES = 60;
-/** 合格の線 (正答率)。75% ちょうどは合格 */
+/**
+ * 合格の目安 (正答率)。75% ちょうどは合格。このサイトが決めた目安で、出典となる一次情報 (資格試験などの公式の基準) は無い。
+ * 画面と書き出す HTML では「目安」と書き、PASS_MARK_NOTE を添える
+ */
 export const PASS_MARK = 0.75;
+/** 合格の線の断り書き (画面と書き出す HTML で同じ文を使う) */
+export const PASS_MARK_NOTE = '合格の線はこのサイトが決めた目安で、資格試験などの公式の基準ではありません。';
 
 /** 本編の週と、その週で学ぶもの (src/lib/courses.ts の本編の説明と同じ分け方) */
 export const EXAM_WEEKS = [
