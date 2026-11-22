@@ -30,6 +30,15 @@ function measureInPage() {
     if (m) return [Number(m[1]) * 255, Number(m[2]) * 255, Number(m[3]) * 255, m[4] === undefined ? 1 : Number(m[4])];
     return null;
   };
+  // linear-gradient の色の止まりがすべて同じ色ならその色、そうでなければ null
+  const flatGradient = (img) => {
+    const m = img.match(/^linear-gradient\((.*)\)$/);
+    if (!m) return null;
+    const stops = [...m[1].matchAll(/rgba?\([^)]*\)|color\(srgb [^)]*\)/g)].map((x) => x[0]);
+    const rest = m[1].replace(/rgba?\([^)]*\)|color\(srgb [^)]*\)/g, '').replace(/[\s,]/g, '');
+    if (stops.length < 1 || rest !== '' || !stops.every((c) => c === stops[0])) return null;
+    return parse(stops[0]);
+  };
   // 上に a (透明度つき) を、下に b (不透明) を重ねた色
   const over = (a, b) => [0, 1, 2].map((i) => a[i] * a[3] + b[i] * (1 - a[3])).concat(1);
   const lum = (c) => {
@@ -60,9 +69,12 @@ function measureInPage() {
     let image = false;
     const paint = (i, under) => {
       const cs = getComputedStyle(path[i]);
-      if (cs.backgroundImage !== 'none') image = true;
+      // 両端が同じ色の linear-gradient は 1 色の膜 (テーマが hover の重ねに使う) なので、地の色の上に重ねて測る。それ以外の画像は測れない
+      const film = flatGradient(cs.backgroundImage);
+      if (cs.backgroundImage !== 'none' && !film) image = true;
       const own = parse(cs.backgroundColor);
-      const bgHere = own && own[3] > 0 ? over(own, under) : under;
+      const painted = own && own[3] > 0 ? over(own, under) : under;
+      const bgHere = film && film[3] > 0 ? over(film, painted) : painted;
       const inner = i === path.length - 1 ? { bg: bgHere, fg: over(fg, bgHere) } : paint(i + 1, bgHere);
       const op = Number(cs.opacity);
       return op < 1 ? { bg: mix(inner.bg, under, op), fg: mix(inner.fg, under, op) } : inner;
@@ -309,6 +321,10 @@ export async function runContrast(browser, { base, check }) {
     await examPage.goto(`${base}exam/`);
     await examPage.getByRole('button', { name: '模擬試験を始める' }).waitFor();
     await measureExam('模擬試験 (始める前)', ['模擬試験を始める', '75% 以上']);
+    // ボタンの上にポインタがある状態 (テーマが hover で 1 色の膜 = 両端が同じ色の linear-gradient を重ねる)。
+    // 押したあとのポインタの位置しだいで、途中の画面の送るボタンがたまたまこの状態になるので、ここで毎回わざと作って測る
+    await examPage.getByRole('button', { name: '模擬試験を始める' }).hover();
+    await measureExam('模擬試験 (始めるボタンに hover)', ['模擬試験を始める']);
     await examPage.getByRole('button', { name: '模擬試験を始める' }).click();
     await examPage.locator('[data-testid="exam-run"]').waitFor();
     await examContext.clock.fastForward('56:00');
