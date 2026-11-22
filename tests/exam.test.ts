@@ -28,7 +28,7 @@ import {
   type ExamAnswer,
   type ExamItem,
 } from '../src/lib/exam';
-import { EXAM_SAVE_KEY, clearExamRun, saveExamRun, savedRunId } from '../src/lib/examSave';
+import { EXAM_SAVE_KEY, LEGACY_EXAM_SAVE_KEY, clearExamRun, saveExamRun, savedRunId } from '../src/lib/examSave';
 import { XP_PER_CORRECT } from '../src/lib/grade';
 import { MAX_EXAM_RECORDS, STORAGE_KEY, emptyProgress, normalizeProgress } from '../src/lib/progress';
 import { examDone } from '../src/lib/status';
@@ -281,7 +281,7 @@ describe('途中の回の保存と読み直し (A3)', () => {
     expect(back!.runId).toBe('run-1');
   });
 
-  it('localStorage の別のキー (gantlo.exam.v1) に置き、進捗のキー (gantlo.v1) は触らない。消すとキーごと無くなる', () => {
+  it('localStorage の別のキー (gantlo.exam.v2) に置き、進捗のキー (gantlo.v1) は触らない。消すとキーごと無くなる', () => {
     const s = memory();
     saveExamRun(toSavedExam(items, answers, 1, 'run-1'), s);
     expect([...s.m.keys()]).toEqual([EXAM_SAVE_KEY]);
@@ -299,7 +299,7 @@ describe('途中の回の保存と読み直し (A3)', () => {
     const bad: unknown[] = [
       null,
       'x',
-      { ...good, v: 2 },
+      { ...good, v: 3 },
       { ...good, runId: undefined },
       { ...good, runId: '' },
       { ...good, deadline: 'soon' },
@@ -318,7 +318,7 @@ describe('途中の回の保存と読み直し (A3)', () => {
     s.setItem(EXAM_SAVE_KEY, '{broken');
     expect(loadExamRun(bank, s)).toBeNull();
     expect(s.m.size).toBe(0);
-    s.setItem(EXAM_SAVE_KEY, JSON.stringify({ ...good, v: 2 }));
+    s.setItem(EXAM_SAVE_KEY, JSON.stringify({ ...good, v: 3 }));
     expect(loadExamRun(bank, s)).toBeNull();
     expect(s.m.size).toBe(0);
   });
@@ -413,5 +413,45 @@ describe('見直しの印と前へ・一覧から移る (#55)', () => {
     const p = recordExam(emptyProgress(), three, answers, result, new Date('2026-11-23T10:00:00'), 'r');
     expect(Object.values(p.answered ?? {})).toEqual([2]);
     expect(p.answers[three[1].question.id].nextReview).toBe('2026-11-24');
+  });
+});
+
+describe('保存の鍵の分け (R-002)', () => {
+  const bank = examBank(LESSONS);
+  const items = pickExam(bank, seeded(5));
+  const right = { correct: true, code: 200 };
+  const memory = () => {
+    const m = new Map<string, string>();
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k), m };
+  };
+
+  it('新しい形は gantlo.exam.v2 に書き、前の版の鍵 (v1) には書かない (前の版の JS が null を含む回を消すため)', () => {
+    const s = memory();
+    saveExamRun(toSavedExam(items, [right, undefined, right], 1, 'run-n', { index: 2, marks: [1] }), s);
+    expect([...s.m.keys()]).toEqual(['gantlo.exam.v2']);
+    expect(EXAM_SAVE_KEY).toBe('gantlo.exam.v2');
+    expect(JSON.parse(s.m.get('gantlo.exam.v2')!).v).toBe(2);
+  });
+
+  it('前の版の鍵の回は、読むときに新しい鍵へ移して消す (詰めた答え・index なしの形のまま読める)', () => {
+    const s = memory();
+    const old = { v: 1, runId: 'old', items: toSavedExam(items, [], 1, 'old').items, answers: [right, right], deadline: 9e15 };
+    s.setItem(LEGACY_EXAM_SAVE_KEY, JSON.stringify(old));
+    expect(savedRunId(s)).toBe('old');
+    expect(s.m.has(LEGACY_EXAM_SAVE_KEY)).toBe(false);
+    const back = loadExamRun(bank, s)!;
+    expect(back.runId).toBe('old');
+    expect(back.index).toBe(2);
+  });
+
+  it('新しい鍵に回があれば、前の版の鍵の回は捨てる。消すと両方の鍵が無くなる', () => {
+    const s = memory();
+    saveExamRun(toSavedExam(items, [right], 1, 'new'), s);
+    s.setItem(LEGACY_EXAM_SAVE_KEY, JSON.stringify({ v: 1, runId: 'old', items: [], answers: [], deadline: 1 }));
+    expect(savedRunId(s)).toBe('new');
+    expect(s.m.has(LEGACY_EXAM_SAVE_KEY)).toBe(false);
+    s.setItem(LEGACY_EXAM_SAVE_KEY, '{}');
+    clearExamRun(s);
+    expect(s.m.size).toBe(0);
   });
 });

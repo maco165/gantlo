@@ -4,7 +4,7 @@
 import type { Lesson, Question } from '../content/types';
 import { XP_PER_CORRECT } from './grade';
 import { shuffleItems } from './order';
-import { EXAM_SAVE_KEY, type ExamStorage, type SavedExam, type SavedExamItem } from './examSave';
+import { EXAM_SAVE_KEY, migrateExamSave, type ExamStorage, type SavedExam, type SavedExamItem } from './examSave';
 import { MAX_EXAM_RECORDS, completeReview, recordAnswer, safeLocalStorage, type ExamRecord, type Progress } from './progress';
 import { shuffleChoices, shuffled } from './shuffle';
 
@@ -192,7 +192,7 @@ export function toSavedExam(
   let last = -1;
   for (let i = 0; i < Math.min(answers.length, items.length); i++) if (answers[i] !== undefined) last = i;
   const out: SavedExam = {
-    v: 1,
+    v: 2,
     runId,
     items: items.map(({ question: q }) => (q.kind === 'choice' ? { id: q.id, order: q.choices.map((c) => c.id) } : q.kind === 'order' ? { id: q.id, order: q.items.map((it) => it.id) } : { id: q.id })),
     answers: Array.from({ length: last + 1 }, (_, i) => {
@@ -219,7 +219,8 @@ export type RestoredExam = { runId: string; items: ExamItem[]; answers: (ExamAns
 export function fromSavedExam(raw: unknown, bank: readonly ExamItem[]): RestoredExam | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const r = raw as Partial<Record<keyof SavedExam, unknown>>;
-  if (r.v !== 1 || typeof r.runId !== 'string' || r.runId === '' || r.runId.length > 64 || !Array.isArray(r.items) || !Array.isArray(r.answers) || typeof r.deadline !== 'number' || !Number.isFinite(r.deadline)) return null;
+  // v は 1 (前の版の形。鍵 gantlo.exam.v1 から移したもの) か 2
+  if ((r.v !== 1 && r.v !== 2) || typeof r.runId !== 'string' || r.runId === '' || r.runId.length > 64 || !Array.isArray(r.items) || !Array.isArray(r.answers) || typeof r.deadline !== 'number' || !Number.isFinite(r.deadline)) return null;
   // 答えは問題の数まで (全部に答えて採点の前の確かめにいる回もある)
   if (r.items.length === 0 || r.items.length > EXAM_TOTAL || r.answers.length > r.items.length) return null;
   const byId = new Map(bank.map((b) => [b.question.id, b]));
@@ -264,6 +265,7 @@ export function fromSavedExam(raw: unknown, bank: readonly ExamItem[]): Restored
 export function loadExamRun(bank: readonly ExamItem[], storage: ExamStorage | undefined = safeLocalStorage(), progress?: Progress): RestoredExam | null {
   if (!storage) return null;
   try {
+    migrateExamSave(storage);
     const text = storage.getItem(EXAM_SAVE_KEY);
     if (!text) return null;
     const run = fromSavedExam(JSON.parse(text), bank);

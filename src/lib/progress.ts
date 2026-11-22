@@ -29,7 +29,7 @@ export function inRowOf(a: AnswerRecord | undefined): number {
 }
 
 /** 模擬試験の 1 回の記録。at は終えた時刻 (ISO)、timeUp は時間が切れて終わったか */
-/** 模擬試験の回の記録。runId は採点した回の id (同じ回を 2 回記録しないため。途中の回の保存 gantlo.exam.v1 と同じ id) */
+/** 模擬試験の回の記録。runId は採点した回の id (同じ回を 2 回記録しないため。途中の回の保存 gantlo.exam.v2 と同じ id) */
 export type ExamRecord = { at: string; correct: number; total: number; timeUp: boolean; runId?: string };
 
 /** 復習の間隔 (日)。間違えたら翌日、復習で続けて正解するたびに 3 日後・7 日後 */

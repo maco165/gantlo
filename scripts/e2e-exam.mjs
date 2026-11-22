@@ -12,15 +12,15 @@
 //  11. 続きの案内を出したまま期限を過ぎる・期限を過ぎてから新しく始めると、時間切れとして 1 回だけ記録する
 //  12. 2 つのタブで同じ回を解いても記録は 1 回で、採点した回の保存は戻らない (PC の幅)
 //  10. 途中で読み直すと「続きから解く / やめて最初から」が出て (206)、続きから解くと答えた次の問題から同じ回を解ける。
-//      やめて最初からを選ぶと、記録せずに新しい回を始める。やめる・終えると途中の回 (gantlo.exam.v1) は消える
-//  13. 「あとで見直す」の印を付け外しでき、前の問題へ戻れ、答えずに次へ進める。印と位置は途中の保存 (gantlo.exam.v1) に残る。
+//      やめて最初からを選ぶと、記録せずに新しい回を始める。やめる・終えると途中の回 (gantlo.exam.v2) は消える
+//  13. 「あとで見直す」の印を付け外しでき、前の問題へ戻れ、答えずに次へ進める。印と位置は途中の保存 (gantlo.exam.v2) に残る。
 //      最後の問題のあとは採点の前の確かめ (100 Continue・未回答と印の数) に移り、問題番号の一覧から好きな問題へ戻れ、採点するで結果へ
 //   9. 横にはみ出さず、文が切れない。390 幅では始める・答えを送る・やめるのボタンの押せる範囲が 44px 以上。外へ何も送らず、ページのエラーが無い
 import { EXAM_SEED, arrangeOrder, choiceRadio, fill, loadLessons, orderIds, rightInputs, unsortedTarget } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 const KEY = 'gantlo.v1';
-const SAVE_KEY = 'gantlo.exam.v1';
+const SAVE_KEY = 'gantlo.exam.v2';
 const SUBMIT = 'POST 答えを送って次へ';
 const PER_WEEK = 10;
 const TOTAL = 40;
