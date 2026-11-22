@@ -173,8 +173,10 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     // 不正解の行には正しい答えと解説が出る (正しい答えの文は、種類ごとに模範解答・選択肢の文・正しい順)
     const expected = (q) =>
       q.kind === 'choice' ? q.choices.find((c) => c.id === q.answer).text : q.kind === 'order' ? q.answer.map((id) => q.items.find((it) => it.id === id).text).join(' → ') : q.blanks.map((b) => b.answers[0]).join(' / ');
-    const rowsText = await page.locator('section[aria-labelledby="exam-rows"]').innerText();
-    const missingWhy = wrongIds.map((id) => byId.get(id).q).filter((q) => !rowsText.includes(`正しい答え: ${expected(q)}`) || !rowsText.includes(q.explanation));
+    // innerText は続く空白を 1 つに縮める (例: 項目の「*   Trying …」) ので、両方の空白をそろえて比べる
+    const squash = (t) => t.replace(/\s+/g, ' ');
+    const rowsText = squash(await page.locator('section[aria-labelledby="exam-rows"]').innerText());
+    const missingWhy = wrongIds.map((id) => byId.get(id).q).filter((q) => !rowsText.includes(squash(`正しい答え: ${expected(q)}`)) || !rowsText.includes(squash(q.explanation)));
     check(missingWhy.length === 0, `${tag} 不正解の 10 行に正しい答えと解説が出る ${missingWhy.map((q) => q.id).join(' ')}`);
     await noHorizontalOverflow(page, width, `${tag} 結果`);
 
