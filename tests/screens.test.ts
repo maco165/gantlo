@@ -205,7 +205,7 @@ describe('コースの画面 (B-024)', () => {
   /** 書き出す HTML のコースのページの本文を、同じ jsdom で読む */
   const prerendered = (id: string) => {
     const doc = new DOMParser().parseFromString(pages.find((p) => p.path === `course/${id}/`)!.body, 'text/html');
-    return { h1: doc.querySelector('h1')?.textContent, h2: [...doc.querySelectorAll('h2')].map((h) => h.textContent), links: [...doc.querySelectorAll('ol a')].map((a) => a.getAttribute('href')) };
+    return { h1: doc.querySelector('h1')?.textContent, h2: [...doc.querySelectorAll('h2')].map((h) => h.textContent), links: [...doc.querySelectorAll('ol:not(nav ol) a')].map((a) => a.getAttribute('href')) };
   };
 
   it('5 コースとも、見出し (h1・h2) とレッスンの並びが書き出す HTML と同じで、空の記録では 202 と 1 つ目が次', async () => {

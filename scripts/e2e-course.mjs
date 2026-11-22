@@ -7,8 +7,11 @@
 //   3. 全部済ませると 200 で、次のレッスンのボタンは出ず「全部済ませました」と出る
 //   4. メニューのコースに「準備中」が付かず、開いたコースの行が選ばれた印 (aria-current) になる
 //   5. 390 幅で、次のレッスンのボタンと表のレッスンのリンクの押せる範囲が 44px 以上。横にはみ出さない。ページのエラーが無い
+//   6. JS で描いた画面にもパンくずが出る (コースは ホーム › コース、レッスンは ホーム › コース › レッスン)。ホームのリンクでホームへ戻る
 // E2E_SHOT_DIR を付けると、各幅の途中 (206) のコースの画面の写しをそこに置く
 import { COURSE_ORDER, loadLessons } from './e2e-lessons.mjs';
+
+const COURSE_TITLES = { main: '本編 4 週', spring: 'Spring Boot の流れ', 'tech-history': '技術の歴史', 'mgmt-history': '管理の歴史', security: 'セキュリティ' };
 
 const MIN_TARGET = 44;
 
@@ -41,6 +44,7 @@ export async function runCourse(browser, { base, check, noHorizontalOverflow }) 
     const size = (b) => (b ? `${Math.round(b.width)}x${Math.round(b.height)}` : '見えない');
     const rowIds = () => page.locator('.net__row').evaluateAll((rows) => rows.map((r) => r.getAttribute('data-lesson')));
     const statusCode = () => page.locator('.status__code').first().innerText();
+    const crumbs = () => page.locator('nav.crumbs li').evaluateAll((li) => li.map((x) => x.textContent.trim()));
     const setProgress = async (ids) => {
       await page.evaluate((p) => localStorage.setItem('gantlo.v1', JSON.stringify(p)), progressWith(ids));
     };
@@ -64,7 +68,23 @@ export async function runCourse(browser, { base, check, noHorizontalOverflow }) 
         const first = await page.locator('.net__row').first().getAttribute('data-state');
         check(first === 'next', `${where}: 空の記録では 1 行目が「次」 (${first})`);
       }
+      const cr = await crumbs();
+      check(JSON.stringify(cr) === JSON.stringify(['ホーム', COURSE_TITLES[c]]), `${where}: パンくずが ホーム › ${COURSE_TITLES[c]} (${cr.join(' › ')})`);
       await noHorizontalOverflow(page, width, where);
+    }
+
+    // 6. レッスンのパンくず (題の長いレッスンでも横にはみ出さない)
+    {
+      const longest = [...lessons].sort((a, b) => b.title.length - a.title.length)[0];
+      await page.goto(`${base}lesson/${longest.id}/`);
+      await page.locator('nav.crumbs').waitFor();
+      const where = `${tag} ${longest.id}`;
+      const cr = await crumbs();
+      check(JSON.stringify(cr) === JSON.stringify(['ホーム', COURSE_TITLES[longest.course], longest.title]), `${where}: パンくずが ホーム › コース › レッスン (${cr.join(' › ')})`);
+      await noHorizontalOverflow(page, width, where);
+      await page.locator('nav.crumbs a', { hasText: 'ホーム' }).click();
+      await page.waitForURL(base);
+      check((await page.locator('nav.crumbs').count()) === 0, `${where}: パンくずのホームでホームへ戻り、ホームにはパンくずを出さない`);
     }
 
     // 2. 途中 (1 つ目だけ済み)

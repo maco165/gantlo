@@ -10,6 +10,7 @@ import { BASE, COURSES, courseHref, homeHref, lessonHref, pageHref, parseRoute, 
 import { COURSE_EMPTY, COURSE_LEADS, LESSON_LIST_HEADING } from '../lib/courses';
 import { ABOUT_ISSUE, ABOUT_LEAD, ABOUT_NOTES, ABOUT_SOURCE, LICENSE_NAME } from '../lib/about';
 import { NEW_ISSUE_URL, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
+import { breadcrumbs, type Crumb } from '../lib/breadcrumbs';
 
 /** 公開の場所 (canonical・og:url・sitemap の URL の頭) */
 export const ORIGIN = 'https://maco165.github.io';
@@ -27,6 +28,8 @@ export type SitePage = {
   noindex?: boolean;
   /** false なら canonical と og:url を外す (404.html。どの URL の写しでもないため) */
   canonical?: false;
+  /** head に入れる構造化データ (JSON-LD の @graph の中身)。html.ts が script にして入れる */
+  jsonLd?: readonly Record<string, unknown>[];
 };
 
 /**
@@ -58,6 +61,26 @@ const back = `<p>${a(homeHref, `${SITE_NAME} のホーム`)}</p>`;
 /** BASE からの相対の道 (ディレクトリの名前に使う) */
 const rel = (href: string) => href.slice(BASE.length);
 const titleOfPath = (href: string) => documentTitle(parseRoute(href));
+
+/** パンくずの本文 (画面の src/components/Breadcrumbs.tsx と同じ形。並びの正本は src/lib/breadcrumbs.ts) */
+export function crumbsHtml(crumbs: readonly Crumb[]): string {
+  const items = crumbs.map((c, i) => `<li>${i < crumbs.length - 1 ? a(c.href, c.name) : `<span aria-current="page">${esc(c.name)}</span>`}</li>`).join('');
+  return `<nav class="crumbs" aria-label="パンくずリスト"><ol>${items}</ol></nav>`;
+}
+
+/** 道 (BASE からの絶対の道) を公開の URL にする */
+const absUrl = (href: string) => `${ORIGIN}${href}`;
+
+/** JSON-LD の BreadcrumbList。項目の URL は絶対で、最後が canonical */
+export function breadcrumbLd(crumbs: readonly Crumb[]): Record<string, unknown> {
+  return {
+    '@type': 'BreadcrumbList',
+    itemListElement: crumbs.map((c, i) => ({ '@type': 'ListItem', position: i + 1, name: c.name, item: absUrl(c.href) })),
+  };
+}
+
+/** 作り手 (Course の provider)。個人のサイトなので、サイトそのものを名前と URL で書く */
+const PROVIDER = { '@type': 'Organization', name: SITE_NAME, url: absUrl(homeHref), sameAs: REPO_URL };
 
 /** 用語集の本文 (検索に載せるので、画面と同じ語・説明・出典を書く。画面を描くと React が置き換える) */
 export function glossaryBody(sorted: { standards: readonly GlossaryTerm[]; others: readonly GlossaryTerm[] } = SORTED): string[] {
@@ -91,6 +114,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
     path: '',
     title: titleOfPath(homeHref),
     description: HOME_DESCRIPTION,
+    jsonLd: [{ '@type': 'WebSite', name: SITE_NAME, alternateName: `${SITE_NAME} — ${SITE_TAGLINE}`, url: absUrl(homeHref), description: HOME_DESCRIPTION, inLanguage: 'ja' }],
     body: [
       // 画面のホームと同じ見出し
       `<h1>${esc(`${SITE_NAME} — ${SITE_TAGLINE}`)}</h1>`,
@@ -105,22 +129,55 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
   });
 
   for (const p of Object.keys(PAGE_TITLES) as PageName[]) {
+    const crumbs = breadcrumbs({ name: 'page', page: p })!;
+    const url = absUrl(pageHref(p));
+    const terms = [...SORTED.standards, ...SORTED.others];
     pages.push({
       path: rel(pageHref(p)),
       title: titleOfPath(pageHref(p)),
       description: PAGE_DESCRIPTIONS[p],
-      body: [`<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), back].join('\n'),
+      jsonLd: [
+        breadcrumbLd(crumbs),
+        ...(p === 'glossary'
+          ? [
+              {
+                '@type': 'DefinedTermSet',
+                name: PAGE_TITLES.glossary,
+                description: PAGE_DESCRIPTIONS.glossary,
+                url,
+                inLanguage: 'ja',
+                hasDefinedTerm: terms.map((t) => ({ '@type': 'DefinedTerm', name: t.term, description: t.description, url: `${url}#term-${t.id}`, inDefinedTermSet: url })),
+              },
+            ]
+          : []),
+      ],
+      body: [crumbsHtml(crumbs), `<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), back].join('\n'),
       noindex: PERSONAL_PAGES.includes(p),
     });
   }
 
   for (const c of COURSES) {
     const ls = lessons.filter((l) => l.course === c.id);
+    const crumbs = breadcrumbs({ name: 'course', course: c.id })!;
     pages.push({
       path: rel(courseHref(c.id)),
       title: titleOfPath(courseHref(c.id)),
       description: clip(`${c.title}のコース。${COURSE_LEADS[c.id]}`),
+      jsonLd: [
+        breadcrumbLd(crumbs),
+        {
+          '@type': 'Course',
+          name: c.title,
+          description: COURSE_LEADS[c.id],
+          url: absUrl(courseHref(c.id)),
+          inLanguage: 'ja',
+          isAccessibleForFree: true,
+          provider: PROVIDER,
+          hasPart: ls.map((l) => ({ '@type': 'LearningResource', name: l.title, url: absUrl(lessonHref(l.id)) })),
+        },
+      ],
       body: [
+        crumbsHtml(crumbs),
         `<h1>${esc(c.title)}</h1>`,
         `<p>${esc(COURSE_LEADS[c.id])}</p>`,
         // 見出しと空のときの文は画面 (CourseScreen・LessonNetwork) と同じ。一覧は画面の表と同じ順 (コースのレッスンの順)
@@ -134,14 +191,29 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
   for (const l of lessons) {
     const course = COURSES.find((c) => c.id === l.course);
     const courseTitle = course?.title ?? l.course;
+    const crumbs = breadcrumbs({ name: 'lesson', lessonId: l.id }, l)!;
+    // 問題文を続けて入れる (1 問目が短いレッスンでも、説明が短くなりすぎないように)。120 字で切る
+    const description = clip(`${courseTitle}のレッスン「${l.title}」(${l.questions.length} 問)。${l.questions.map((q) => q.prompt).join(' ')}`);
     pages.push({
       path: rel(lessonHref(l.id)),
       // 画面のタブ (documentTitle) と同じ題。差し替えたレッスンでも引けるよう、レッスンから直に付ける
       title: lessonDocumentTitle(l),
-      // 問題文を続けて入れる (1 問目が短いレッスンでも、説明が短くなりすぎないように)。120 字で切る
-      description: clip(`${courseTitle}のレッスン「${l.title}」(${l.questions.length} 問)。${l.questions.map((q) => q.prompt).join(' ')}`),
+      description,
+      jsonLd: [
+        breadcrumbLd(crumbs),
+        {
+          '@type': 'LearningResource',
+          name: l.title,
+          description,
+          url: absUrl(lessonHref(l.id)),
+          inLanguage: 'ja',
+          learningResourceType: 'Quiz',
+          isAccessibleForFree: true,
+          ...(course ? { isPartOf: { '@type': 'Course', name: course.title, url: absUrl(courseHref(course.id)) } } : {}),
+        },
+      ],
       body: [
-        `<p>${a(courseHref(l.course), courseTitle)}</p>`,
+        crumbsHtml(crumbs),
         // 見出しはレッスンの題 (画面の h1 は 1 問目の問題文だが、ページの見出しとしては題のほうが合う)
         `<h1>${esc(l.title)}</h1>`,
         // 問題文までを書き、答えと解説は書かない (画面でも答えるまで出さないため)

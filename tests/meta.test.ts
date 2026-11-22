@@ -11,6 +11,7 @@ import { BASE, COURSES, lessonHref, parseRoute } from '../src/lib/route';
 import { LESSON_LIST_HEADING } from '../src/lib/courses';
 import { SITE_NAME, SITE_TAGLINE } from '../src/lib/site';
 import { renderPage, sitemapXml } from '../src/prerender/html';
+import { SORTED } from '../src/content/glossary';
 import { NOT_FOUND_PAGE, ORIGIN, sitePages, type SitePage } from '../src/prerender/pages';
 
 /** 検索に載せない、一人ひとりの記録の画面 (R-7 の「全ページ」は検索に載せる全ページと読む) */
@@ -36,7 +37,7 @@ function readHead(html: string): Head {
 }
 
 /** コースのページの一覧 (#root の ol) のリンクの順 */
-const courseLessonLinks = (html: string) => [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('#root ol a')].map((a) => a.getAttribute('href'));
+const courseLessonLinks = (html: string) => [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('#root main > ol a')].map((a) => a.getAttribute('href'));
 /** 本文の h2 の文字 */
 const courseHeadings = (html: string) => [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('#root h2')].map((h) => h.textContent);
 
@@ -187,6 +188,125 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
   it('型 (index.html) の形が変わって置き換える場所が無ければ止める (黙って全ページの canonical がホームのまま公開しない)', () => {
     const broken = template.replace('<link rel="canonical"', '<link data-x rel="canonical"');
     expect(() => renderPage(broken, pages[1])).toThrow(/canonical/);
+  });
+});
+
+/** head の JSON-LD (1 つの script の @graph) を読む。無ければ null */
+function readLd(html: string): { count: number; graph: Record<string, any>[] | null; raw: string } {
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const scripts = [...doc.querySelectorAll('script[type="application/ld+json"]')];
+  if (scripts.length === 0) return { count: 0, graph: null, raw: '' };
+  const raw = scripts[0].textContent ?? '';
+  const data = JSON.parse(raw);
+  expect(data['@context']).toBe('https://schema.org');
+  expect(scripts[0].closest('head'), 'JSON-LD は head に置く').not.toBeNull();
+  return { count: scripts.length, graph: data['@graph'], raw };
+}
+const ofType = (graph: Record<string, any>[], type: string) => graph.filter((n) => n['@type'] === type);
+
+/** 本文のパンくず (nav.crumbs) の [名前, 絶対 URL]。最後の項目 (今のページ) はリンクではないので canonical を当てる */
+function readCrumbs(html: string, canonical: string): [string, string][] | null {
+  const nav = new DOMParser().parseFromString(html, 'text/html').querySelector('#root nav.crumbs');
+  if (!nav) return null;
+  return [...nav.querySelectorAll('li')].map((li) => {
+    const link = li.querySelector('a');
+    return [li.textContent ?? '', link ? `${ORIGIN}${link.getAttribute('href')}` : canonical];
+  });
+}
+
+describe('構造化データ (JSON-LD) とパンくず', () => {
+  const rendered = pages.map((p) => ({ page: p, html: renderPage(template, p), canonical: `${SITE_URL}${p.path}` }));
+
+  it('全ページの head に JSON-LD が 1 つあり、JSON として読める。404.html には無い', () => {
+    for (const { page, html } of rendered) expect(readLd(html).count, page.path).toBe(1);
+    expect(readLd(renderPage(template, NOT_FOUND_PAGE)).count).toBe(0);
+  });
+
+  it('トップは WebSite で、url が canonical。パンくずは出さない', () => {
+    const top = rendered.find((r) => r.page.path === '')!;
+    const { graph } = readLd(top.html);
+    expect(ofType(graph!, 'WebSite').map((n) => n.url)).toEqual([top.canonical]);
+    expect(ofType(graph!, 'BreadcrumbList')).toEqual([]);
+    expect(readCrumbs(top.html, top.canonical)).toBeNull();
+  });
+
+  it('トップ以外は BreadcrumbList を持ち、ホームから始まって canonical で終わり、本文の見えるパンくずと同じ並び', () => {
+    for (const { page, html, canonical } of rendered.filter((r) => r.page.path !== '')) {
+      const [list] = ofType(readLd(html).graph!, 'BreadcrumbList');
+      expect(list, page.path).toBeTruthy();
+      const items: [string, string][] = list.itemListElement.map((x: any, i: number) => {
+        expect(x.position, page.path).toBe(i + 1);
+        return [x.name, x.item];
+      });
+      expect(items[0][1], page.path).toBe(SITE_URL);
+      expect(items.at(-1)![1], page.path).toBe(canonical);
+      expect(readCrumbs(html, canonical), page.path).toEqual(items);
+    }
+  });
+
+  it('レッスンのパンくずは ホーム › コース › レッスン で、コースは ホーム › コース', () => {
+    for (const l of LESSONS) {
+      const r = rendered.find((x) => x.page.path === `lesson/${l.id}/`)!;
+      const course = COURSES.find((c) => c.id === l.course)!;
+      expect(readCrumbs(r.html, r.canonical)!.map(([n]) => n), l.id).toEqual(['ホーム', course.title, l.title]);
+    }
+    for (const c of COURSES) {
+      const r = rendered.find((x) => x.page.path === `course/${c.id}/`)!;
+      expect(readCrumbs(r.html, r.canonical)!.map(([n]) => n), c.id).toEqual(['ホーム', c.title]);
+    }
+  });
+
+  it('コースは Course (url が canonical・説明・提供者・レッスンの一覧)', () => {
+    for (const c of COURSES) {
+      const r = rendered.find((x) => x.page.path === `course/${c.id}/`)!;
+      const [course, ...rest] = ofType(readLd(r.html).graph!, 'Course');
+      expect(rest, c.id).toEqual([]);
+      expect(course.url, c.id).toBe(r.canonical);
+      expect(course.name, c.id).toBe(c.title);
+      expect(course.description, c.id).toBeTruthy();
+      expect(course.provider?.name, c.id).toBe(SITE_NAME);
+      expect(course.hasPart.map((x: any) => x.url), c.id).toEqual(LESSONS.filter((l) => l.course === c.id).map((l) => `${ORIGIN}${lessonHref(l.id)}`));
+    }
+  });
+
+  it('レッスンは LearningResource (url が canonical、isPartOf がパンくずのコース)', () => {
+    for (const l of LESSONS) {
+      const r = rendered.find((x) => x.page.path === `lesson/${l.id}/`)!;
+      const { graph } = readLd(r.html);
+      const [lr, ...rest] = ofType(graph!, 'LearningResource');
+      expect(rest, l.id).toEqual([]);
+      expect(lr.url, l.id).toBe(r.canonical);
+      expect(lr.name, l.id).toBe(l.title);
+      expect(lr.isPartOf.url, l.id).toBe(ofType(graph!, 'BreadcrumbList')[0].itemListElement[1].item);
+    }
+  });
+
+  it('用語集は DefinedTermSet で、全部の語が DefinedTerm として本文の語の id (#term-) を指す', () => {
+    const r = rendered.find((x) => x.page.path === 'glossary/')!;
+    const [set] = ofType(readLd(r.html).graph!, 'DefinedTermSet');
+    expect(set.url).toBe(r.canonical);
+    const terms = [...SORTED.standards, ...SORTED.others];
+    expect(set.hasDefinedTerm.map((t: any) => t.name)).toEqual(terms.map((t) => t.term));
+    const doc = new DOMParser().parseFromString(r.html, 'text/html');
+    for (const t of set.hasDefinedTerm) {
+      expect(t['@type']).toBe('DefinedTerm');
+      expect(t.inDefinedTermSet).toBe(r.canonical);
+      expect(t.url.startsWith(`${r.canonical}#term-`), t.url).toBe(true);
+      expect(doc.getElementById(t.url.split('#')[1]), t.url).not.toBeNull();
+    }
+  });
+
+  it('題の < > & は JSON-LD の中で \\u003c などになり、script を閉じない (読むと元の文字)', () => {
+    const odd = { id: 'x-l1', title: '</script><b>A & B</b>', course: 'main', questions: [{ id: 'x-q1', kind: 'choice', prompt: 'p', explanation: 'e', sources: [], choices: [], answer: '' }] } as unknown as Lesson;
+    const html = renderPage(template, sitePages([odd]).find((p) => p.path === 'lesson/x-l1/')!);
+    const { raw, graph } = readLd(html);
+    expect(raw).not.toMatch(/[<>&]/);
+    expect(ofType(graph!, 'LearningResource')[0].name).toBe('</script><b>A & B</b>');
+    expect(html).not.toContain('</script><b>');
+  });
+
+  it('型に </head> が無ければ止める (構造化データを黙って落とさない)', () => {
+    expect(() => renderPage(template.replace('</head>', ''), pages[0])).toThrow(/head/);
   });
 });
 

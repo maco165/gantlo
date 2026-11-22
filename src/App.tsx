@@ -6,6 +6,7 @@ import { Theme } from '@astryxdesign/core/theme';
 import { gothicTheme } from '@astryxdesign/theme-gothic/built';
 import { lazy, Suspense, useEffect } from 'react';
 import AppSideNav, { AppMobileNav } from './components/AppSideNav';
+import Breadcrumbs from './components/Breadcrumbs';
 import MobileBar from './components/MobileBar';
 import { findLesson } from './content/index';
 import { documentTitle, PAGE_TITLES, titleOf } from './lib/pageMeta';
@@ -79,6 +80,7 @@ export default function App() {
           mobileNav={{ hasToggle: false, isOpen: navOpen, onOpenChange: setNavOpen, content: <AppMobileNav route={route} /> }}
         >
           <MobileBar />
+          <Breadcrumbs route={route} />
           {screen}
         </AppShell>
       </Theme>
