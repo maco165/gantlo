@@ -193,6 +193,26 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
     }
   });
 
+  it('レッスンのページは、問題の前に要点 (分かるようになること・説明・図・試すコマンド・出典) を持ち、誤答の説明は持たない', () => {
+    for (const l of LESSONS) {
+      const doc = new DOMParser().parseFromString(renderPage(template, pages.find((p) => p.path === `lesson/${l.id}/`)!), 'text/html');
+      const section = doc.querySelector('#root main > section#intro');
+      expect(section, l.id).not.toBeNull();
+      const text = section!.textContent ?? '';
+      const intro = l.intro!;
+      for (const g of intro.goals) expect(text, l.id).toContain(g);
+      for (const p of intro.body) expect(text, l.id).toContain(p);
+      if (intro.figure) expect(text, l.id).toContain(intro.figure.caption);
+      for (const t of intro.tryIt ?? []) expect(text, l.id).toContain(t.command);
+      expect([...section!.querySelectorAll('a')].map((a) => a.getAttribute('href')), l.id).toEqual(intro.sources);
+      // 要点は問題の一覧 (h2 問題) より前
+      const h2s = [...doc.querySelectorAll('#root main h2')].map((h) => h.textContent);
+      expect(h2s.indexOf('要点'), l.id).toBeLessThan(h2s.indexOf('問題'));
+      const root = doc.querySelector('#root')!.textContent ?? '';
+      for (const q of l.questions) if (q.kind === 'command' || q.kind === 'http') for (const b of q.blanks) for (const w of b.wrong ?? []) expect(root, q.id).not.toContain(w.why);
+    }
+  });
+
   it('穴埋めのコードは空欄を伏せ字 (____) にして空欄の数だけ持ち、{{blank}} も実行結果の例 (output) も書かない', () => {
     let fills = 0;
     for (const l of LESSONS) {

@@ -1246,6 +1246,112 @@ code {
   padding-left: 1.25rem;
 }
 
+/* レッスンの要点 (問題の前に読む。済みのレッスンと解いている間は畳む) */
+.intro__sub {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--text-heading-5-size, 1rem);
+  font-weight: 600;
+}
+.intro__p {
+  margin: 0;
+  line-height: 1.8;
+}
+.intro-goals,
+.intro-sources {
+  margin: 0;
+  padding-left: 1.25em;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.intro-sources {
+  overflow-wrap: anywhere;
+}
+.intro-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.intro-flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+}
+.intro-flow__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-0-5, 2px);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: var(--color-background-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.intro-flow__item + .intro-flow__item::before {
+  content: '↓';
+  position: absolute;
+  left: 50%;
+  top: calc(-1 * var(--spacing-5));
+  transform: translateX(-50%);
+  line-height: var(--spacing-5);
+  color: var(--color-text-secondary);
+}
+.intro-flow__label {
+  font-weight: 600;
+}
+.intro-table {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  overflow: hidden;
+}
+.intro-table__row {
+  display: contents;
+}
+.intro-table dt,
+.intro-table dd {
+  margin: 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-top: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+.intro-table__row:first-child dt,
+.intro-table__row:first-child dd {
+  border-top: 0;
+}
+.intro-table dt {
+  font-weight: 600;
+  background: var(--color-background-muted);
+}
+.intro-folded {
+  margin-bottom: var(--spacing-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+}
+.intro-folded > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-3);
+  font-weight: 600;
+}
+.intro-folded__body {
+  padding: 0 var(--spacing-3) var(--spacing-3);
+}
+.wrong-note {
+  margin: 0;
+}
+
 /* 結果の共有 (レッスン完了・模擬試験の結果) */
 .share {
   display: flex;

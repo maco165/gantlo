@@ -11,7 +11,7 @@
 //   7. 横にはみ出さず、文が切れない。390 幅では押せる所 (探す欄・出典とレッスンのリンク・進捗の下のリンク) が 44px 以上。
 //      外へ何も送らず、ページのエラーが無い
 import { readFileSync } from 'node:fs';
-import { COURSE_ORDER, findLessonWith, loadLessons } from './e2e-lessons.mjs';
+import { COURSE_ORDER, findLessonWith, loadLessons, startLesson } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 const KEY = 'gantlo.v1';
@@ -208,6 +208,7 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
     check(linkLesson !== undefined, `${tag} 出てくるレッスンを持つ語があり、そのレッスンが問題データにある (${linkTerm?.id} → ${linkTerm?.lessons[0]})`);
     if (linkLesson) {
       await page.locator(`article.gloss[data-term="${linkTerm.id}"] a[href="/gantlo/lesson/${linkLesson.id}/"]`).click();
+      await startLesson(page);
       await page.getByRole('heading', { name: linkLesson.questions[0].prompt }).waitFor();
       check(new URL(page.url()).pathname === `/gantlo/lesson/${linkLesson.id}/`, `${tag} 「出てくるレッスン」のリンクでレッスンが開く (${new URL(page.url()).pathname})`);
     }
