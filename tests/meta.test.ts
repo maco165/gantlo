@@ -13,6 +13,7 @@ import { BASE, COURSES, lessonHref, parseRoute } from '../src/lib/route';
 import { LESSON_LIST_HEADING } from '../src/lib/courses';
 import { SITE_NAME, SITE_TAGLINE } from '../src/lib/site';
 import { renderPage, sitemapXml } from '../src/prerender/html';
+import { hasOwnOgImage, ogCard, ogCards } from '../src/prerender/og';
 import { SORTED } from '../src/content/glossary';
 import { NOT_FOUND_PAGE, ORIGIN, sitePages, type SitePage } from '../src/prerender/pages';
 
@@ -53,20 +54,56 @@ const expectUnique = (values: string[], label: string) => {
 
 describe('共有したときのカードの画像 (og:image)', () => {
   const OG_URL = `${SITE_URL}og.png`;
-  it('全ページの head に、公開の URL の og:image (1200×630・代替文) と summary_large_image がある', () => {
-    for (const p of pages) {
+  it('全ページの head に、公開の URL の og:image (1200×630・代替文)・twitter:image と summary_large_image がある', () => {
+    for (const p of [...pages, NOT_FOUND_PAGE]) {
       const doc = new DOMParser().parseFromString(renderPage(template, p), 'text/html');
       const og = (k: string) => doc.querySelector(`meta[property="og:${k}"]`)?.getAttribute('content');
-      expect([og('image'), og('image:width'), og('image:height')], p.path).toEqual([OG_URL, '1200', '630']);
+      // 検索に載るページ (ホームを除く) はそのページの画像、ホーム・記録の画面・404 はサイト共通の画像
+      const want = hasOwnOgImage(p) ? `${SITE_URL}${p.path}og.png` : OG_URL;
+      expect([og('image'), og('image:width'), og('image:height')], p.path).toEqual([want, '1200', '630']);
+      expect(doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content'), p.path).toBe(want);
       expect(og('image:alt'), p.path).toBeTruthy();
       expect(doc.querySelector('meta[name="twitter:card"]')?.getAttribute('content'), p.path).toBe('summary_large_image');
     }
   });
 
-  it('画像は public/og.png にあり、PNG で 1200×630 (head に書いた大きさと同じ)', () => {
+  it('自分の画像を持つのは、検索に載るページのうちホームを除く全部。代替文にページの題', () => {
+    const own = pages.filter(hasOwnOgImage);
+    expect(own.map((p) => p.path).sort()).toEqual(pages.filter((p) => !p.noindex && p.path !== '').map((p) => p.path).sort());
+    expect(hasOwnOgImage(NOT_FOUND_PAGE)).toBe(false);
+    const lesson = own.find((p) => p.path.startsWith('lesson/'))!;
+    const doc = new DOMParser().parseFromString(renderPage(template, lesson), 'text/html');
+    expect(doc.querySelector('meta[property="og:image:alt"]')?.getAttribute('content')).toBe(`gantlo: ${ogCard(lesson).title} (レッスン)`);
+  });
+
+  it('カードの中身は題・種類・要求の行・URL (<title> からサイト名を外した題)', () => {
+    const course = pages.find((p) => p.path === 'course/main/')!;
+    expect(ogCard(course)).toEqual({ path: 'course/main/', title: '本編 4 週', kind: 'コース', request: 'GET /course/main', url: 'maco165.github.io/gantlo/course/main/' });
+    expect(ogCards(pages).length).toBe(pages.filter(hasOwnOgImage).length);
+  });
+
+  it('サイト共通の画像は public/og.png にあり、PNG で 1200×630 (head に書いた大きさと同じ)', () => {
     const png = readFileSync(join(__dirname, '../public/og.png'));
     expect(png.subarray(1, 4).toString('ascii')).toBe('PNG');
     expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+  });
+
+  it.skipIf(!existsSync(join(__dirname, '../dist/index.html')))('組み立てた dist では、自分の画像を持つページごとに <道>/og.png が 1200×630 の PNG である (npm run build のあと)', () => {
+    const missing: string[] = [];
+    for (const p of pages.filter(hasOwnOgImage)) {
+      const file = join(__dirname, '../dist', p.path, 'og.png');
+      if (!existsSync(file)) {
+        missing.push(p.path);
+        continue;
+      }
+      const png = readFileSync(file);
+      expect(png.subarray(1, 4).toString('ascii'), p.path).toBe('PNG');
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)], p.path).toEqual([1200, 630]);
+    }
+    expect(missing).toEqual([]);
+    // 書き出した HTML も、そのページの画像を指す
+    const html = readFileSync(join(__dirname, '../dist/glossary/index.html'), 'utf8');
+    expect(html).toContain(`<meta property="og:image" content="${SITE_URL}glossary/og.png"`);
   });
 });
 
