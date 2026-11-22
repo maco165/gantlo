@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { gradeBlank, gradeChoice, gradeFill, normalizeAnswer, normalizeMediaType } from '../src/lib/grade';
+import { LESSONS } from '../src/content/index';
+import { findWrong, gradeBlank, gradeChoice, gradeFill, normalizeAnswer, normalizeMediaType } from '../src/lib/grade';
 
 describe('gradeBlank (text)', () => {
   const b = { answers: ['-I'] };
@@ -87,5 +88,42 @@ describe('gradeChoice', () => {
   it('正解の id だけを正解にする', () => {
     expect(gradeChoice({ answer: 'b' }, 'b')).toBe(true);
     expect(gradeChoice({ answer: 'b' }, 'a')).toBe(false);
+  });
+});
+
+describe('findWrong (よくある誤答)', () => {
+  const b = { answers: ['-X', '--request'], wrong: [{ answer: '-d', why: '本文を送るオプション。' }] };
+  const h = { answers: ['Allow'], match: 'header-name' as const, wrong: [{ answer: 'Accept', why: '受け取れる形式のヘッダー。' }] };
+
+  it('答えが誤答に当たれば、その誤答を返す (前後の空白は採点と同じく無視)', () => {
+    expect(findWrong(b, ' -d ')?.why).toBe('本文を送るオプション。');
+  });
+
+  it('比べ方は空欄の match に従う (ヘッダー名は大文字と小文字を区別しない)', () => {
+    expect(findWrong(h, 'accept')?.answer).toBe('Accept');
+    expect(findWrong(b, '-D')).toBeUndefined();
+  });
+
+  it('正解・空・登録の無い答えには何も返さない', () => {
+    expect(findWrong(b, '-X')).toBeUndefined();
+    expect(findWrong(b, '')).toBeUndefined();
+    expect(findWrong(b, '-H')).toBeUndefined();
+    expect(findWrong({ answers: ['-X'] }, '-d')).toBeUndefined();
+  });
+
+  it('問題データのどの誤答も、本当の採点で不正解になり、その空欄の誤答として引ける (正解と同じ誤答が無い)', () => {
+    let n = 0;
+    for (const l of LESSONS)
+      for (const q of l.questions) {
+        if (q.kind !== 'command' && q.kind !== 'http') continue;
+        q.blanks.forEach((bl, i) => {
+          for (const w of bl.wrong ?? []) {
+            n++;
+            expect(gradeBlank(bl, w.answer), `${q.id} 空欄 ${i + 1}: ${w.answer}`).toBe(false);
+            expect(findWrong(bl, w.answer), `${q.id} 空欄 ${i + 1}: ${w.answer}`).toBe(w);
+          }
+        });
+      }
+    expect(n).toBeGreaterThan(0);
   });
 });

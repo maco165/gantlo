@@ -5,6 +5,33 @@
       "title": "HTTP のやり取りを見る",
       "course": "main",
       "stage": "http",
+      "intro": {
+        "goals": [
+          "要求と応答の形を見分けられる",
+          "ヘッダーが何を伝えるかを読む",
+          "curl で要求と応答を手元で見る"
+        ],
+        "body": [
+          "HTTP のやり取りは、クライアントが送る要求と、サーバーが返す応答の組です。",
+          "要求は 1 行目にメソッドと対象を書き、続けてヘッダーを並べます。応答は 1 行目にステータスコードを書き、続けてヘッダーを並べます。",
+          "ヘッダーは「名前: 値」の形の行で、本文の形式や長さなど、本文の外の情報を伝えます。ヘッダーの後に空の行を 1 つ置き、その後が本文です。本文の無い応答もあります。ヘッダーの名前は大文字と小文字を区別しません。"
+        ],
+        "figure": {
+          "kind": "flow",
+          "caption": "1 つのやり取りの流れ (RFC 9110 6)",
+          "items": [
+            { "label": "要求", "note": "メソッド・対象・ヘッダー・本文" },
+            { "label": "応答", "note": "ステータス・ヘッダー・本文" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -v https://example.com/ -o /dev/null", "expect": "> の行に送った要求、< の行に返ってきた応答が出ます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9110#section-6",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l1-q1",
@@ -12,7 +39,15 @@
           "tool": "curl",
           "prompt": "本文は要らず、レスポンスのステータス行とヘッダーだけを見たい。HEAD メソッドで送る curl のオプションを埋めてください。",
           "code": "curl {{blank}} https://example.com/",
-          "blanks": [{ "answers": ["-I", "--head"] }],
+          "blanks": [
+            {
+              "answers": ["-I", "--head"],
+              "wrong": [
+                { "answer": "-i", "why": "-i は応答のヘッダーを本文の前に足して出すオプションで、メソッドは GET のままです。本文も出ます。" },
+                { "answer": "-v", "why": "-v は送った要求と受け取った応答を詳しく出すオプションです。メソッドは変わらず、本文も受け取ります。" }
+              ]
+            }
+          ],
           "output": "HTTP/2 200\ncontent-type: text/html\n...",
           "explanation": "-I (--head) は HEAD メソッドで要求を送り、返ってきたステータス行とヘッダーだけを出します。HEAD は原則として GET と同じヘッダーを返し (SHOULD)、本文は返さないメソッドです。本文を作るときに決まるヘッダーは省かれることがあります (MAY、RFC 9110 9.3.2)。",
           "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2"]
@@ -24,8 +59,20 @@
           "prompt": "本文が JSON であることを伝えるレスポンスです。空欄のヘッダー名とメディアタイプを埋めてください。",
           "code": "HTTP/1.1 200 OK\n{{blank}}: {{blank}}\nContent-Length: 12\n\n{\"ok\": true}",
           "blanks": [
-            { "answers": ["Content-Type"], "match": "header-name" },
-            { "answers": ["application/json"], "match": "media-type" }
+            {
+              "answers": ["Content-Type"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "Accept", "why": "Accept は、クライアントが受け取れる形式を伝える要求のヘッダーです。本文の形式は伝えません。" }
+              ]
+            },
+            {
+              "answers": ["application/json"],
+              "match": "media-type",
+              "wrong": [
+                { "answer": "text/json", "why": "JSON の登録されたメディアタイプではありません。" }
+              ]
+            }
           ],
           "explanation": "本文の形式は Content-Type ヘッダーで伝えます (RFC 9110 8.3)。JSON のメディアタイプは application/json で、RFC 8259 が IANA に登録しています。ヘッダー名とメディアタイプの type と subtype は大文字と小文字を区別しません。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-8.3", "https://www.rfc-editor.org/rfc/rfc8259#section-11"]

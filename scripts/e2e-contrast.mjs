@@ -6,7 +6,7 @@
 //   - 押せないボタン (disabled・aria-disabled) は WCAG 1.4.3 の対象外なので数えない。空の入力欄は placeholder の字と色を測る
 //   - 390 幅でスマホのメニューを開いた状態も測る (開いたモーダルの外は操作できないので、モーダルの中だけを測る)
 //   - 測り方の確かめ: opacity の群 (祖先の opacity も含む) を地と字の両方に重ねて測れること (合成のページで約 3.98:1 になる)
-import { EXAM_SEED, answer, coverLessons, hasKind, isPlainFill, loadLessons, pickWalkLesson } from './e2e-lessons.mjs';
+import { EXAM_SEED, answer, coverLessons, hasKind, isPlainFill, loadLessons, pickWalkLesson, startLesson } from './e2e-lessons.mjs';
 
 /** WCAG 1.4.3 の最小のコントラスト比。大きな文字の例外 (3:1) は使わない */
 export const MIN_CONTRAST = 4.5;
@@ -225,6 +225,12 @@ export async function runContrast(browser, { base, check }) {
     const first = (key) => !seen.has(key) && seen.add(key);
     for (const lesson of lessonsToMeasure) {
       await page.goto(`${base}lesson/${lesson.id}/`);
+      // はじめてのレッスンは要点が先に出る。最初の 1 回は要点の画面を測ってから始める
+      if (first('intro')) {
+        await page.getByTestId('lesson-intro').waitFor();
+        await measure('レッスンの要点', ['問題を始める']);
+      }
+      await startLesson(page);
       for (const q of lesson.questions) {
         await page.getByRole('heading', { name: q.prompt }).waitFor();
         if (isPlainFill(q) && first('400')) {
