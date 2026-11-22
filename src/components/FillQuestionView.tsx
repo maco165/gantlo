@@ -9,8 +9,8 @@ import { RETRY_AFTER_SECONDS, fillStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
 import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
+import { kindLabel } from '../lib/questionKind';
 
-const KIND_LABEL = { command: 'コマンドの穴埋め', http: 'HTTP の穴埋め', json: 'JSON の穴埋め' } as const;
 
 /** コマンド (command) と HTTP・JSON (http) の穴埋め。空欄は 1〜2 つ */
 export default function FillQuestionView({
@@ -37,7 +37,7 @@ export default function FillQuestionView({
   const [results, setResults] = useState<boolean[] | null>(null);
   const checked = results !== null;
   const filled = values.every((v) => normalizeAnswer(v) !== '');
-  const kind = question.kind === 'command' ? KIND_LABEL.command : KIND_LABEL[question.format];
+  const kind = kindLabel(question);
   const label = question.kind === 'command' ? question.tool : question.format === 'json' ? 'JSON' : 'HTTP';
 
   const check = () => {

@@ -11,6 +11,10 @@ import { COURSE_EMPTY, COURSE_LEADS, LESSON_LIST_HEADING } from '../lib/courses'
 import { ABOUT_ISSUE, ABOUT_LEAD, ABOUT_NOTES, ABOUT_SOURCE, LICENSE_NAME } from '../lib/about';
 import { NEW_ISSUE_URL, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
 import { breadcrumbs, type Crumb } from '../lib/breadcrumbs';
+import { EXAM_MINUTES, EXAM_PER_WEEK, EXAM_TOTAL, EXAM_WEEKS, PASS_MARK, examBank, weekOf } from '../lib/exam';
+import { kindLabel } from '../lib/questionKind';
+import { STAGES } from '../content/stages';
+import type { Question } from '../content/types';
 
 /** 公開の場所 (canonical・og:url・sitemap の URL の頭) */
 export const ORIGIN = 'https://maco165.github.io';
@@ -62,6 +66,49 @@ const back = `<p>${a(homeHref, `${SITE_NAME} のホーム`)}</p>`;
 const rel = (href: string) => href.slice(BASE.length);
 const titleOfPath = (href: string) => documentTitle(parseRoute(href));
 
+/** 種類ごとの問題の数 (例: 4 択 3 問・並べ替え 1 問)。並びは最初に出た順 */
+export function kindSummary(questions: readonly Question[]): string {
+  const counts = new Map<string, number>();
+  for (const q of questions) counts.set(kindLabel(q), (counts.get(kindLabel(q)) ?? 0) + 1);
+  return [...counts].map(([k, n]) => `${k} ${n} 問`).join('・');
+}
+
+/** 文字の順 (並べ替えの項目と 4 択の選択肢を、データの順 = 正しい順や正解の位置を漏らさずに書くため) */
+const byText = <T extends { text: string }>(xs: readonly T[]) => [...xs].sort((x, y) => x.text.localeCompare(y.text, 'ja'));
+
+/**
+ * 問題 1 つの本文。画面で答える前に見えるもの (種類・問題文・空欄を伏せたコード・選択肢・並べる項目・実習の手順) だけを書き、
+ * 正解・解説・出典・実習で観察できること (expected) は書かない。選択肢と項目は文字の順に並べ替える
+ * (データの順は並べ替えの正しい順で、画面では混ぜて出すため)
+ */
+export function questionHtml(q: Question): string {
+  const parts = [`<p>${esc(q.prompt)} (${esc(kindLabel(q))})</p>`];
+  const code = (text: string) => `<pre><code>${esc(text.replaceAll('{{blank}}', '____'))}</code></pre>`;
+  if (q.kind === 'command' || q.kind === 'http') parts.push(code(q.code));
+  if (q.kind === 'choice') {
+    if (q.code) parts.push(code(q.code.text));
+    parts.push(`<ul>${(q.fixedOrder ? q.choices : byText(q.choices)).map((c) => `<li>${esc(c.text)}</li>`).join('')}</ul>`);
+  }
+  if (q.kind === 'order') parts.push(`<p>並べる項目 (順不同):</p><ul>${byText(q.items).map((i) => `<li>${esc(i.text)}</li>`).join('')}</ul>`);
+  if (q.kind === 'lab') parts.push(`<ol>${q.steps.map((s) => `<li>${esc(s.text)}${s.command ? code(s.command) : ''}</li>`).join('')}</ol>`);
+  return `<li>${parts.join('')}</li>`;
+}
+
+/** 模擬試験の本文 (形式と範囲)。数は src/lib/exam.ts の正本から書く */
+export function examBody(lessons: readonly Lesson[] = LESSONS): string[] {
+  const bank = examBank(lessons);
+  return [
+    '<h2>形式</h2>',
+    `<ul><li>問題の数: ${EXAM_TOTAL} 問 (本編の ${EXAM_WEEKS.length} 週から各週 ${EXAM_PER_WEEK} 問ずつ、重ならずに選ぶ)</li><li>時間: ${EXAM_MINUTES} 分。時間が切れたら、答えていない問題は不正解として採点する</li><li>合格: 正答率 ${Math.round(PASS_MARK * 100)}% 以上 (${Math.ceil(EXAM_TOTAL * PASS_MARK)} 問以上)</li><li>解いている間は正誤を見せず、最後にまとめて採点し、週ごとの正答率と読み直すレッスンを出す</li><li>問題の種類は穴埋め・4 択・並べ替え。採点しない実習は出さない。選択肢と項目の並びは毎回混ぜる</li></ul>`,
+    '<h2>範囲</h2>',
+    ...EXAM_WEEKS.map(({ week, title }) => {
+      const own = lessons.filter((l) => weekOf(l) === week);
+      const n = bank.filter((b) => b.week === week).length;
+      return `<h3>第 ${week} 週: ${esc(title)} (出題の元 ${n} 問)</h3><ul>${own.map((l) => `<li>${a(lessonHref(l.id), l.title)}</li>`).join('')}</ul>`;
+    }),
+  ];
+}
+
 /** パンくずの本文 (画面の src/components/Breadcrumbs.tsx と同じ形。並びの正本は src/lib/breadcrumbs.ts) */
 export function crumbsHtml(crumbs: readonly Crumb[]): string {
   const items = crumbs.map((c, i) => `<li>${i < crumbs.length - 1 ? a(c.href, c.name) : `<span aria-current="page">${esc(c.name)}</span>`}</li>`).join('');
@@ -105,6 +152,25 @@ export function aboutBody(): string[] {
     '<h2>知っておくこと</h2>',
     `<dl>${ABOUT_NOTES.map((n) => `<dt>${esc(n.label)}</dt><dd>${esc(n.text)}</dd>`).join('')}<dt>ライセンス</dt><dd>${a(`${REPO_URL}/blob/main/LICENSE`, LICENSE_NAME)}</dd></dl>`,
   ];
+}
+
+/** レッスンの紹介の文 (コース・問題の数と種類・旅の段)。ページごとに違う中身だけで作る */
+function lessonLead(l: Lesson, courseTitle: string): string {
+  const stage = STAGES.find((s) => s.id === l.stage);
+  const week = weekOf(l);
+  return [
+    `${courseTitle}のレッスン。全 ${l.questions.length} 問 (${kindSummary(l.questions)})。`,
+    stage ? `リクエストの旅の「${stage.step}」の段 (${stage.name}、主な公式文書は ${stage.spec}) を扱います。` : '',
+    week ? `本編の第 ${week} 週で、模擬試験の範囲です。` : '',
+  ].join('');
+}
+
+/** 同じコースの前後のレッスンへのリンク */
+function neighbors(l: Lesson, lessons: readonly Lesson[]): string[] {
+  const own = lessons.filter((x) => x.course === l.course);
+  const i = own.findIndex((x) => x.id === l.id);
+  const items = [i > 0 ? `<li>前のレッスン: ${a(lessonHref(own[i - 1].id), own[i - 1].title)}</li>` : '', i < own.length - 1 ? `<li>次のレッスン: ${a(lessonHref(own[i + 1].id), own[i + 1].title)}</li>` : ''].join('');
+  return items ? ['<h2>前後のレッスン</h2>', `<ul>${items}</ul>`] : [];
 }
 
 /** すべてのページ。順は sitemap の順 (ホーム → メニューの画面 → コース → レッスン)。lessons はテストで差し替える */
@@ -151,7 +217,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
             ]
           : []),
       ],
-      body: [crumbsHtml(crumbs), `<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), back].join('\n'),
+      body: [crumbsHtml(crumbs), `<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), ...(p === 'exam' ? examBody(lessons) : []), back].join('\n'),
       noindex: PERSONAL_PAGES.includes(p),
     });
   }
@@ -180,9 +246,13 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
         crumbsHtml(crumbs),
         `<h1>${esc(c.title)}</h1>`,
         `<p>${esc(COURSE_LEADS[c.id])}</p>`,
-        // 見出しと空のときの文は画面 (CourseScreen・LessonNetwork) と同じ。一覧は画面の表と同じ順 (コースのレッスンの順)
+        ...(ls.length > 0 ? [`<p>${ls.length} レッスン・計 ${ls.reduce((n, l) => n + l.questions.length, 0)} 問 (${esc(kindSummary(ls.flatMap((l) => l.questions)))})。</p>`] : []),
+        // 見出しと空のときの文は画面 (CourseScreen・LessonNetwork) と同じ。一覧は画面の表と同じ順 (コースのレッスンの順)。
+        // レッスンごとに問題の数と種類、最初の問題文を添える (JS なしでも、何を問うレッスンかが分かるように)
         `<h2>${esc(LESSON_LIST_HEADING)}</h2>`,
-        ls.length > 0 ? `<ol>${ls.map((l) => `<li>${a(lessonHref(l.id), l.title)} (${l.questions.length} 問)</li>`).join('')}</ol>` : `<p>${esc(COURSE_EMPTY)}</p>`,
+        ls.length > 0
+          ? `<ol>${ls.map((l) => `<li>${a(lessonHref(l.id), l.title)} (${esc(kindSummary(l.questions))})<br>最初の問題: ${esc(l.questions[0].prompt)}</li>`).join('')}</ol>`
+          : `<p>${esc(COURSE_EMPTY)}</p>`,
         back,
       ].join('\n'),
     });
@@ -216,9 +286,11 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
         crumbsHtml(crumbs),
         // 見出しはレッスンの題 (画面の h1 は 1 問目の問題文だが、ページの見出しとしては題のほうが合う)
         `<h1>${esc(l.title)}</h1>`,
-        // 問題文までを書き、答えと解説は書かない (画面でも答えるまで出さないため)
+        `<p>${esc(lessonLead(l, courseTitle))}</p>`,
+        // 答える前に見えるものまでを書き、答えと解説は書かない (画面でも答えるまで出さないため)
         '<h2>問題</h2>',
-        `<ol>${l.questions.map((q) => `<li>${esc(q.prompt)}</li>`).join('')}</ol>`,
+        `<ol>${l.questions.map(questionHtml).join('')}</ol>`,
+        ...neighbors(l, lessons),
         back,
       ].join('\n'),
     });

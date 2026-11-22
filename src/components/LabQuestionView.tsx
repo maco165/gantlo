@@ -9,6 +9,7 @@ import { LAB_DONE } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
 import { ActionArea, PrimaryAction, QuestionHead } from './QuestionFrame';
+import { KIND_LABELS } from '../lib/questionKind';
 
 /** 実習。手元で打って観察する。採点はせず、全部の手順に印を付けたら終えられ、見えるはずのことと解説を出す */
 export default function LabQuestionView({
@@ -38,7 +39,7 @@ export default function LabQuestionView({
 
   return (
     <VStack gap={5}>
-      <QuestionHead kind={`実習 · 手元の端末で動かす · ${head}`} prompt={question.prompt} />
+      <QuestionHead kind={`${KIND_LABELS.lab} · 手元の端末で動かす · ${head}`} prompt={question.prompt} />
       <CheckboxList label="手順" description="1 つずつ動かし、できたら印を付けます" value={checked} onChange={setChecked} hasDividers isReadOnly={done}>
         {question.steps.map((s, i) => (
           // 文字列の label は 1 行に切られるので、Text で渡して折り返させ、印を 1 行目にそろえる

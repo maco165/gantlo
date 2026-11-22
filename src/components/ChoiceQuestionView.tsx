@@ -9,6 +9,7 @@ import { RETRY_AFTER_SECONDS, choiceStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
 import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
+import { KIND_LABELS } from '../lib/questionKind';
 
 const letter = (i: number) => String.fromCharCode(65 + i);
 
@@ -50,7 +51,7 @@ export default function ChoiceQuestionView({
 
   return (
     <VStack gap={5}>
-      <QuestionHead kind={`4 択 · ${head}`} prompt={question.prompt} />
+      <QuestionHead kind={`${KIND_LABELS.choice} · ${head}`} prompt={question.prompt} />
 
       {question.code && <CodeBlock code={question.code.text} language={question.code.format} width="100%" size="sm" hasCopyButton={false} />}
 

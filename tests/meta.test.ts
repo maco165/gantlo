@@ -147,8 +147,44 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
       for (const q of l.questions) {
         expect(head.rootText).toContain(q.prompt);
         expect(head.rootText).not.toContain(q.explanation);
+        // 4 択の選択肢ごとの解説 (why) と、実習で観察できること (expected) も答えたあとに出すもの
+        if (q.kind === 'choice') for (const c of q.choices) if (c.why) expect(head.rootText, q.id).not.toContain(c.why);
+        if (q.kind === 'lab') expect(head.rootText, q.id).not.toContain(q.expected);
       }
     }
+  });
+
+  it('並べ替えの項目と 4 択の選択肢は、データの順 (正しい順・正解の位置) ではなく文字の順に書く (位置を決めた 4 択は除く)', () => {
+    const byText = (xs: string[]) => [...xs].sort((x, y) => x.localeCompare(y, 'ja'));
+    let orders = 0;
+    for (const l of LESSONS) {
+      const doc = new DOMParser().parseFromString(renderPage(template, pages.find((p) => p.path === `lesson/${l.id}/`)!), 'text/html');
+      const items = [...doc.querySelectorAll('#root main > ol > li')];
+      expect(items.length, l.id).toBe(l.questions.length);
+      l.questions.forEach((q, i) => {
+        const listed = [...items[i].querySelectorAll(':scope > ul > li')].map((li) => li.textContent ?? '');
+        if (q.kind === 'order') {
+          orders++;
+          expect(listed, q.id).toEqual(byText(q.items.map((x) => x.text)));
+        }
+        if (q.kind === 'choice') expect(listed, q.id).toEqual(q.fixedOrder ? q.choices.map((c) => c.text) : byText(q.choices.map((c) => c.text)));
+      });
+    }
+    expect(orders).toBeGreaterThan(0);
+  });
+
+  it('索引に載せる全ページで、JS なしの本文 (#root の文字。空白を除く) が 400 字以上', () => {
+    for (const { page, head } of heads.filter((h) => !h.page.noindex)) {
+      expect(head.rootText.replace(/\s/g, '').length, page.path).toBeGreaterThanOrEqual(400);
+    }
+  });
+
+  it('模擬試験のページは形式 (40 問・60 分・合格 75%・各週 10 問) と、範囲の本編のレッスンへのリンクを持つ', () => {
+    const html = renderPage(template, pages.find((p) => p.path === 'exam/')!);
+    const { rootText } = readHead(html);
+    for (const s of ['40 問', '60 分', '75%', '各週 10 問']) expect(rootText).toContain(s);
+    const links = [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('#root main > ul a')].map((x) => x.getAttribute('href'));
+    expect(links).toEqual(LESSONS.filter((l) => l.course === 'main').map((l) => lessonHref(l.id)));
   });
 
   it('レッスンの題と問題文の < > & を、本文 (h1・コースの一覧・問題の一覧) でも文字として書く', () => {
@@ -157,7 +193,7 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
     const lessonHtml = renderPage(template, all.find((p) => p.path === 'lesson/x-l1/')!);
     const courseHtml = renderPage(template, all.find((p) => p.path === 'course/main/')!);
     expect(lessonHtml).toContain('<h1>&lt;b&gt;A &amp; B&lt;/b&gt;</h1>');
-    expect(lessonHtml).toContain('<li>&lt;img src=x onerror=alert(1)&gt; &amp; 1 &lt; 2</li>');
+    expect(lessonHtml).toContain('<p>&lt;img src=x onerror=alert(1)&gt; &amp; 1 &lt; 2 (4 択)</p>');
     expect(courseHtml).toContain('>&lt;b&gt;A &amp; B&lt;/b&gt;</a>');
     for (const html of [lessonHtml, courseHtml]) {
       expect(html).not.toContain('<b>A');
