@@ -297,12 +297,10 @@ async function run(browser, name, width, height) {
   const errors = [];
   const outside = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  // Gothic テーマの fonts.css が読む Google Fonts の GET だけは許す (字を取りに行くだけで、こちらから何も送らない)
-  const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+  // サイトの外へは何も取りに行かない (書体も自前で配る。src/fonts.css)
   page.on('request', (req) => {
     const url = new URL(req.url());
     if (url.origin === ORIGIN || url.protocol === 'data:') return;
-    if (req.method() === 'GET' && FONT_HOSTS.includes(url.hostname)) return;
     outside.push(`${req.method()} ${req.url()}`);
   });
   const tag = `[${name}]`;

@@ -188,7 +188,7 @@ export async function runContrast(browser, { base, check }) {
     const context = await browser.newContext({ viewport: { width, height } });
     const page = await context.newPage();
     const measure = async (screen, must = []) => {
-      // 字 (Google Fonts) の読み込みと画面の動きが落ち着いてから測る
+      // 字 (書体) の読み込みと画面の動きが落ち着いてから測る
       await page.evaluate(() => document.fonts.ready);
       await page.waitForTimeout(200);
       const min = await checkContrast(page, check, `${tag} ${screen}`, must);

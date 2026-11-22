@@ -43,11 +43,9 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
     const errors = [];
     const outside = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
     page.on('request', (req) => {
       const url = new URL(req.url());
       if (url.origin === origin || url.protocol === 'data:' || url.protocol === 'blob:') return;
-      if (req.method() === 'GET' && FONT_HOSTS.includes(url.hostname)) return;
       outside.push(`${req.method()} ${req.url()}`);
     });
     const target = async (locator, label) => {
