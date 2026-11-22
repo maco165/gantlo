@@ -1,7 +1,7 @@
 // 検索に届く形 (R-7)。ページごとに書き出す HTML の題・説明・canonical・本文の見出しと、sitemap.xml を確かめる。
 // 前半は書き出しと同じ関数で、ページを手元で組み立てて見る (npm test だけで走る)。
 // 後半は npm run build のあとの dist を見る (dist が無ければ飛ばす。CI は build のあとに npm test を走らせる)。
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { gzipSync } from 'node:zlib';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -69,7 +69,7 @@ describe('共有したときのカードの画像 (og:image)', () => {
   });
 });
 
-describe('iOS のホーム画面の画像 (apple-touch-icon)', () => {
+describe('iOS のホーム画面の画像 (apple-touch-icon)', { timeout: 30_000 }, () => {
   it('全ページの head に /gantlo/apple-touch-icon.png への link がある', () => {
     for (const p of [...pages, NOT_FOUND_PAGE]) {
       const doc = new DOMParser().parseFromString(renderPage(template, p), 'text/html');
@@ -117,7 +117,7 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
     }
   });
 
-  it(`title は全ページ (404.html も) ${TITLE_MAX} 字以内で、og:title も同じ題`, () => {
+  it(`title は全ページ (404.html も) ${TITLE_MAX} 字以内で、og:title も同じ題`, { timeout: 30_000 }, () => {
     for (const p of [...pages, NOT_FOUND_PAGE]) {
       const doc = new DOMParser().parseFromString(renderPage(template, p), 'text/html');
       expect(doc.title.length, `${p.path} ${doc.title}`).toBeLessThanOrEqual(TITLE_MAX);
@@ -228,9 +228,13 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
   });
 });
 
+/** 同じ HTML を何度も読まない (64 ページを検査ごとに読み直すと、混んだ機械で時間切れになる) */
+const parsed = new Map<string, Document>();
+const parse = (html: string) => parsed.get(html) ?? parsed.set(html, new DOMParser().parseFromString(html, 'text/html')).get(html)!;
+
 /** head の JSON-LD (1 つの script の @graph) を読む。無ければ null */
 function readLd(html: string): { count: number; graph: Record<string, any>[] | null; raw: string } {
-  const doc = new DOMParser().parseFromString(html, 'text/html');
+  const doc = parse(html);
   const scripts = [...doc.querySelectorAll('script[type="application/ld+json"]')];
   if (scripts.length === 0) return { count: 0, graph: null, raw: '' };
   const raw = scripts[0].textContent ?? '';
@@ -243,7 +247,7 @@ const ofType = (graph: Record<string, any>[], type: string) => graph.filter((n) 
 
 /** 本文のパンくず (nav.crumbs) の [名前, 絶対 URL]。最後の項目 (今のページ) はリンクではないので canonical を当てる */
 function readCrumbs(html: string, canonical: string): [string, string][] | null {
-  const nav = new DOMParser().parseFromString(html, 'text/html').querySelector('#root nav.crumbs');
+  const nav = parse(html).querySelector('#root nav.crumbs');
   if (!nav) return null;
   return [...nav.querySelectorAll('li')].map((li) => {
     const link = li.querySelector('a');
@@ -251,7 +255,8 @@ function readCrumbs(html: string, canonical: string): [string, string][] | null 
   });
 }
 
-describe('構造化データ (JSON-LD) とパンくず', () => {
+// 全ページを組み立てて読むので、混んだ機械でも落ちないよう 1 件 30 秒まで待つ
+describe('構造化データ (JSON-LD) とパンくず', { timeout: 30_000 }, () => {
   const rendered = pages.map((p) => ({ page: p, html: renderPage(template, p), canonical: `${SITE_URL}${p.path}` }));
 
   it('全ページの head に JSON-LD が 1 つあり、JSON として読める。404.html には無い', () => {
@@ -397,9 +402,12 @@ describe.skipIf(!existsSync(join(DIST, 'sitemap.xml')))('npm run build のあと
     const total = files.reduce((n, f) => n + gzipSync(readFileSync(join(DIST, f)), { level: 9 }).length, 0);
     expect(total, `${files.length} 個で ${total} bytes`).toBeLessThanOrEqual(300_000);
     // 問題の本文 (解説) はレッスンなどの画面と一緒に読む。最初の JS に入っていない
-    const js = files.map((f) => readFileSync(join(DIST, f), 'utf8')).join('');
+    // (束ねたあとの書き方で見つからないだけ、にならないよう、ほかの JS には同じ書き方で見つかることも確かめる)
     const sample = LESSONS[0].questions[0].explanation.slice(0, 30);
-    expect(js.includes(JSON.stringify(sample).slice(1, -1)) || js.includes(sample)).toBe(false);
+    const has = (f: string) => readFileSync(join(DIST, f), 'utf8').includes(sample);
+    expect(files.filter(has), '最初に読む JS に解説がある').toEqual([]);
+    const rest = readdirSync(join(DIST, 'assets')).filter((f) => f.endsWith('.js')).map((f) => `assets/${f}`).filter((f) => !files.includes(f));
+    expect(rest.filter(has).length, 'あとで読む JS に解説がある').toBeGreaterThan(0);
   });
 
   it('sitemap.xml は検索に載せる全ページを持ち、robots.txt が sitemap を指し、404.html は検索に載せない', () => {
