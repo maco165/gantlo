@@ -4,7 +4,7 @@ import { useState } from 'react';
 import StatusLine from './StatusLine';
 import { currentLesson } from '../lib/plan';
 import { MAX_RANGE_DAYS, addDays, dayKey, rangeProblem, type GanttView, type Progress } from '../lib/progress';
-import { lessonHref } from '../lib/route';
+import LessonStartLink from './LessonStartLink';
 import { buildSchedule, labelTicks, scheduleStatus, verdictLabel, verdictTone, type ScheduleInput } from '../lib/schedule';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
@@ -194,9 +194,7 @@ export default function PlanGantt({ plan, progress, now, view, onView }: Props) 
           {here ? (
             <p className="gantt__next">
               <span className="gantt__here-label">今ここ</span> {here.index + 1} / {here.total} 番目「{here.lesson.title}」{' '}
-              <a className="btn btn--primary" href={lessonHref(here.lesson.id)}>
-                <code>GET /lesson/{here.lesson.id}</code>
-              </a>
+              <LessonStartLink lessonId={here.lesson.id} isFirst={here.index === 0} />
             </p>
           ) : total > 0 ? (
             <Text type="supporting">計画のレッスンを全部済ませました。</Text>

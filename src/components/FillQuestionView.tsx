@@ -8,6 +8,7 @@ import { XP_PER_CORRECT, gradeFill, normalizeAnswer } from '../lib/grade';
 import { RETRY_AFTER_SECONDS, fillStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
+import ReportIssue from './ReportIssue';
 import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
 import { kindLabel } from '../lib/questionKind';
 
@@ -137,6 +138,7 @@ export default function FillQuestionView({
             </AnswerResponse>
             <PrimaryAction label={nextLabel} onClick={onNext} />
             <AskAi question={question} answered={{ picked: values.map(normalizeAnswer).join(' / '), correct }} />
+            <ReportIssue questionId={question.id} />
           </>
         )}
       </ActionArea>

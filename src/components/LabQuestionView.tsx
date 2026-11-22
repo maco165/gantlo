@@ -8,6 +8,7 @@ import { XP_PER_LAB } from '../lib/grade';
 import { LAB_DONE } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
+import ReportIssue from './ReportIssue';
 import { ActionArea, PrimaryAction, QuestionHead } from './QuestionFrame';
 import { KIND_LABELS } from '../lib/questionKind';
 
@@ -71,6 +72,7 @@ export default function LabQuestionView({
             </AnswerResponse>
             <PrimaryAction label={nextLabel} onClick={onNext} />
             <AskAi question={question} answered={{ picked: '', correct: true }} />
+            <ReportIssue questionId={question.id} />
           </>
         )}
       </ActionArea>

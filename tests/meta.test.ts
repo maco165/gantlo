@@ -7,6 +7,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LESSONS } from '../src/content/index';
 import type { Lesson } from '../src/content/types';
+import { PASS_MARK_NOTE } from '../src/lib/exam';
 import { documentTitle, PAGE_TITLES, TITLE_MAX, titleOf } from '../src/lib/pageMeta';
 import { BASE, COURSES, lessonHref, parseRoute } from '../src/lib/route';
 import { LESSON_LIST_HEADING } from '../src/lib/courses';
@@ -202,10 +203,16 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
     }
   });
 
-  it('模擬試験のページは形式 (40 問・60 分・合格 75%・各週 10 問) と、範囲の本編のレッスンへのリンクを持つ', () => {
+  it('模擬試験のページは形式 (40 問・60 分・合格の目安 75%・各週 10 問) と、範囲の本編のレッスンへのリンクを持つ', () => {
     const html = renderPage(template, pages.find((p) => p.path === 'exam/')!);
     const { rootText } = readHead(html);
     for (const s of ['40 問', '60 分', '75%', '各週 10 問']) expect(rootText).toContain(s);
+    // 合格の線は一次情報の無いこのサイトの目安なので、目安と書き、断り書きを添える (出典の無い断定をしない)
+    expect(rootText).toContain('合格の目安');
+    expect(rootText).toContain(PASS_MARK_NOTE);
+    expect(rootText).not.toMatch(/合格: 正答率/);
+    const exam = pages.find((p) => p.path === 'exam/')!;
+    expect(exam.description).toContain('目安');
     const links = [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('#root main > ul a')].map((x) => x.getAttribute('href'));
     expect(links).toEqual(LESSONS.filter((l) => l.course === 'main').map((l) => lessonHref(l.id)));
   });

@@ -21,6 +21,9 @@ export function sortLessons<L extends { course: CourseId }>(files: Record<string
 
 const FILES = import.meta.glob<{ lessons: LessonMeta[] }>('./courses/*/*.json', { eager: true, import: 'default', query: '?catalog' });
 
+/** レッスンの id → そのレッスンを持つ問題データのファイル (./courses/<course>/<file>.json)。レッスンの画面はそのファイルだけを読む (content/lesson.ts) */
+export const LESSON_FILE: ReadonlyMap<string, string> = new Map(Object.entries(FILES).flatMap(([path, f]) => f.lessons.map((l) => [l.id, path] as const)));
+
 /** すべてのレッスンの目録 (全部のデータの LESSONS と同じ順) */
 export const CATALOG: readonly LessonMeta[] = sortLessons(FILES);
 

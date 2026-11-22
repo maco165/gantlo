@@ -123,6 +123,11 @@ export function examIntroStatus(total: number, minutes: number): Status {
   return { code: 200, reason: 'OK', ja: `本編 4 週から ${total} 問、制限時間は ${minutes} 分です` };
 }
 
+/** 途中の回が残っている (GET /me/exams/current)。答えたのは一部なので、ホームの途中と同じ 206 */
+export function examResumeStatus(answered: number, total: number): Status {
+  return { code: 206, reason: 'Partial Content', ja: `途中の回があります。${total} 問のうち ${answered} 問に答えました` };
+}
+
 /**
  * 模擬試験を終えた (POST /me/exams)。時間内に送れば結果を記録として作ったので 201、
  * 時間が切れたら 408 Request Timeout (答えていない問題は不正解として採点し、記録も残す)。合否は説明に入れる

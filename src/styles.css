@@ -39,7 +39,7 @@
     min-height: var(--size-element-lg);
     min-width: var(--size-element-lg);
   }
-  /* 文の中に並ぶリンク (用語集の出典とレッスン・進捗の下のリンク)。並べる箱に tap-links を付ける */
+  /* 文の中に並ぶリンク (用語集の出典とレッスン・進捗の下のリンク・誤りを報告)。並べる箱に tap-links を付ける */
   .tap-links a {
     display: inline-flex;
     align-items: center;
@@ -365,6 +365,19 @@ code {
 .btn--icon {
   padding: 0;
   width: var(--size-element-lg);
+}
+/* レッスンを始めるボタン。何をするかの日本語を先に、HTTP の形 (GET /lesson/<id>) をその後ろに添える。狭いと 2 行に折り返す */
+.btn--start {
+  flex-wrap: wrap;
+  column-gap: var(--spacing-2);
+  row-gap: 0;
+  text-align: center;
+}
+.btn__label {
+  font-weight: 600;
+}
+.btn__request {
+  font-size: 0.8125rem;
 }
 
 .home__next {
@@ -1162,6 +1175,10 @@ code {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-element);
   scroll-margin-top: 4rem;
+  /* 語は 100 を超えるので、画面の外の語は描かない (配置と描画を後回しにし、最初の画面の Style & Layout を減らす)。
+     描くまでの高さは語 1 つの目安で取り、スクロールの長さが大きく変わらないようにする。#term-<id> へ飛ぶと、その語は描かれる */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 14rem;
 }
 .gloss__term {
   margin: 0;
@@ -1172,6 +1189,11 @@ code {
 }
 .gloss__desc,
 .gloss__meta {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+/* 答えたあとの「誤りを報告」(ReportIssue) */
+.report-issue {
   margin: 0;
   overflow-wrap: anywhere;
 }

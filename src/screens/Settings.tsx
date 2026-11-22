@@ -5,6 +5,7 @@ import { SegmentedControl, SegmentedControlItem } from '@astryxdesign/core/Segme
 import { Text } from '@astryxdesign/core/Text';
 import { useState } from 'react';
 import StatusLine from '../components/StatusLine';
+import { clearExamRun } from '../lib/examSave';
 import { downloadProgress } from '../lib/download';
 import {
   GOAL_CHOICES,
@@ -152,12 +153,14 @@ export default function Settings({ progress, updateProgress }: Props) {
         isOpen={confirmReset}
         onOpenChange={setConfirmReset}
         title="記録を消しますか?"
-        description="完了したレッスン・XP・連続日数・問題ごとの正誤と復習の予定を消します。1 日の目標と計画は残ります。消す前に書き出しておくと、あとで読み込んで戻せます。"
+        description="完了したレッスン・XP・連続日数・問題ごとの正誤と復習の予定・模擬試験の回 (解いている途中の回も) を消します。1 日の目標と計画は残ります。消す前に書き出しておくと、あとで読み込んで戻せます。"
         actionLabel="消す"
         actionVariant="destructive"
         cancelLabel="やめる"
         onAction={() => {
           updateProgress((p) => resetProgress(p));
+          // 模擬試験の解いている途中の回 (別のキー) も消す
+          clearExamRun();
           setConfirmReset(false);
           setOutcome({ status: RESET_DONE, request: 'DELETE /me' });
         }}
