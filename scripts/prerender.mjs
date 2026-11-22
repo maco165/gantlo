@@ -3,7 +3,7 @@
 // 検索エンジンと SNS が JS を動かさなくても、題・説明・canonical・本文の見出しを読めるようにする。
 // ページの一覧と HTML の組み立ては src/prerender/ にあり (tests/meta.test.ts も同じものを見る)、ここは vite で読んで書くだけ。
 // 知らない道は、GitHub Pages が 404.html を HTTP 404 で返す。画面は JS で 404 を出す。
-import { mkdir, readFile, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createServer } from 'vite';
@@ -24,6 +24,10 @@ const server = await createServer({
 try {
   const { sitePages, NOT_FOUND_PAGE } = await server.ssrLoadModule('/src/prerender/pages.ts');
   const { renderPage, sitemapXml } = await server.ssrLoadModule('/src/prerender/html.ts');
+  const { preloadLinks } = await server.ssrLoadModule('/src/prerender/preload.ts');
+  // vite の manifest (vite.config.ts の build.manifest)。ページの画面の JS を先に取りに行く行を作るのに使い、公開には要らないので消す
+  const manifestDir = path.join(DIST, '.vite');
+  const manifest = JSON.parse(await readFile(path.join(manifestDir, 'manifest.json'), 'utf8'));
   const template = await readFile(path.join(DIST, 'index.html'), 'utf8');
   const pages = sitePages();
   for (const page of pages) {
@@ -31,10 +35,14 @@ try {
     if (!/^(?:[a-z0-9-]+\/)*$/.test(page.path)) throw new Error(`prerender: 道の形が違います (${page.path})`);
     const dir = path.join(DIST, page.path);
     await mkdir(dir, { recursive: true });
-    await writeFile(path.join(dir, 'index.html'), renderPage(template, page));
+    // 画面の JS (レッスンなら問題データも) を、index.js を動かす前から取りに行く
+    const links = preloadLinks(page.path, manifest, template);
+    const html = renderPage(template, page).replace('</head>', () => `${links.map((l) => `  ${l}\n`).join('')}  </head>`);
+    await writeFile(path.join(dir, 'index.html'), html);
   }
   await writeFile(path.join(DIST, '404.html'), renderPage(template, NOT_FOUND_PAGE));
   await writeFile(path.join(DIST, 'sitemap.xml'), sitemapXml(pages));
+  await rm(manifestDir, { recursive: true, force: true });
   console.log(`prerender: ${pages.length} ページと 404.html・sitemap.xml (${pages.filter((p) => !p.noindex).length} 件) を書きました`);
 } finally {
   await server.close();

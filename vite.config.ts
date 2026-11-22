@@ -35,6 +35,8 @@ export default defineConfig({
   base: BASE,
   // purgeAtomicCssPlugin: 使われない StyleX の原子クラスを CSS から落とす (scripts/purge-atomic-css.ts)
   plugins: [lessonCatalog(), react(), purgeAtomicCssPlugin()],
+  // 書き出す HTML に、ページの画面の JS を先に取りに行く modulepreload を入れるため (scripts/prerender.mjs が読む)
+  build: { manifest: true },
   test: {
     environment: 'jsdom',
     include: ['tests/**/*.test.ts'],

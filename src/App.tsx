@@ -15,10 +15,12 @@ import { useRoute } from './lib/route';
 import { NOT_FOUND, NOT_IMPLEMENTED } from './lib/status';
 import { useMobileNav } from './lib/useMobileNav';
 import { useProgress } from './lib/useProgress';
-import Home from './screens/Home';
 import StatusPage from './screens/StatusPage';
 
-// ホーム以外の画面は、開いたときに読む (最初の JS を軽くするため。用語集はそのデータ content/glossary.json も)
+// 画面は開いたときに読む (最初の JS を軽くするため。用語集はそのデータ content/glossary.json も)。
+// ホームも lazy にして、上の帯と「読み込んでいます」を先に描き、画面の描画は Suspense の読み直し (React が手を離しながら描く) に回す
+// (ホームを 1 つの長い描画にしない)。書き出した HTML は画面の JS を modulepreload する (src/prerender/preload.ts)
+const Home = lazy(() => import('./screens/Home'));
 const About = lazy(() => import('./screens/About'));
 const CourseScreen = lazy(() => import('./screens/CourseScreen'));
 const Exam = lazy(() => import('./screens/Exam'));
