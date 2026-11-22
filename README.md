@@ -83,7 +83,7 @@
 | メニュー | 左。PC では常に出し、スマホでは左から開く引き出し。「このサイトについて」と「GitHub のリポジトリ」は一覧の下端に留める (PC は SideNav の `footer`、スマホは MobileNav に footer が無いので CSS の sticky。一覧のリンクは下端の 2 つの高さ (`--nav-foot-h`) を `scroll-margin-bottom` にし、Tab で進んでも隠れない) |
 | 上の帯 | 右端に GitHub のリポジトリを新しいタブで開くボタン (どの画面でも)。スマホでは左端にメニューのボタンとサイト名も置く |
 
-見た目は Meta のデザインシステム [Astryx](https://github.com/meta/astryx) の **Gothic** テーマ (`@astryxdesign/theme-gothic`) です。暗い画面だけのテーマで、飾りの見出し文字は英字にだけ使います。
+見た目は Meta のデザインシステム [Astryx](https://github.com/meta/astryx) の **Gothic** テーマ (`@astryxdesign/theme-gothic`) です。暗い画面だけのテーマで、飾りの見出し文字は英字にだけ使います。書体 (Fustat・JetBrains Mono・Manufacturing Consent・UnifrakturMaguntia) はテーマと同じものを自前で配ります (下の `src/fonts.css`)。
 
 ## 作り
 
@@ -249,6 +249,7 @@ flowchart LR
 | `src/prerender/pages.ts` | 書き出すページの一覧 (ホーム・メニューの画面・全コース・全レッスン) と、ページごとの題・説明・本文。コースのページは画面と同じ見出し (題と `Network`) の下にレッスンへのリンクを画面と同じ順に書く。画面と同じデータ (経路・コース・レッスン・用語集) から作る。用語集のページは全部の語・説明・出典を本文に書く (検索に載せる)。リンクの href も文字と同じく escape する。レッスンの見出しは題で、本文は紹介 (問題の数と種類・旅の段・週)、答える前に見えるもの (問題文・空欄を伏せたコード・4 択の選択肢・並べる項目・実習の手順) と前後のレッスンまで (答え・解説・出典・実習で観察できることは書かない。選択肢と項目はデータの順が正しい順や正解の位置を漏らすので、文字の順に並べる。並べ替えで文字の順がたまたま正しい順と同じなら、1 つずらす)。コースのページはレッスンごとに問題の種類と最初の問題文を、模擬試験のページは形式 (問題の数・時間・合格の線) と週ごとの範囲を書く。索引に載せる全ページで、本文は空白を除いて 400 字以上 (tests/meta.test.ts)。ホーム以外の本文の頭にパンくずを書く。構造化データ (JSON-LD) は、ホームが `WebSite`、ほかが `BreadcrumbList` で、コースは `Course` (提供者・レッスンの一覧)、レッスンは `LearningResource` (属するコース)、用語集は `DefinedTermSet` (語ごとに `DefinedTerm`。本文の `#term-<id>` を指す)。一人ひとりの記録の画面 (計画・復習・進捗・設定) は noindex にして sitemap から外す。画面の JS には入らない 用語集の語には出てくるレッスンへのリンクを、レッスンのページには出てくる用語 (用語集の `#term-<id>`) へのリンクを書き、両向きにつなぐ (壊れたリンクが無いことと両向きを `tests/meta.test.ts` が見る) |
 | `src/prerender/html.ts` | `dist/index.html` を型にして、title・description・canonical・og と `#root` の中身をページのものに置き換える。置き換える場所が型に無ければ止める。`sitemap.xml` も作る (検索に載せるページだけ。lastmod は付けない)。ページの JSON-LD を head の 1 つの `script` に入れる (`< > &` は `\u003c` などにして、データの文字で script が閉じないようにする。404.html には入れない) |
 | `scripts/prerender.mjs` | `npm run build` の最後の段。vite で `src/prerender/` を読み (ポートは開かず、依存の事前の束ねもしない)、`dist/<道>/index.html`・`404.html` (noindex)・`sitemap.xml` を書く |
+| `src/fonts.css`・`public/fonts/` | 書体。テーマの `fonts.css` は CSS の中で Google Fonts を `@import` し、HTML → CSS → 書体の CSS → 書体の直列になって描画を止めるので (2026-11-23 の Lighthouse で 808ms)、Google Fonts が返す woff2 と `@font-face` (書体・太さ・`unicode-range`) をそのまま写して自前で配る。どれも `font-display: swap`。最初の画面で使う 3 つ (Fustat・JetBrains Mono・Manufacturing Consent の latin) は `index.html` で preload する。ライセンスは `public/fonts/*-OFL.txt` (SIL OFL 1.1)。外の書体の置き場を見ないこと・4 書体がそろうこと・preload の先があることは `tests/fonts.test.ts` が見る |
 | `public/robots.txt` | sitemap の場所。検索エンジンが読むのはドメインの直下 (`maco165.github.io` のリポジトリ) の robots.txt だけなので、そちらにも同じ行を置く |
 | `tests/meta.test.ts` | 検索に届く形の検査。ページごとの title・description・canonical が重ならないこと、canonical が # の無い URL であること、見出しが JS なしの HTML にあること、題と問題文が escape されること、記録の画面だけが noindex で、sitemap が検索に載せる全ページを持つこと。`<title>` が 35 字以内で og:title と同じこと、apple-touch-icon、JSON-LD が JSON として読めて url が canonical と合い、`BreadcrumbList` が本文の見えるパンくずと同じ並びであること。後半は build のあとの `dist` を見る (CI は build のあとに `npm test`) |
 

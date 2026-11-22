@@ -17,6 +17,10 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="gantlo: API と HTTP の基礎を、問題を解いて学ぶ。計画はガントチャートで" />
     <meta name="twitter:card" content="summary_large_image" />
+    <!-- 最初の画面で使う書体 (本文・コード・題字の latin) を CSS を読む前から取りに行く。@font-face は src/fonts.css -->
+    <link rel="preload" href="/gantlo/fonts/fustat-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/gantlo/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/gantlo/fonts/manufacturing-consent-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="/gantlo/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/gantlo/apple-touch-icon.png" />
     <meta name="theme-color" content="#101314" />
