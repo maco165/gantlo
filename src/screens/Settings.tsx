@@ -20,7 +20,7 @@ import {
   setProfile,
   type Progress,
 } from '../lib/progress';
-import { ICS_DONE, ICS_INVALID, IMPORT_DONE, IMPORT_INVALID, IMPORT_TOO_LARGE, RESET_DONE, SAVE_FAILED, goalSaved, type Status } from '../lib/status';
+import { ICS_DONE, ICS_INVALID, IMPORT_DONE, IMPORT_INVALID, IMPORT_TOO_LARGE, RESET_DONE, SAVE_FAILED, goalSaved, weeklyGoalSaved, type Status } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
 type Props = { progress: Progress; updateProgress: (fn: (p: Progress) => Progress) => void };
@@ -114,6 +114,42 @@ export default function Settings({ progress, updateProgress }: Props) {
           ))}
         </SegmentedControl>
         <Text type="supporting">ホームの X-Today-XP に、今日の XP と目標が出ます。1 問正解で 3 XP、実習で 10 XP です。</Text>
+      </section>
+
+      <section className="settings__section" aria-labelledby="settings-week">
+        <h2 id="settings-week" className="settings__title">
+          週の目標
+        </h2>
+        {/* 既定は決めない (選ぶまでどれも選ばれていない)。390 幅で 7 つが 44px に収まるよう、外すのは別のボタンにする */}
+        <SegmentedControl
+          label="週に学ぶ日の数"
+          layout="fill"
+          value={progress.profile?.weeklyGoalDays === undefined ? '' : String(progress.profile.weeklyGoalDays)}
+          onChange={(v) => {
+            updateProgress((p) => setProfile(p, { weeklyGoalDays: Number(v) }));
+            setOutcome({ status: weeklyGoalSaved(Number(v)), request: 'PATCH /me/profile' });
+          }}
+        >
+          {[1, 2, 3, 4, 5, 6, 7].map((d) => (
+            <SegmentedControlItem key={d} value={String(d)} label={`${d} 日`} />
+          ))}
+        </SegmentedControl>
+        {progress.profile?.weeklyGoalDays !== undefined && (
+          <p className="settings__row">
+            <Button
+              label="週の目標を外す"
+              onClick={() => {
+                updateProgress((p) => setProfile(p, { weeklyGoalDays: undefined }));
+                setOutcome({ status: weeklyGoalSaved(null), request: 'PATCH /me/profile' });
+              }}
+              width={width}
+              size={size}
+            />
+          </p>
+        )}
+        <Text type="supporting">
+          週に何日学ぶかの目標です (週は月曜から)。ホームの X-Weekly-Target に、今週学んだ日と目標が出ます。学んだ日は、レッスン・復習・模擬試験を終えた日です。
+        </Text>
       </section>
 
       <section className="settings__section" aria-labelledby="settings-ics">

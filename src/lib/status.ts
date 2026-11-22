@@ -94,6 +94,11 @@ export function goalSaved(xp: number): Status {
   return { code: 200, reason: 'OK', ja: `1 日の目標を ${xp} XP にしました` };
 }
 
+/** 週の目標を変えた (PATCH /me/profile)。null は目標を外した */
+export function weeklyGoalSaved(days: number | null): Status {
+  return { code: 200, reason: 'OK', ja: days === null ? '週の目標を外しました' : `週の目標を ${days} 日にしました` };
+}
+
 /** 学ぶ予定の .ics を作った (GET /me/calendar.ics) */
 export const ICS_DONE: Status = { code: 200, reason: 'OK', ja: '学ぶ予定のファイル (.ics) を作りました。カレンダーのアプリで開くと予定に入ります' };
 
