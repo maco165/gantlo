@@ -10,8 +10,13 @@ export const EXAM_SAVE_KEY = 'gantlo.exam.v1';
 
 /** 途中の回の中身。出題 (問題の id と、混ぜた 4 択の選択肢・並べ替えの項目の並び)・答え・期限 (時刻のミリ秒) */
 export type SavedExamItem = { id: string; order?: string[] };
-/** runId は回ごとの id。採点した回は記録 (exams の runId) に残し、同じ回の保存を読み直さない・2 回記録しない */
-export type SavedExam = { v: 1; runId: string; items: SavedExamItem[]; answers: { correct: boolean; code: number }[]; deadline: number };
+/**
+ * runId は回ごとの id。採点した回は記録 (exams の runId) に残し、同じ回の保存を読み直さない・2 回記録しない。
+ * answers は問題の位置ごとの答えで、答えていない位置は null (前の問題へ戻る・一覧から飛ぶので、前から順には埋まらない)。
+ * index は今出している問題の位置、marks は「あとで見直す」の印を付けた位置。
+ * index と marks の無い古い保存 (答えは前から詰めて並ぶ) は、答えた数を今の位置として読む (lib/exam.ts の fromSavedExam)
+ */
+export type SavedExam = { v: 1; runId: string; items: SavedExamItem[]; answers: ({ correct: boolean; code: number } | null)[]; deadline: number; index?: number; marks?: number[] };
 
 export type ExamStorage = KeyValueStorage & Pick<Storage, 'removeItem'>;
 

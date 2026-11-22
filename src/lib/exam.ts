@@ -117,12 +117,28 @@ export function recordExam(p: Progress, items: readonly ExamItem[], answers: rea
   if (isRecordedRun(p, runId)) return p;
   let next = p;
   items.forEach((it, i) => {
-    next = recordAnswer(next, it.question.id, answers[i]?.correct === true, now);
+    // 答えずに終わった問題は不正解として復習に入れるが、その日に答えた数 (カレンダー) には数えない
+    next = recordAnswer(next, it.question.id, answers[i]?.correct === true, now, { answered: answers[i] !== undefined });
   });
   next = completeReview(next, result.correct * XP_PER_CORRECT, now);
   const rec: ExamRecord = { at: now.toISOString(), correct: result.correct, total: result.total, timeUp: result.timeUp, ...(runId !== undefined ? { runId } : {}) };
   return { ...next, exams: [rec, ...(p.exams ?? [])].slice(0, MAX_EXAM_RECORDS) };
 }
+
+/** 答えた問題の数 (位置ごとの答えのうち、答えのある数) */
+export const answeredCount = (answers: readonly (ExamAnswer | undefined)[]): number => answers.filter((a) => a !== undefined).length;
+
+/** 問題番号の一覧の 1 つの状態 (未回答・回答済み) と、見直しの印 */
+export type ExamSlot = { index: number; answered: boolean; marked: boolean };
+export function examSlots(total: number, answers: readonly (ExamAnswer | undefined)[], marks: readonly number[]): ExamSlot[] {
+  return Array.from({ length: total }, (_, i) => ({ index: i, answered: answers[i] !== undefined, marked: marks.includes(i) }));
+}
+
+/** 印を付け外しする (付いていれば外し、無ければ付ける) */
+export const toggleMark = (marks: readonly number[], i: number): number[] => (marks.includes(i) ? marks.filter((m) => m !== i) : [...marks, i].sort((a, b) => a - b));
+
+/** 答えたあとに出す問題: 次の位置。最後の問題のあとは null (採点の前の確かめへ) */
+export const nextIndex = (index: number, total: number): number | null => (index + 1 < total ? index + 1 : null);
 
 /** 残りの時間 (ミリ秒) を「mm:ss」にする。0 より小さければ 00:00 */
 export function formatClock(ms: number): string {
@@ -162,15 +178,32 @@ export function examRandom(search: string): () => number {
   return raw !== null && /^\d{1,10}$/.test(raw) ? seededRandom(Number(raw)) : Math.random;
 }
 
-/** 途中の回 (出題・答え・期限) を残す形にする。答えは前から順に埋まるので、答えた数が次に出す問題の位置になる */
-export function toSavedExam(items: readonly ExamItem[], answers: readonly (ExamAnswer | undefined)[], deadline: number, runId: string): SavedExam {
-  return {
+/**
+ * 途中の回 (出題・答え・期限・今の位置・見直しの印) を残す形にする。答えは問題の位置ごとに並べ、答えていない位置は null。
+ * 最後の答えより後ろの null は残さない
+ */
+export function toSavedExam(
+  items: readonly ExamItem[],
+  answers: readonly (ExamAnswer | undefined)[],
+  deadline: number,
+  runId: string,
+  { index, marks = [] }: { index?: number; marks?: readonly number[] } = {},
+): SavedExam {
+  let last = -1;
+  for (let i = 0; i < Math.min(answers.length, items.length); i++) if (answers[i] !== undefined) last = i;
+  const out: SavedExam = {
     v: 1,
     runId,
     items: items.map(({ question: q }) => (q.kind === 'choice' ? { id: q.id, order: q.choices.map((c) => c.id) } : q.kind === 'order' ? { id: q.id, order: q.items.map((it) => it.id) } : { id: q.id })),
-    answers: answers.filter((a): a is ExamAnswer => a !== undefined).map((a) => ({ correct: a.correct, code: a.code })),
+    answers: Array.from({ length: last + 1 }, (_, i) => {
+      const a = answers[i];
+      return a ? { correct: a.correct, code: a.code } : null;
+    }),
     deadline,
+    marks: [...new Set(marks)].filter((m) => Number.isInteger(m) && m >= 0 && m < items.length).sort((a, b) => a - b),
   };
+  if (index !== undefined) out.index = index;
+  return out;
 }
 
 const isPermutation = (ids: unknown, of: readonly string[]) =>
@@ -178,15 +211,17 @@ const isPermutation = (ids: unknown, of: readonly string[]) =>
 
 /**
  * 残した途中の回を、出題の元 (examBank) と突き合わせて読み直す。形が違う・問題データから消えた問題がある・
- * 同じ問題が 2 回ある・選択肢や項目の並びが今の問題と合わない・答えが問題の数以上、のどれかなら null (最初から)
+ * 同じ問題が 2 回ある・選択肢や項目の並びが今の問題と合わない・答えが問題の数より多い、のどれかなら null (最初から)。
+ * answers は位置ごと (答えていない位置は undefined)。index は今の位置 (古い保存は答えた数。最後の問題を超えない)、marks は見直しの印
  */
-export type RestoredExam = { runId: string; items: ExamItem[]; answers: ExamAnswer[]; deadline: number };
+export type RestoredExam = { runId: string; items: ExamItem[]; answers: (ExamAnswer | undefined)[]; deadline: number; index: number; marks: number[] };
 
 export function fromSavedExam(raw: unknown, bank: readonly ExamItem[] = examBank()): RestoredExam | null {
   if (typeof raw !== 'object' || raw === null) return null;
   const r = raw as Partial<Record<keyof SavedExam, unknown>>;
   if (r.v !== 1 || typeof r.runId !== 'string' || r.runId === '' || r.runId.length > 64 || !Array.isArray(r.items) || !Array.isArray(r.answers) || typeof r.deadline !== 'number' || !Number.isFinite(r.deadline)) return null;
-  if (r.items.length === 0 || r.items.length > EXAM_TOTAL || r.answers.length >= r.items.length) return null;
+  // 答えは問題の数まで (全部に答えて採点の前の確かめにいる回もある)
+  if (r.items.length === 0 || r.items.length > EXAM_TOTAL || r.answers.length > r.items.length) return null;
   const byId = new Map(bank.map((b) => [b.question.id, b]));
   const items: ExamItem[] = [];
   const seen = new Set<string>();
@@ -206,13 +241,20 @@ export function fromSavedExam(raw: unknown, bank: readonly ExamItem[] = examBank
       items.push({ ...b, question: { ...q, items: order!.map((oid) => q.items.find((x) => x.id === oid)!) } });
     } else items.push(b);
   }
-  const answers: ExamAnswer[] = [];
+  const answers: (ExamAnswer | undefined)[] = [];
   for (const a of r.answers as unknown[]) {
+    if (a === null) {
+      answers.push(undefined);
+      continue;
+    }
     const x = a as Partial<ExamAnswer> | null;
     if (typeof x?.correct !== 'boolean' || typeof x.code !== 'number' || !Number.isInteger(x.code)) return null;
     answers.push({ correct: x.correct, code: x.code });
   }
-  return { runId: r.runId, items, answers, deadline: r.deadline };
+  const n = items.length;
+  const index = Number.isInteger(r.index) && (r.index as number) >= 0 && (r.index as number) < n ? (r.index as number) : Math.min(answers.length, n - 1);
+  const marks = Array.isArray(r.marks) ? [...new Set(r.marks.filter((m): m is number => Number.isInteger(m) && m >= 0 && m < n))].sort((a, b) => a - b) : [];
+  return { runId: r.runId, items, answers, deadline: r.deadline, index, marks };
 }
 
 /**

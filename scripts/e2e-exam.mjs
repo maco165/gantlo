@@ -13,6 +13,8 @@
 //  12. 2 つのタブで同じ回を解いても記録は 1 回で、採点した回の保存は戻らない (PC の幅)
 //  10. 途中で読み直すと「続きから解く / やめて最初から」が出て (206)、続きから解くと答えた次の問題から同じ回を解ける。
 //      やめて最初からを選ぶと、記録せずに新しい回を始める。やめる・終えると途中の回 (gantlo.exam.v1) は消える
+//  13. 「あとで見直す」の印を付け外しでき、前の問題へ戻れ、答えずに次へ進める。印と位置は途中の保存 (gantlo.exam.v1) に残る。
+//      最後の問題のあとは採点の前の確かめ (100 Continue・未回答と印の数) に移り、問題番号の一覧から好きな問題へ戻れ、採点するで結果へ
 //   9. 横にはみ出さず、文が切れない。390 幅では始める・答えを送る・やめるのボタンの押せる範囲が 44px 以上。外へ何も送らず、ページのエラーが無い
 import { EXAM_SEED, arrangeOrder, choiceRadio, fill, loadLessons, orderIds, rightInputs, unsortedTarget } from './e2e-lessons.mjs';
 
@@ -186,13 +188,48 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
       used[ref.week]++;
       const right = used[ref.week] <= plan[ref.week];
       if (!right) wrongIds.push(id);
+      // 13. 2 問目で印を付け、前の問題へ戻って答え済みの案内を見て、答えずに次へで 2 問目に戻る
+      if (i === 1) {
+        const mark = page.getByRole('button', { name: 'あとで見直す' });
+        await mark.click();
+        await page.waitForFunction(() => document.querySelector('button[aria-pressed="true"]') !== null);
+        await page.waitForTimeout(50);
+        const sv = await savedRun();
+        check(JSON.stringify(sv?.marks) === '[1]' && sv?.index === 1, `${tag} 印と今の位置が ${SAVE_KEY} に残る (marks ${JSON.stringify(sv?.marks)}・index ${sv?.index})`);
+        await target(mark, 'あとで見直すボタン');
+        await target(page.getByRole('button', { name: '前の問題' }), '前の問題ボタン');
+        await page.getByRole('button', { name: '前の問題' }).click();
+        await page.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, id);
+        check((await currentId(page)) === seen[0].q.id, `${tag} 前の問題で 1 問目に戻る`);
+        check((await page.locator('.exam-again').count()) === 1, `${tag} 答えた問題へ戻ると「答えています。送り直すと置き換えます」が出る`);
+        await page.getByRole('button', { name: '次の問題 (答えずに)' }).click();
+        await page.waitForFunction((want) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') === want, id);
+        check((await page.locator('button[aria-pressed="true"]', { hasText: 'あとで見直す' }).count()) === 1, `${tag} 2 問目に戻ると印が付いたまま`);
+        const slot = page.locator('[data-slot="1"]');
+        check((await slot.getAttribute('aria-label')) === '2 問目 未回答・見直しの印', `${tag} 問題番号の一覧に未回答・印を字でも出す (${await slot.getAttribute('aria-label')})`);
+      }
       await answerExam(page, ref.q, right);
-      // 正誤の枠は出さない (最後の問題のあとは結果の画面に移る)
+      // 正誤の枠は出さない (最後の問題のあとは採点の前の確かめに移る)
       if (i < TOTAL - 1) {
         await page.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, id);
         if ((await page.locator('[data-testid="exam-run"] section.response').count()) > 0) leaked++;
       }
     }
+    // 13. 採点の前の確かめ: 100 Continue・未回答 0・印 1。一覧から 2 問目へ戻り、一覧と採点へで確かめに戻ってから採点する
+    await page.getByTestId('exam-review').waitFor();
+    check((await statusCode()) === '100', `${tag} 最後の問題のあとは採点の前の確かめ (100 Continue)`);
+    const reviewHeader = async (k) => (await page.locator('.headers__row', { hasText: k }).locator('dd').innerText()).trim();
+    check((await reviewHeader('X-Unanswered')).startsWith('0') && (await reviewHeader('X-Marked')).startsWith('1'), `${tag} 確かめに未回答 0・印 1 が出る`);
+    check(((await stored())?.exams ?? []).length === 0, `${tag} 確かめの画面ではまだ記録しない`);
+    await target(page.locator('[data-slot="0"]'), '問題番号のボタン');
+    await target(page.getByRole('button', { name: 'POST 採点する' }), '採点するボタン');
+    await noHorizontalOverflow(page, width, `${tag} 採点の前の確かめ`);
+    await page.locator('[data-slot="1"]').click();
+    await page.locator('[data-testid="exam-run"]').waitFor();
+    check((await currentId(page)) === seen[1].q.id, `${tag} 一覧の 2 番で 2 問目へ移る`);
+    await page.getByRole('button', { name: '一覧と採点へ' }).click();
+    await page.getByTestId('exam-review').waitFor();
+    await page.getByRole('button', { name: 'POST 採点する' }).click();
     check(unknown === 0 && seen.length === TOTAL, `${tag} 40 問すべてが本編の問題 (${seen.length} 問)`);
     check([1, 2, 3, 4].every((w) => seen.filter((s) => s.week === w).length === PER_WEEK), `${tag} 各週 10 問ずつ (${[1, 2, 3, 4].map((w) => seen.filter((s) => s.week === w).length).join('・')})`);
     check(seen.every((s) => s.q.kind !== 'lab'), `${tag} 実習は出ない`);
@@ -305,6 +342,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
       await tabB.getByTestId('exam-resume').waitFor();
       await tabB.getByRole('button', { name: '続きから解く' }).click();
       for (let i = 1; i < TOTAL; i++) await answerOne(tabB);
+      await tabB.getByRole('button', { name: 'POST 採点する' }).click();
       await tabB.getByRole('heading', { level: 1, name: /模擬試験の結果/ }).waitFor();
       const before = (await stored())?.exams?.length;
       check(before === 5 && (await savedRun()) === null, `${tag} もう 1 つのタブで続きを終えると 1 回記録し、保存は消える (${before} 回)`);

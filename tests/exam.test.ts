@@ -21,6 +21,10 @@ import {
   loadExamRun,
   recordExpiredRun,
   toSavedExam,
+  toggleMark,
+  nextIndex,
+  examSlots,
+  answeredCount,
   type ExamAnswer,
   type ExamItem,
 } from '../src/lib/exam';
@@ -288,7 +292,7 @@ describe('途中の回の保存と読み直し (A3)', () => {
     expect(loadExamRun(bank, s)).toBeNull();
   });
 
-  it('形が違う・問題データに無い問題・同じ問題が 2 回・選択肢や項目の並びが合わない・答えが多すぎる中身は読まず、消す', () => {
+  it('形が違う・問題データに無い問題・同じ問題が 2 回・選択肢や項目の並びが合わない・答えが問題の数より多い中身は読まず、消す', () => {
     const good = toSavedExam(items, answers, 1, 'run-1');
     const choiceAt = good.items.findIndex((it) => bank.find((b) => b.question.id === it.id)?.question.kind === 'choice');
     expect(choiceAt).toBeGreaterThanOrEqual(0);
@@ -305,7 +309,8 @@ describe('途中の回の保存と読み直し (A3)', () => {
       { ...good, items: good.items.map((it, i) => (i === 1 ? good.items[0] : it)) },
       { ...good, items: good.items.map((it, i) => (i === choiceAt ? { ...it, order: it.order!.slice(1) } : it)) },
       { ...good, items: good.items.map((it, i) => (i === choiceAt ? { ...it, order: undefined } : it)) },
-      { ...good, answers: good.items.map(() => right) },
+      // 答えが問題の数より多い (問題の数ちょうどは、全部に答えて採点の前の確かめにいる回なので読む)
+      { ...good, answers: [...good.items.map(() => right), right] },
       { ...good, answers: [{ correct: 'yes', code: 200 }] },
     ];
     for (const raw of bad) expect(fromSavedExam(raw, bank), JSON.stringify(raw)?.slice(0, 80)).toBeNull();
@@ -351,5 +356,62 @@ describe('途中の回の保存と読み直し (A3)', () => {
     saveExamRun(toSavedExam(items, answers, 1, 'run-b'), s);
     expect(saveExamRun(mine, s, { onlyIfSame: true })).toBe(false);
     expect(savedRunId(s)).toBe('run-b');
+  });
+});
+
+describe('見直しの印と前へ・一覧から移る (#55)', () => {
+  const bank = examBank();
+  const items = pickExam(bank, seeded(11));
+  const right = { correct: true, code: 200 };
+  const wrong = { correct: false, code: 400 };
+
+  it('答えは位置ごとに残し (飛ばした位置は null)、今の位置と印も残して読み直せる', () => {
+    const answers = [right, undefined, wrong];
+    const saved = toSavedExam(items, answers, 1, 'run-n', { index: 7, marks: [2, 1, 2, 99] });
+    expect(saved.answers).toEqual([right, null, wrong]);
+    expect(saved.marks).toEqual([1, 2]);
+    const back = fromSavedExam(JSON.parse(JSON.stringify(saved)), bank)!;
+    expect(back.answers).toEqual([right, undefined, wrong]);
+    expect(back.index).toBe(7);
+    expect(back.marks).toEqual([1, 2]);
+    expect(answeredCount(back.answers)).toBe(2);
+  });
+
+  it('古い保存 (index と marks が無く、答えを前から詰めたもの) は、答えた数を今の位置として読む', () => {
+    const old = { v: 1, runId: 'old', items: toSavedExam(items, [], 1, 'old').items, answers: [right, wrong, right], deadline: 1 };
+    const back = fromSavedExam(old, bank)!;
+    expect(back.index).toBe(3);
+    expect(back.marks).toEqual([]);
+    expect(back.answers).toEqual([right, wrong, right]);
+  });
+
+  it('全部に答えた回 (採点の前の確かめ) も読み直せ、位置は最後の問題を超えない。範囲外の位置は読み直さない', () => {
+    const all = items.map(() => right);
+    const back = fromSavedExam(toSavedExam(items, all, 1, 'all'), bank)!;
+    expect(back.index).toBe(items.length - 1);
+    const bad = fromSavedExam({ ...toSavedExam(items, [right], 1, 'x'), index: 500 }, bank)!;
+    expect(bad.index).toBe(1);
+  });
+
+  it('印の付け外し・次の位置・一覧の状態', () => {
+    expect(toggleMark([], 3)).toEqual([3]);
+    expect(toggleMark([1, 3], 3)).toEqual([1]);
+    expect(nextIndex(0, 40)).toBe(1);
+    expect(nextIndex(39, 40)).toBeNull();
+    expect(examSlots(3, [right, undefined, wrong], [1])).toEqual([
+      { index: 0, answered: true, marked: false },
+      { index: 1, answered: false, marked: true },
+      { index: 2, answered: true, marked: false },
+    ]);
+  });
+
+  it('飛ばした問題は採点で未回答 (不正解) になり、復習に入るが、その日に答えた数には数えない', () => {
+    const answers = [right, undefined, wrong];
+    const three = items.slice(0, 3);
+    const result = gradeExam(three, answers, false);
+    expect(result).toMatchObject({ correct: 1, unanswered: 1 });
+    const p = recordExam(emptyProgress(), three, answers, result, new Date('2026-11-23T10:00:00'), 'r');
+    expect(Object.values(p.answered ?? {})).toEqual([2]);
+    expect(p.answers[three[1].question.id].nextReview).toBe('2026-11-24');
   });
 });

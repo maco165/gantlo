@@ -5,6 +5,7 @@ import { List, ListItem } from '@astryxdesign/core/List';
 import { ProgressBar } from '@astryxdesign/core/ProgressBar';
 import { HStack } from '@astryxdesign/core/Stack';
 import { Text } from '@astryxdesign/core/Text';
+import { ToggleButton } from '@astryxdesign/core/ToggleButton';
 import { XMarkIcon } from '@heroicons/react/24/outline';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import AnswerResponse from '../components/AnswerResponse';
@@ -19,7 +20,11 @@ import {
   EXAM_WEEKS,
   PASS_MARK,
   PASS_MARK_NOTE,
+  answeredCount,
+  examSlots,
   expectedText,
+  nextIndex,
+  toggleMark,
   formatClock,
   gradeExam,
   isPassed,
@@ -41,7 +46,7 @@ import { clearExamRun, newRunId, saveExamRun, savedRunId } from '../lib/examSave
 import { XP_PER_CORRECT } from '../lib/grade';
 import { loadProgress, type Progress } from '../lib/progress';
 import { lessonHref, scrollToTop } from '../lib/route';
-import { examDone, examIntroStatus, examResumeStatus, type Status } from '../lib/status';
+import { examDone, examIntroStatus, examReviewStatus, examResumeStatus, type Status } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
 type Props = { progress: Progress; updateProgress: (fn: (p: Progress) => Progress) => void };
@@ -51,8 +56,12 @@ const LIMIT_MS = EXAM_MINUTES * 60_000;
 /** 並べ替えの問題を出してから答えを受け付けるまでの間 (2 度押しで次の問題を送らないため) */
 const ORDER_GUARD_MS = 400;
 
-/** 解いている回。runId は回の id (保存と記録で同じ回を見分ける)。shownAt は今の問題を出した時刻 (並べ替えの 2 度押しの止めに使う) */
-type Run = { runId: string; items: ExamItem[]; answers: (ExamAnswer | undefined)[]; index: number; deadline: number; shownAt: number };
+/**
+ * 解いている回。runId は回の id (保存と記録で同じ回を見分ける)。shownAt は今の問題を出した時刻 (並べ替えの 2 度押しの止めに使う)。
+ * answers は位置ごと (答えていない位置は undefined)。marks は「あとで見直す」の印を付けた位置。
+ * reviewing は採点の前の確かめの画面にいるか (保存しない。読み直すと最後に見ていた問題から)
+ */
+type Run = { runId: string; items: ExamItem[]; answers: (ExamAnswer | undefined)[]; index: number; deadline: number; shownAt: number; marks: number[]; reviewing: boolean };
 type Done = { items: ExamItem[]; answers: (ExamAnswer | undefined)[]; result: ExamResult };
 
 /** 残した途中の回 (lib/exam.ts の loadExamRun が読み直したもの) */
@@ -98,7 +107,7 @@ export default function Exam({ progress, updateProgress }: Props) {
 
   // 解いている間は、答えるたびに出題・答え・期限を残す。残っている回がこの回でなければ (別のタブが採点した・新しく始めた) 残し直さない
   useEffect(() => {
-    if (run) saveExamRun(toSavedExam(run.items, run.answers, run.deadline, run.runId), undefined, { onlyIfSame: true });
+    if (run) saveExamRun(toSavedExam(run.items, run.answers, run.deadline, run.runId, { index: run.index, marks: run.marks }), undefined, { onlyIfSame: true });
   }, [run]);
 
   const start = () => {
@@ -108,15 +117,15 @@ export default function Exam({ progress, updateProgress }: Props) {
     clearExamRun();
     setSaved(null);
     setDone(null);
-    const next: Run = { runId: newRunId(), items: pickExam(undefined, examRandom(window.location.search)), answers: [], index: 0, deadline: now + LIMIT_MS, shownAt: now };
-    saveExamRun(toSavedExam(next.items, next.answers, next.deadline, next.runId));
+    const next: Run = { runId: newRunId(), items: pickExam(undefined, examRandom(window.location.search)), answers: [], index: 0, deadline: now + LIMIT_MS, shownAt: now, marks: [], reviewing: false };
+    saveExamRun(toSavedExam(next.items, next.answers, next.deadline, next.runId, { index: 0 }));
     setRun(next);
     scrollToTop();
   };
 
   const resume = (s: Saved) => {
     setSaved(null);
-    setRun({ runId: s.runId, items: s.items, answers: s.answers, index: s.answers.length, deadline: s.deadline, shownAt: Date.now() });
+    setRun({ runId: s.runId, items: s.items, answers: s.answers, index: s.index, deadline: s.deadline, shownAt: Date.now(), marks: s.marks, reviewing: false });
     scrollToTop();
   };
 
@@ -142,13 +151,13 @@ function ResumePrompt({ saved, onResume, onRestart, onExpire }: { saved: Saved; 
     return () => window.clearTimeout(id);
   }, [saved, onExpire]);
   const width = isWide ? undefined : '100%';
-  const answered = saved.answers.length;
+  const answered = answeredCount(saved.answers);
   return (
     <div className="page" data-testid="exam-resume">
       <h1 className="page__title">模擬試験の続き</h1>
       <StatusLine status={examResumeStatus(answered, saved.items.length)} request="GET /me/exams/current" />
       <Text>
-        途中の回があります。{saved.items.length} 問のうち {answered} 問に答え、残り時間は {formatClock(saved.deadline - Date.now())} です (時間は閉じている間も進みます)。
+        途中の回があります。{saved.items.length} 問のうち {answered} 問に答え{saved.marks.length > 0 ? `、${saved.marks.length} 問に見直しの印を付け` : ''}、残り時間は {formatClock(saved.deadline - Date.now())} です (時間は閉じている間も進みます)。
       </Text>
       <Text type="supporting">「やめて最初から」を選ぶと、この回は記録せずに消し、問題を選び直して始めます。</Text>
       <HStack gap={2} wrap="wrap">
@@ -238,6 +247,7 @@ function Running({
   onFinish: (r: Run, timeUp: boolean) => void;
   onQuit: () => void;
 }) {
+  const isWide = useMediaQuery(WIDE_QUERY);
   const [now, setNow] = useState(() => Date.now());
   // 時間切れは 1 回だけ採点する (時計の刻みと最後の答えが重なっても 2 回記録しない)
   const ended = useRef(false);
@@ -261,7 +271,11 @@ function Running({
 
   const total = run.items.length;
   const item = run.items[run.index];
-  const isLast = run.index === total - 1;
+  /** 問題を移る (前へ・次へ・一覧から)。確かめの画面からも戻る */
+  const go = (index: number) => {
+    setRun({ ...run, index, shownAt: Date.now(), reviewing: false });
+    scrollToTop();
+  };
   const onChecked = (correct: boolean, status: Status) => {
     // 並べ替えの送るボタンは並べ方によらず押せるので、続けて 2 度押すと 2 回目が次の問題に当たる。
     // 並べ替えだけ、出してから ORDER_GUARD_MS の間に来た答えは捨てる (ほかの種類は答えを入れるまで送るボタンが押せない)
@@ -272,18 +286,61 @@ function Running({
     }
     const answers = [...run.answers];
     answers[run.index] = { correct, code: status.code };
-    const next = { ...run, answers, index: run.index + 1, shownAt: Date.now() };
-    if (isLast) end(next, false);
-    else {
-      setRun(next);
-      scrollToTop();
-    }
+    // 次の問題へ。最後の問題のあとは、採点の前の確かめへ (すぐには採点しない)
+    const to = nextIndex(run.index, total);
+    setRun({ ...run, answers, index: to ?? run.index, shownAt: Date.now(), reviewing: to === null });
+    scrollToTop();
   };
+
+  const lowTime = left <= 5 * 60_000;
+  const answered = answeredCount(run.answers);
+  const bar = (
+    <header className="lesson-bar">
+      <Button variant="ghost" label="模擬試験をやめる (記録しません)" isIconOnly icon={<XMarkIcon width={20} height={20} />} onClick={onQuit} />
+      <div className="lesson-bar__progress">
+        <Text type="supporting">
+          模擬試験 · {run.reviewing ? '採点の前の確かめ' : `${run.index + 1} / ${total} 問`} ·{' '}
+          <span className={lowTime ? 'exam-clock exam-clock--low' : 'exam-clock'} data-testid="exam-clock" aria-label={`残り時間 ${formatClock(left)}`}>
+            残り {formatClock(left)}
+          </span>
+        </Text>
+        <ProgressBar label="答えた問題の数" isLabelHidden value={answered} max={total} />
+      </div>
+    </header>
+  );
+  const slots = <ExamSlots total={total} answers={run.answers} marks={run.marks} current={run.reviewing ? -1 : run.index} onGo={go} />;
+
+  if (run.reviewing) {
+    const unanswered = total - answered;
+    return (
+      <div className="lesson" data-testid="exam-review">
+        {bar}
+        <div className="lesson__main page exam-review">
+          <h1 className="page__title">採点の前の確かめ</h1>
+          <AnswerResponse
+            status={examReviewStatus(unanswered, run.marks.length)}
+            request="POST /me/exams (Expect: 100-continue)"
+            headers={[
+              { name: 'X-Unanswered', value: String(unanswered), ja: '答えていない問題の数 (採点すると不正解になります)' },
+              { name: 'X-Marked', value: String(run.marks.length), ja: '「あとで見直す」の印を付けた問題の数' },
+            ]}
+          />
+          <Text type="supporting">番号を押すとその問題へ戻れます。採点すると、この回は終わりです。</Text>
+          {slots}
+          <HStack gap={2} wrap="wrap">
+            <Button variant="primary" label="POST 採点する" onClick={() => end(run, false)} width={isWide ? undefined : '100%'} size="lg" />
+            <Button variant="secondary" label="最後の問題へ戻る" onClick={() => go(total - 1)} width={isWide ? undefined : '100%'} size="lg" />
+          </HStack>
+        </div>
+      </div>
+    );
+  }
 
   const head = `${run.index + 1} / ${total} 問`;
   const request = `POST /me/exams/answers/${run.index + 1}`;
   const q = item.question;
-  const key = `${run.index}-${q.id}`;
+  // 答えた問題へ戻ると、入れた答えは残っていない (記録は正誤とコードだけ)。送り直すと答えを置き換える
+  const key = `${run.index}-${q.id}-${run.answers[run.index] ? 'again' : 'new'}`;
   const props = { head, request, onChecked, nextLabel: '', onNext: () => {}, isExam: true };
   let view;
   if (q.kind === 'command' || q.kind === 'http') view = <FillQuestionView key={key} {...props} question={q} />;
@@ -292,23 +349,65 @@ function Running({
   // 実習は出題しない (examBank が外す)
   else view = null;
 
-  const lowTime = left <= 5 * 60_000;
+  const marked = run.marks.includes(run.index);
   return (
     <div className="lesson" data-testid="exam-run" data-question={q.id}>
-      <header className="lesson-bar">
-        <Button variant="ghost" label="模擬試験をやめる (記録しません)" isIconOnly icon={<XMarkIcon width={20} height={20} />} onClick={onQuit} />
-        <div className="lesson-bar__progress">
-          <Text type="supporting">
-            模擬試験 · {run.index + 1} / {total} 問 ·{' '}
-            <span className={lowTime ? 'exam-clock exam-clock--low' : 'exam-clock'} data-testid="exam-clock" aria-label={`残り時間 ${formatClock(left)}`}>
-              残り {formatClock(left)}
-            </span>
-          </Text>
-          <ProgressBar label="模擬試験の進み具合" isLabelHidden value={run.index + 1} max={total} />
-        </div>
-      </header>
-      <div className="lesson__main">{view}</div>
+      {bar}
+      <div className="lesson__main">
+        {run.answers[run.index] && (
+          <p className="exam-again">
+            <Text type="supporting">この問題には答えています。送り直すと、前の答えを置き換えます。</Text>
+          </p>
+        )}
+        {view}
+        <nav className="exam-nav" aria-label="問題の移動と見直し">
+          <HStack gap={2} wrap="wrap">
+            <Button label="前の問題" onClick={() => go(run.index - 1)} isDisabled={run.index === 0} size={isWide ? 'md' : 'lg'} />
+            <Button label="次の問題 (答えずに)" onClick={() => (run.index + 1 < total ? go(run.index + 1) : setRun({ ...run, reviewing: true }))} size={isWide ? 'md' : 'lg'} />
+            <ToggleButton label="あとで見直す" isPressed={marked} onPressedChange={() => setRun({ ...run, marks: toggleMark(run.marks, run.index) })} size={isWide ? 'md' : 'lg'} />
+            <Button variant="ghost" label="一覧と採点へ" onClick={() => setRun({ ...run, reviewing: true })} size={isWide ? 'md' : 'lg'} />
+          </HStack>
+          <details className="exam-slots__box">
+            <summary>
+              問題の一覧 (答えた {answered} · 未回答 {total - answered} · 印 {run.marks.length})
+            </summary>
+            {slots}
+          </details>
+        </nav>
+      </div>
     </div>
+  );
+}
+
+/** 問題番号の一覧。番号のボタンに、未回答・回答済み・見直しの印を字でも書く (色だけに頼らない) */
+function ExamSlots({ total, answers, marks, current, onGo }: { total: number; answers: readonly (ExamAnswer | undefined)[]; marks: readonly number[]; current: number; onGo: (i: number) => void }) {
+  return (
+    <ol className="exam-slots" data-testid="exam-slots">
+      {examSlots(total, answers, marks).map((s) => {
+        const state = `${s.answered ? '回答済み' : '未回答'}${s.marked ? '・見直しの印' : ''}`;
+        return (
+          <li key={s.index}>
+            <button
+              type="button"
+              className={`exam-slot${s.answered ? ' exam-slot--answered' : ''}${s.marked ? ' exam-slot--marked' : ''}`}
+              aria-current={s.index === current ? 'step' : undefined}
+              aria-label={`${s.index + 1} 問目 ${state}`}
+              title={`${s.index + 1} 問目 ${state}`}
+              data-slot={s.index}
+              data-answered={s.answered}
+              data-marked={s.marked}
+              onClick={() => onGo(s.index)}
+            >
+              <span className="exam-slot__no">{s.index + 1}</span>
+              <span className="exam-slot__state" aria-hidden="true">
+                {s.answered ? '済' : '未'}
+                {s.marked ? '・印' : ''}
+              </span>
+            </button>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

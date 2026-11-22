@@ -129,6 +129,14 @@ export function examResumeStatus(answered: number, total: number): Status {
 }
 
 /**
+ * 採点の前の確かめ。本文 (採点の答え) を送る前に確かめる Expect: 100-continue になぞらえて 100 Continue。
+ * 未回答と見直しの印の数を説明に入れる
+ */
+export function examReviewStatus(unanswered: number, marked: number): Status {
+  return { code: 100, reason: 'Continue', ja: `採点の前の確かめです。未回答 ${unanswered} 問・見直しの印 ${marked} 問` };
+}
+
+/**
  * 模擬試験を終えた (POST /me/exams)。時間内に送れば結果を記録として作ったので 201、
  * 時間が切れたら 408 Request Timeout (答えていない問題は不正解として採点し、記録も残す)。合否は説明に入れる
  */
