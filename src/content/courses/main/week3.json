@@ -299,9 +299,9 @@
           { "command": "echo '{\"info\": }' | python3 -m json.tool", "expect": "Expecting value: line 1 column 10 (char 9) のように、行と列の番号つきのエラーが出ます。" }
         ],
         "sources": [
-          "https://spec.openapis.org/oas/latest.html#openapi-object",
-          "https://spec.openapis.org/oas/latest.html#info-object",
-          "https://spec.openapis.org/oas/latest.html#parameter-object",
+          "https://spec.openapis.org/oas/v3.2.0.html#openapi-object",
+          "https://spec.openapis.org/oas/v3.2.0.html#info-object",
+          "https://spec.openapis.org/oas/v3.2.0.html#parameter-object",
           "https://docs.python.org/3/library/json.html#module-json.tool"
         ]
       },
@@ -323,7 +323,7 @@
             }
           ],
           "explanation": "OpenAPI Object の openapi は必須 (REQUIRED) の欄で、文書が使う OpenAPI Specification の版の番号でなければなりません (MUST)。info も必須で、components・paths・webhooks のうち少なくとも 1 つが要ります (MUST)。",
-          "sources": ["https://spec.openapis.org/oas/latest.html#openapi-object"]
+          "sources": ["https://spec.openapis.org/oas/v3.2.0.html#openapi-object"]
         },
         {
           "id": "main-w3-l3-q2",
@@ -338,8 +338,8 @@
           "answer": "a",
           "explanation": "Info Object の version は必須 (REQUIRED) で、OpenAPI の文書の版を表し、OpenAPI Specification の版とも、記述している API の版とも別だと書かれています。openapi の欄の説明も、info.version とは関係が無いと念を押しています。",
           "sources": [
-            "https://spec.openapis.org/oas/latest.html#info-object",
-            "https://spec.openapis.org/oas/latest.html#openapi-object"
+            "https://spec.openapis.org/oas/v3.2.0.html#info-object",
+            "https://spec.openapis.org/oas/v3.2.0.html#openapi-object"
           ]
         },
         {
@@ -366,8 +366,8 @@
           ],
           "explanation": "URL の一部になる値は、in を path にします (Parameter Locations)。in が path のとき、required は必須 (REQUIRED) で、値は true でなければなりません (MUST)。ほかの場所では required の既定は false です。",
           "sources": [
-            "https://spec.openapis.org/oas/latest.html#parameter-locations",
-            "https://spec.openapis.org/oas/latest.html#parameter-object"
+            "https://spec.openapis.org/oas/v3.2.0.html#parameter-locations",
+            "https://spec.openapis.org/oas/v3.2.0.html#parameter-object"
           ]
         },
         {
@@ -382,7 +382,7 @@
           ],
           "answer": "a",
           "explanation": "Responses Object の default は、個別のステータスコードで宣言していない応答を記述する欄です。範囲は 1XX〜5XX のように大文字の X で書けます。Responses Object は少なくとも 1 つの応答のコードを持たなければなりません (MUST)。",
-          "sources": ["https://spec.openapis.org/oas/latest.html#responses-object"]
+          "sources": ["https://spec.openapis.org/oas/v3.2.0.html#responses-object"]
         },
         {
           "id": "main-w3-l3-q5",
@@ -396,7 +396,7 @@
           ],
           "answer": "a",
           "explanation": "Responses Object の HTTP Status Code の欄は、JSON と YAML の互換のために文字列で表さなければなりません (MUST)。仕様は例として、YAML では 200 を引用符で囲むと書いています。",
-          "sources": ["https://spec.openapis.org/oas/latest.html#responses-object"]
+          "sources": ["https://spec.openapis.org/oas/v3.2.0.html#responses-object"]
         },
         {
           "id": "main-w3-l3-q6",
@@ -415,10 +415,10 @@
           "answer": "a",
           "explanation": "Media Type Object の schema は Schema Object で、Schema Object は既定では JSON Schema (Draft 2020-12) の上位集合です。その中の $ref は JSON Schema の参照のキーワードで、ここでは同じ文書の components の schemas に置いた User を指します。仕様は、Reference Object と、$ref を持つ Schema Object は別物だと注意しています。Components Object は、文書の中で使い回すオブジェクトを置く場所です。",
           "sources": [
-            "https://spec.openapis.org/oas/latest.html#schema-object",
-            "https://spec.openapis.org/oas/latest.html#media-type-object",
-            "https://spec.openapis.org/oas/latest.html#reference-object",
-            "https://spec.openapis.org/oas/latest.html#components-object"
+            "https://spec.openapis.org/oas/v3.2.0.html#schema-object",
+            "https://spec.openapis.org/oas/v3.2.0.html#media-type-object",
+            "https://spec.openapis.org/oas/v3.2.0.html#reference-object",
+            "https://spec.openapis.org/oas/v3.2.0.html#components-object"
           ]
         }
       ]
@@ -658,7 +658,7 @@
           "explanation": "python3 -m json.tool は JSON を検証して整形するコマンドです (Python の json.tool の説明)。必須の欄は OpenAPI Object・Info Object・Parameter Object の表で REQUIRED と書かれたものです。",
           "sources": [
             "https://docs.python.org/3/library/json.html#module-json.tool",
-            "https://spec.openapis.org/oas/latest.html#openapi-object"
+            "https://spec.openapis.org/oas/v3.2.0.html#openapi-object"
           ]
         },
         {
