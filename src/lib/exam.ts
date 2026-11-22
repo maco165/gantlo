@@ -129,3 +129,24 @@ export function expectedText(q: Question): string {
   if (q.kind === 'order') return q.answer.map((id) => q.items.find((it) => it.id === id)?.text ?? id).join(' → ');
   return q.expected;
 }
+
+/** 種から決まる乱数 (mulberry32)。同じ種なら同じ並びを返す */
+export function seededRandom(seed: number): () => number {
+  let a = seed >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+
+/**
+ * 模擬試験の出題に使う乱数。URL に ?seed=<整数> があればその種で決まる乱数 (検査で出題を固定するため)、無ければ Math.random。
+ * 本番の画面からは種を付けるリンクを出さない
+ */
+export function examRandom(search: string): () => number {
+  const raw = new URLSearchParams(search).get('seed');
+  return raw !== null && /^\d{1,10}$/.test(raw) ? seededRandom(Number(raw)) : Math.random;
+}

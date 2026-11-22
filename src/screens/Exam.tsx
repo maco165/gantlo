@@ -23,6 +23,7 @@ import {
   gradeExam,
   isPassed,
   lessonsToReread,
+  examRandom,
   pickExam,
   recordExam,
   type ExamAnswer,
@@ -69,7 +70,7 @@ export default function Exam({ progress, updateProgress }: Props) {
   const start = () => {
     setDone(null);
     const now = Date.now();
-    setRun({ items: pickExam(), answers: [], index: 0, deadline: now + LIMIT_MS, shownAt: now });
+    setRun({ items: pickExam(undefined, examRandom(window.location.search)), answers: [], index: 0, deadline: now + LIMIT_MS, shownAt: now });
     scrollToTop();
   };
 
