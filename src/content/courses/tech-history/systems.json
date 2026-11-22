@@ -649,8 +649,8 @@
             { "id": "d", "text": "コンテナは物理のサーバーを 1 台ずつ使う", "why": "それではコンテナの軽さが生まれません。" }
           ],
           "answer": "a",
-          "explanation": "Docker の公式文書「What is Docker?」は、イメージはコンテナを作るための指示を持つ読み取り専用のひな形で、Docker は名前空間という技術で隔てた作業場 (コンテナ) を作る、と書いています。Docker は Go で書かれ、Linux カーネルの機能を使うとも書いています。",
-          "sources": ["https://docs.docker.com/get-started/docker-overview/"]
+          "explanation": "Docker の公式文書「Docker Engine security」は、docker run でコンテナを始めると、裏で名前空間 (namespaces) と control groups を作り、名前空間がいちばん基本の隔てになると書いています。「What is a container?」は、イメージをコンテナを始めるのに要るものをまとめた読み取り専用の層の重なりとして描き、コンテナはその上に自分の書き込める層を足すと説明しています。コンテナはホストの Linux カーネルを分け合って使います。",
+          "sources": ["https://docs.docker.com/engine/security/", "https://docs.docker.com/learn/content/what-is-a-container/"]
         },
         {
           "id": "tech-history-l19-q5",
