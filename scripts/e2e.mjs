@@ -402,6 +402,20 @@ async function run(browser, name, width, height) {
         check(await sourcesShown(r, q.sources), `${tag} 不正解のとき出典 (X-Source) がリンクで出る`);
         const after = await aiQuery(page);
         check(after.text.includes('不正解') && q.blanks.every((b) => after.text.includes(b.answers[0])), `${tag} 答えたあとの AI のリンクには自分の答えと正解が入る`);
+        // 誤りを報告: GitHub の新しい Issue。題と本文に問題の id・レッスン・ページの URL が入り、自分の答えは入らない
+        const report = page.getByRole('link', { name: /誤りを報告/ });
+        check((await report.count()) === 1, `${tag} 答えたあとに「誤りを報告」のリンクが 1 つある`);
+        const reportUrl = new URL(await report.getAttribute('href'));
+        const reportText = `${reportUrl.searchParams.get('title')}\n${reportUrl.searchParams.get('body')}`;
+        check(
+          reportUrl.origin + reportUrl.pathname === 'https://github.com/maco165/gantlo/issues/new' &&
+            reportText.includes(q.id) &&
+            reportText.includes(lesson.title) &&
+            reportText.includes(`https://maco165.github.io/gantlo/lesson/${lesson.id}/`),
+          `${tag} 誤りを報告は GitHub の新しい Issue で、題と本文に問題の id・レッスン・ページの URL が入る`,
+        );
+        check(!reportText.includes('zz-wrong-answer') && (await report.getAttribute('target')) === '_blank', `${tag} 誤りを報告には自分の答えを入れず、別のタブで開く`);
+        if (phone) await checkTarget(report, `${tag} 誤りを報告のリンク`);
         await noHorizontalOverflow(page, width, `${tag} 応答 400`);
         if (phone && i < n - 1) await checkTarget(page.getByRole('button', { name: '次の問題へ' }), `${tag} 次へのボタン`);
       } else if ((q.kind === 'command' || q.kind === 'http') && once('fill-200')) {

@@ -9,15 +9,15 @@ import { documentTitle, lessonDocumentTitle, PAGE_TITLES } from '../lib/pageMeta
 import { BASE, COURSES, courseHref, homeHref, lessonHref, pageHref, parseRoute, type PageName } from '../lib/route';
 import { COURSE_EMPTY, COURSE_LEADS, LESSON_LIST_HEADING } from '../lib/courses';
 import { ABOUT_ISSUE, ABOUT_LEAD, ABOUT_NOTES, ABOUT_SOURCE, LICENSE_NAME } from '../lib/about';
-import { NEW_ISSUE_URL, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
+import { NEW_ISSUE_URL, ORIGIN, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
 import { breadcrumbs, type Crumb } from '../lib/breadcrumbs';
 import { EXAM_MINUTES, EXAM_PER_WEEK, EXAM_TOTAL, EXAM_WEEKS, PASS_MARK, PASS_MARK_NOTE, examBank, weekOf } from '../lib/exam';
 import { kindLabel } from '../lib/questionKind';
 import { STAGES } from '../content/stages';
 import type { Question } from '../content/types';
 
-/** 公開の場所 (canonical・og:url・sitemap の URL の頭) */
-export const ORIGIN = 'https://maco165.github.io';
+// 公開の場所の正本は lib/site.ts (誤りの報告のリンクも同じ URL を使う)
+export { ORIGIN };
 
 export type SitePage = {
   /** 道 (BASE からの相対。ホームは ''、ほかは末尾 /) */

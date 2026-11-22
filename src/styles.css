@@ -39,7 +39,7 @@
     min-height: var(--size-element-lg);
     min-width: var(--size-element-lg);
   }
-  /* 文の中に並ぶリンク (用語集の出典とレッスン・進捗の下のリンク)。並べる箱に tap-links を付ける */
+  /* 文の中に並ぶリンク (用語集の出典とレッスン・進捗の下のリンク・誤りを報告)。並べる箱に tap-links を付ける */
   .tap-links a {
     display: inline-flex;
     align-items: center;
@@ -1185,6 +1185,11 @@ code {
 }
 .gloss__desc,
 .gloss__meta {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+/* 答えたあとの「誤りを報告」(ReportIssue) */
+.report-issue {
   margin: 0;
   overflow-wrap: anywhere;
 }

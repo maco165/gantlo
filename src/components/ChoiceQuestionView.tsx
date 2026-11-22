@@ -8,6 +8,7 @@ import { XP_PER_CORRECT, gradeChoice } from '../lib/grade';
 import { RETRY_AFTER_SECONDS, choiceStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
+import ReportIssue from './ReportIssue';
 import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
 import { KIND_LABELS } from '../lib/questionKind';
 
@@ -87,6 +88,7 @@ export default function ChoiceQuestionView({
             </AnswerResponse>
             <PrimaryAction label={nextLabel} onClick={onNext} />
             <AskAi question={question} answered={{ picked: value, correct: result }} />
+            <ReportIssue questionId={question.id} />
           </>
         )}
       </ActionArea>

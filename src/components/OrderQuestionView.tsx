@@ -9,6 +9,7 @@ import { answerIndex, gradeOrder, moveItem, type OrderGrade } from '../lib/order
 import { RETRY_AFTER_SECONDS, orderStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
+import ReportIssue from './ReportIssue';
 import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
 import { KIND_LABELS } from '../lib/questionKind';
 
@@ -159,6 +160,7 @@ export default function OrderQuestionView({
             </AnswerResponse>
             <PrimaryAction label={nextLabel} onClick={onNext} />
             <AskAi question={question} answered={{ picked, correct: result.correct }} />
+            <ReportIssue questionId={question.id} />
           </>
         )}
       </ActionArea>
