@@ -89,6 +89,7 @@ export async function runAbout(browser, { base, check, noHorizontalOverflow }) {
         `${where}: メニューの下端に「このサイトについて」と「GitHub のリポジトリ」が出る (このサイト ${size(ab)}@${ab ? Math.round(ab.y) : '-'}・GitHub 下端 ${gb ? Math.round(gb.y + gb.height) : '-'}/${height}・最後のコース ${cb ? Math.round(cb.y) : '-'})`,
       );
       check((await gh.getAttribute('href')) === REPO_URL, `${where}: メニューの GitHub のリポジトリの行はリポジトリを指す`);
+      check((await gh.getAttribute('target')) === '_blank' && /noopener/.test((await gh.getAttribute('rel')) ?? ''), `${where}: メニューの GitHub のリポジトリの行は新しいタブで開く`);
       await target(about, `${label} のメニューの「このサイトについて」`);
       await target(gh, `${label} のメニューの「GitHub のリポジトリ」`);
       if (label === 'ホーム') {
