@@ -137,6 +137,10 @@ export async function runCourse(browser, { base, check, noHorizontalOverflow }) 
     await nextBtn.click();
     await page.getByRole('heading', { name: l2.questions[0].prompt }).waitFor();
     check(new URL(page.url()).pathname === `/gantlo/lesson/${l2.id}/`, `${where}: 次のレッスンのボタンでレッスンが開く (${new URL(page.url()).pathname})`);
+    // レッスンの画面の h1 はレッスン名 (書き出す HTML の h1 と同じ)。問題文はその下の h2
+    const h1s = await page.locator('h1').allInnerTexts();
+    check(h1s.length === 1 && h1s[0].trim() === l2.title, `${where}: レッスンの画面の h1 はレッスン名だけ (${h1s.join(' / ')})`);
+    check((await page.getByRole('heading', { level: 2, name: l2.questions[0].prompt }).count()) === 1, `${where}: 問題文は h2`);
     await page.goBack();
     await page.locator(`.page[data-course="${multi}"] .net__row`).first().waitFor();
     await page.locator(`.net__row[data-lesson="${l1.id}"] .net__name a`).click();
