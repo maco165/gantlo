@@ -30,16 +30,18 @@
 
 <table>
   <tr>
-    <td width="25%"><img alt="並べ替え: 正しい順に並べると帯が階段になり 200 OK" src="docs/images/order-phone.png"></td>
-    <td width="25%"><img alt="復習: GET /me/reviews?due=today の 200 と今日の問題の一覧" src="docs/images/review-phone.png"></td>
-    <td width="25%"><img alt="進捗: 正答率・この 7 日の XP・コースごとの進み具合" src="docs/images/progress-phone.png"></td>
-    <td width="25%"><img alt="用語集: 探す欄と、語の説明・出典・出てくるレッスン" src="docs/images/glossary-phone.png"></td>
+    <td width="20%"><img alt="並べ替え: 正しい順に並べると帯が階段になり 200 OK" src="docs/images/order-phone.png"></td>
+    <td width="20%"><img alt="復習: GET /me/reviews?due=today の 200 と今日の問題の一覧" src="docs/images/review-phone.png"></td>
+    <td width="20%"><img alt="進捗: 正答率・この 7 日の XP・コースごとの進み具合" src="docs/images/progress-phone.png"></td>
+    <td width="20%"><img alt="用語集: 探す欄と、語の説明・出典・出てくるレッスン" src="docs/images/glossary-phone.png"></td>
+    <td width="20%"><img alt="試す: 外のサービスに送られることの断りと、送り先と道を選ぶ所" src="docs/images/try-phone.png"></td>
   </tr>
   <tr>
     <td>並べ替え。上下のボタンで動かし、正しい順なら帯が階段になる</td>
     <td>復習。間違えた問題を翌日・3 日後・7 日後に出す</td>
     <td>進捗。正答率・7 日の XP・コースごとの済んだレッスン</td>
-    <td>用語集。11 の規格と問題に出る語を、RFC などの出典つきで</td>
+    <td>用語集。11 の規格と問題に出る語を、RFC などの出典つきで。語によっては「試す」から本物の API へ</td>
+    <td>試す。公開の API に本物の要求を送り、ステータス・読めるヘッダー・本文を見る</td>
   </tr>
 </table>
 
@@ -77,6 +79,7 @@
 | 設定 (`/gantlo/settings/`) | 目標を変えると `PATCH /me/profile` の `200`、書き出しは `GET`、読み込みは `PUT /me` の `200`。1 MB を超えるファイルは `413 Content Too Large`、壊れたファイルは `422 Unprocessable Content` で読まず、理由を出す。記録を消すと `DELETE /me` の `204` |
 | 進捗 (`/gantlo/progress/`) | `GET /me/stats` への応答。ステータスはホームと同じ旅の段の進み具合 (`202` / `206` / `200`)。正答率 (レッスンと復習で答えた回数のうち正解の割合)・この 7 日の XP (日ごとの棒)・連続日数、コースごとの済んだレッスンの数と正答率、旅の 8 段の学習状況 (ウォーターフォール) を出す |
 | 用語集 (`/gantlo/glossary/`) | `GET /glossary?q=<探す語>` への応答。当たれば `200 OK` と語の数、無ければ `204 No Content`。探す語は URL の形 (パーセントエンコーディング) で見せる。11 の規格を学ぶ順に、問題に出る用語を読みの順に並べ、どの語にも短い説明・一次情報の出典 (RFC は節まで)・出てくるレッスンへのリンクを付ける。探しているときは当たりのよい順の 1 つの一覧 |
+| 試す (`/gantlo/try/`) | `GET /try` の `200`。CORS を許している公開の API (httpbin.org の `/get`・`/status/<コード>`・`/headers`・`/anything`・`/response-headers?Retry-After=120` と、api.github.com の `/zen`・`/repos/maco165/gantlo`。2026-11-23 に curl で CORS の応答ヘッダーを確かめた) に、選んだメソッド・道・ヘッダー (`Accept` と、safelist に無いので preflight になる `X-Gantlo-Try`) で fetch を送り、本物のステータス (HTTP/2 は理由句が無いので名前を添える)・ブラウザが読める応答ヘッダー (CORS の safelist の 7 つか `Access-Control-Expose-Headers` で公開されたものかを添え、読めないヘッダーがあることも書く)・本文を、このサイトの応答の形で出す。送る前に「この要求は、あなたのブラウザから外のサービスに送られます」と書き、送るのは押したときだけ。Cookie と認証は送らず (`credentials: 'omit'`)、Referer も送らない。読めなかったときは Fetch Standard の network error (ステータス `0`) として、オフライン・10 秒の時間切れ・それ以外 (CORS で弾かれたか届かない。ブラウザは理由を JS に教えない) を説明する。用語集の語の「試す」から、その語に合う選び (`?preset=<語の id>`) で開く |
 | このサイトについて (`/gantlo/about/`) | `GET /about` への応答 (`200 OK`)。サイトの説明・ソースコード (GitHub)・Issue を書く・記録の置き場所・AI に聞く・問題の出典・ライセンス。文の正本は `src/lib/about.ts` |
 | まだ無い画面 | `501 Not Implemented` |
 | 知らない URL | `404 Not Found` |
@@ -113,6 +116,9 @@ flowchart LR
   app --> course["screens/CourseScreen.tsx<br/>GET /course/#lt;id#gt;"]
   clib["lib/courses.ts<br/>コースの紹介・一覧の見出し"] --> course
   aboutlib["lib/about.ts<br/>このサイトについての文"] --> about["screens/About.tsx<br/>GET /about"]
+  trylib["lib/tryApi.ts<br/>送り先・要求の組み立て・失敗の説明"] --> try["screens/Try.tsx<br/>試す (本物の API に fetch)"]
+  app --> try
+  trylib -->|?preset=| gloss
   app --> about
   stages["content/stages.ts<br/>旅の 8 段"] --> wf["components/Waterfall.tsx"]
   journey["lib/journey.ts<br/>段の学習済み"] --> wf
@@ -191,7 +197,7 @@ flowchart LR
 
 | ファイル | 役目 |
 |---|---|
-| `src/lib/route.ts` | URL の道から画面を決める。# は使わない (検索エンジンが # の後ろを別のページとして扱わないため)。今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) は奪わず、画面を移ったことにしない (解いている途中のレッスンが 1 問目に戻らないように)。`useRoute` は画面をやり直す合図 `nav` と、スマホのメニューを閉じる合図 `close` を分けて返す (# だけが変わる戻る・進むでは `close` だけが増える) |
+| `src/lib/route.ts` | URL の道から画面を決める。サイトの中のリンクで移るときは、道と `?` の後ろ (試す画面の `?preset=` など) を残す。# は使わない (検索エンジンが # の後ろを別のページとして扱わないため)。今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) は奪わず、画面を移ったことにしない (解いている途中のレッスンが 1 問目に戻らないように)。`useRoute` は画面をやり直す合図 `nav` と、スマホのメニューを閉じる合図 `close` を分けて返す (# だけが変わる戻る・進むでは `close` だけが増える) |
 | `src/content/stages.ts` | 旅の 8 段の正本 (名前・役目・主な公式文書・何週目か・帯の長さの比) |
 | `src/lib/status.ts` | 進み具合と答えの結果を HTTP のステータスにする (答え: 正解 200・不正解 400・メディアタイプの誤り 415・並べ替えの順の誤り 409・完了 201。コース: まだ 202・途中 206・全部済み 200・レッスンが無ければ 204)。どのステータスにも日本語の説明を付ける |
 | `src/lib/plan.ts` | 計画と学習管理の計算。上下の並べ替え・保存 (順・開始日・直した目安の日数)・今ここ (計画の順で最初の未完了のレッスン)。期限は持たない |
@@ -240,6 +246,8 @@ flowchart LR
 | `src/lib/glossary.ts` | 用語集の検索と検査。探す語と語の名前・別名・説明を NFKC でそろえ (全角英数・半角カナ)、大文字小文字・ひらがなとカタカナ・中黒の違いを無くして比べ、名前に当たる語を先に出す。ハイフン・「/」・「.」は英数字に挟まれたときだけ消し (`HTTP/2` と `http2`、`Content-Type` と `contenttype`)、語の頭のハイフン (`-I`) は残す。名前は空白を抜いた形でも比べる (`TLS 1.3` を `TLS1.3` で、`OAuth 2.0` を `OAuth2` で引ける)。出典の URL に空白・`"`・`<`・`>` が無いことも見る。`validateGlossary` は id の形と重なり、名前と別名の重なり (そろえた形で比べる)、https の出典、RFC が節まで指すこと、レッスンが実在すること、11 の規格がそろうことを見る (`tests/glossary.test.ts`) |
 | `src/screens/Glossary.tsx` | 用語集の画面。語ごとに `#term-<id>` を持つ。出てくるレッスンは目録 (`content/catalog.ts`) で引き、問題データを読まない。語の箱は `content-visibility: auto` (描くまでの高さは `contain-intrinsic-size: auto 14rem`) で、画面の外の語の配置と描画を後回しにする。画面とデータ (`glossary.json`) は、ほかの画面と同じく `src/App.tsx` の `React.lazy` で開いたときに読み、最初の JS に入れない (書き出した HTML には全部の語がある)。出典は新しいタブで開き、出てくるレッスンはサイトの中で開く。「・」の区切りは後ろのリンクと同じ箱に入れ、狭い画面で区切りだけが 1 行を占めないようにする |
 | `scripts/e2e-progress-glossary.mjs` | `scripts/e2e.mjs` から呼ぶ、進捗の画面と用語集の通しの検査。390 幅と 1280 幅で、空の記録と記録を入れたときの正答率・7 日の XP・コースの済み・旅の段・ステータス、用語集の全部の語・出典 (https)・11 の規格の順、全角 (ＨＴＴＰ) と半角カナ (ﾘｿｰｽ) で探せること、当たらないと `204`、レッスンへのリンクで開くこと、placeholder が欄に収まること、390 幅で探す欄・消すボタン・リンクが 44px 以上であることを見る |
+| `src/screens/Try.tsx`・`src/lib/tryApi.ts` | 試す画面と、その決まりごと。送り先は `ENDPOINTS` の一覧だけで、任意の URL は送らない (知らない道・その道に無いメソッドは組み立てで止める)。`/status/` のコードは `STATUS_CODES` だけ (1xx は応答が終わらず、3xx は fetch が転送先を追うので入れない)。`buildRequest` はどの要求も `credentials: 'omit'`・`referrerPolicy: 'no-referrer'`・`cache: 'no-store'`・`mode: 'cors'` にし、safelist に無いヘッダー・JSON の本文・GET/HEAD/POST 以外のメソッドを preflight と見る。読めた応答ヘッダーは `readableHeaders` で safelist と公開に分け、本文は JSON を整えて 8 KB で切る。`explainFailure` はオフライン (`navigator.onLine`)・時間切れ (10 秒の `AbortController`)・それ以外を分け、api.github.com に `X-Gantlo-Try` を付けたときは preflight の `Access-Control-Allow-Headers` に無いことを書く。用語集の語の id から始めの選びを決める `PRESETS` (`Object.hasOwn` で引き、`__proto__` などでは既定にする)。画面は `React.lazy` で開いたときに読む |
+| `scripts/e2e-try.mjs` | `scripts/e2e.mjs` から呼ぶ、試す画面の検査。外のサービスには頼らず、httpbin.org と api.github.com への要求を `page.route` で差し替える。390 幅と 1280 幅で、外へ送ることの断り・開いただけでは送らない・418 と I'm a teapot・読めるヘッダー (safelist と公開。`server` は出ない)・相手の Cookie を置いても Cookie・Authorization・Referer を送らない・押した 1 回だけ・PUT と `X-Gantlo-Try` の本文・読めない応答 (Playwright の fulfill は CORS の許しを足すので、JS から同じ TypeError になる、つながらない失敗で作る) のステータス 0 と説明・オフライン・用語集の「試す」から 404 を選んで開く・44px を見る |
 | `src/screens/About.tsx`・`src/lib/about.ts` | このサイトについての画面。文の正本は `about.ts` で、画面と書き出す HTML の本文 (`src/prerender/pages.ts` の `aboutBody`) が同じ文を使う。検索に載せる |
 | `src/lib/breadcrumbs.ts`・`src/components/Breadcrumbs.tsx` | パンくず (ホーム › コース › レッスン、ホーム › 画面) の正本と、画面の上の帯。書き出す HTML の本文と JSON-LD の `BreadcrumbList` も同じ並びを使う。ホームと知らない道には出さない。長い題は文のように折り返す |
 | `src/components/AppSideNav.tsx` | 左のメニュー。PC の SideNav とスマホの MobileNav で同じ項目を使い、「このサイトについて」と「GitHub のリポジトリ」(`SiteItems`) は下端に留める |
