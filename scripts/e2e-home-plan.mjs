@@ -66,6 +66,7 @@ export async function runHomeAndPlan(browser, { base, check, noHorizontalOverflo
     check((await page.locator('[data-header="X-Today-XP"] dd').innerText()).startsWith('0 /'), `${tag} 今日の XP は 0`);
     await overflow('空のホーム');
     const homeNext = page.locator('.home__next a');
+    check((await homeNext.innerText()).replace(/\s+/g, ' ').trim() === `最初のレッスンを始める GET /lesson/${first.id}`, `${tag} 始めるボタンに何をするかの日本語 (最初のレッスンを始める) と GET の形が並ぶ`);
     if (width < 768) {
       const box = await homeNext.boundingBox();
       check(box !== null && box.height >= MIN_TARGET, `${tag} 次のレッスンのボタンが ${MIN_TARGET}px 以上 (${box ? Math.round(box.height) : '-'})`);

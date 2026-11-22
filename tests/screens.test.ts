@@ -58,6 +58,9 @@ describe('ホーム (R-6)', () => {
     expect(text('.status__code')).toBe('202');
     expect(text('[data-header="X-Today-XP"] dd')).toBe('0 / 30');
     expect(host.querySelector('.home__next a')?.getAttribute('href')).toBe(`/gantlo/lesson/${LESSONS[0].id}/`);
+    // 始めるボタンは何をするかを日本語で書き、HTTP の形も残す (初めての人に GET だけを見せない)
+    expect(text('.home__next a .btn__label')).toBe('最初のレッスンを始める');
+    expect(text('.home__next a .btn__request')).toBe(`GET /lesson/${LESSONS[0].id}`);
   });
 
   it('最初のレッスンを終えると、完了・紐づく段の学習済み・今日の XP の増加が出る', async () => {
@@ -232,6 +235,8 @@ describe('コースの画面 (B-024)', () => {
     expect(text('.status__code')).toBe('206');
     expect(host.querySelector(`.net__row[data-lesson="${own[0].id}"]`)?.getAttribute('data-state')).toBe('done');
     expect(host.querySelector('.home__next a')?.getAttribute('href')).toBe(`/gantlo/lesson/${own[1].id}/`);
+    expect(text('.home__next a .btn__label')).toBe('次のレッスンを始める');
+    expect(text('.home__next a .btn__request')).toBe(`GET /lesson/${own[1].id}`);
     const all = own.reduce((p, l) => completeLesson(p, l.id, { correct: 1, total: 1 }, 3, now), emptyProgress());
     await act(async () => root.render(createElement(CourseScreen, { course: c.id, progress: all })));
     expect(text('.status__code')).toBe('200');

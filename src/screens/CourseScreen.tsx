@@ -1,13 +1,14 @@
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import LessonNetwork from '../components/LessonNetwork';
+import LessonStartLink from '../components/LessonStartLink';
 import StatusLine from '../components/StatusLine';
 import { LESSONS } from '../content/index';
 import type { Lesson } from '../content/types';
 import { COURSE_EMPTY, COURSE_LEADS } from '../lib/courses';
 import { currentLesson, isDone } from '../lib/plan';
 import type { Progress } from '../lib/progress';
-import { COURSES, lessonHref, pageHref, type CourseId } from '../lib/route';
+import { COURSES, pageHref, type CourseId } from '../lib/route';
 import { courseStatus } from '../lib/status';
 
 /**
@@ -28,9 +29,7 @@ export default function CourseScreen({ course, progress, lessons = LESSONS }: { 
       {here ? (
         <p className="home__next">
           <Text type="supporting">次のレッスン「{here.lesson.title}」</Text>
-          <a className="btn btn--primary" href={lessonHref(here.lesson.id)}>
-            <code>GET /lesson/{here.lesson.id}</code>
-          </a>
+          <LessonStartLink lessonId={here.lesson.id} isFirst={done === 0} />
         </p>
       ) : own.length > 0 ? (
         <Text type="supporting">このコースのレッスンを全部済ませました。</Text>

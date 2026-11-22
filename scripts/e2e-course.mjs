@@ -102,7 +102,7 @@ export async function runCourse(browser, { base, check, noHorizontalOverflow }) 
     check((await statusCode()) === '206', `${where}: 途中は 206 (${await statusCode()})`);
     const nextBtn = page.locator('.home__next a');
     check(
-      (await nextBtn.getAttribute('href')) === `/gantlo/lesson/${l2.id}/` && (await nextBtn.innerText()).trim() === `GET /lesson/${l2.id}`,
+      (await nextBtn.getAttribute('href')) === `/gantlo/lesson/${l2.id}/` && (await nextBtn.innerText()).replace(/\s+/g, ' ').trim() === `次のレッスンを始める GET /lesson/${l2.id}`,
       `${where}: 次のレッスンのボタンが 2 つ目 (${l2.id}) を指す (${await nextBtn.getAttribute('href')})`,
     );
     if (phone) {

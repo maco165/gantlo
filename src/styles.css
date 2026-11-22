@@ -366,6 +366,19 @@ code {
   padding: 0;
   width: var(--size-element-lg);
 }
+/* レッスンを始めるボタン。何をするかの日本語を先に、HTTP の形 (GET /lesson/<id>) をその後ろに添える。狭いと 2 行に折り返す */
+.btn--start {
+  flex-wrap: wrap;
+  column-gap: var(--spacing-2);
+  row-gap: 0;
+  text-align: center;
+}
+.btn__label {
+  font-weight: 600;
+}
+.btn__request {
+  font-size: 0.8125rem;
+}
 
 .home__next {
   margin: 0;
