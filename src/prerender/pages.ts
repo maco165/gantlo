@@ -5,7 +5,7 @@ import { SORTED } from '../content/glossary';
 import { LESSONS } from '../content/index';
 import type { Lesson } from '../content/types';
 import type { GlossaryTerm } from '../lib/glossary';
-import { documentTitle, PAGE_TITLES, withSite } from '../lib/pageMeta';
+import { documentTitle, lessonDocumentTitle, PAGE_TITLES } from '../lib/pageMeta';
 import { BASE, COURSES, courseHref, homeHref, lessonHref, pageHref, parseRoute, type PageName } from '../lib/route';
 import { COURSE_EMPTY, COURSE_LEADS, LESSON_LIST_HEADING } from '../lib/courses';
 import { ABOUT_ISSUE, ABOUT_LEAD, ABOUT_NOTES, ABOUT_SOURCE, LICENSE_NAME } from '../lib/about';
@@ -136,8 +136,8 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
     const courseTitle = course?.title ?? l.course;
     pages.push({
       path: rel(lessonHref(l.id)),
-      // 画面の題 (titleOf) と同じくレッスンの題。差し替えたレッスンでも引けるよう、ここで直に付ける
-      title: withSite(l.title),
+      // 画面のタブ (documentTitle) と同じ題。差し替えたレッスンでも引けるよう、レッスンから直に付ける
+      title: lessonDocumentTitle(l),
       // 問題文を続けて入れる (1 問目が短いレッスンでも、説明が短くなりすぎないように)。120 字で切る
       description: clip(`${courseTitle}のレッスン「${l.title}」(${l.questions.length} 問)。${l.questions.map((q) => q.prompt).join(' ')}`),
       body: [

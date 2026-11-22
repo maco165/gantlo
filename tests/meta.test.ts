@@ -6,7 +6,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LESSONS } from '../src/content/index';
 import type { Lesson } from '../src/content/types';
-import { documentTitle, PAGE_TITLES, titleOf } from '../src/lib/pageMeta';
+import { documentTitle, PAGE_TITLES, TITLE_MAX, titleOf } from '../src/lib/pageMeta';
 import { BASE, COURSES, lessonHref, parseRoute } from '../src/lib/route';
 import { LESSON_LIST_HEADING } from '../src/lib/courses';
 import { SITE_NAME, SITE_TAGLINE } from '../src/lib/site';
@@ -112,6 +112,14 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
       expect(head.title, page.path).toBe(documentTitle(parseRoute(`${BASE}${page.path}`)));
       expect(head.description.length, page.path).toBeGreaterThanOrEqual(50);
       expect(head.description.length, page.path).toBeLessThanOrEqual(120);
+    }
+  });
+
+  it(`title は全ページ (404.html も) ${TITLE_MAX} 字以内で、og:title も同じ題`, () => {
+    for (const p of [...pages, NOT_FOUND_PAGE]) {
+      const doc = new DOMParser().parseFromString(renderPage(template, p), 'text/html');
+      expect(doc.title.length, `${p.path} ${doc.title}`).toBeLessThanOrEqual(TITLE_MAX);
+      expect(doc.querySelector('meta[property="og:title"]')?.getAttribute('content'), p.path).toBe(doc.title);
     }
   });
 

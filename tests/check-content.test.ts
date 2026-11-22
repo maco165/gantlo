@@ -90,6 +90,21 @@ describe('check-content', { timeout: 30_000 }, () => {
     expect(emptyAlt.out).toMatch(/NG .*empty-answers\.json main-w1-l1-q1: blanks\[0\]\.answers/);
   });
 
+  it('題が長い (サイト名を付けて 35 字を超える) のに shortTitle が無い・長い・題より長いと NG', () => {
+    const long = 'あ'.repeat(27);
+    const cases: [string, (l: any) => void, RegExp][] = [
+      ['no-short', (l) => (l.title = long), /title が 26 字を超えます/],
+      ['long-short', (l) => ((l.title = long + 'い'), (l.shortTitle = long)), /shortTitle は 26 字まで/],
+      ['short-not-shorter', (l) => ((l.title = '短い題'), (l.shortTitle = '短い題です')), /shortTitle は title より短く/],
+    ];
+    for (const [name, change, msg] of cases) {
+      const r = run(mutate(name, (d) => change(d.lessons[0])));
+      expect(r.code, name).toBe(1);
+      expect(r.out, name).toMatch(msg);
+    }
+    expect(run(mutate('ok-short', (d) => ((d.lessons[0].title = long), (d.lessons[0].shortTitle = '短い題')))).code).toBe(0);
+  });
+
   it('4 択の正解が選択肢に無いと NG', () => {
     const r = run(mutate('bad-choice', (d) => (q(d, 3).answer = 'z')));
     expect(r.code).toBe(1);

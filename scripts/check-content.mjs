@@ -15,13 +15,15 @@ const TOOLS = ['curl', 'dig', 'openssl'];
 const HTTP_FORMATS = ['http', 'json'];
 const MATCHES = ['text', 'header-name', 'media-type'];
 const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
+/** レッスンの <title> (「題 | gantlo」) を 35 字に収める題の長さ。src/lib/pageMeta.ts の TITLE_MAX と同じ (tests/meta.test.ts が全ページを見る) */
+const LESSON_TAB_TITLE_MAX = 35 - ' | gantlo'.length;
 /** 4 択の選択肢の数 */
 const CHOICE_COUNT = 4;
 
 /** 使ってよい欄。ほかの欄は打ち間違いとして NG にする (任意の欄の打ち間違いで採点や表示が黙って変わらないように) */
 const FIELDS = {
   file: ['lessons'],
-  lesson: ['id', 'title', 'course', 'stage', 'questions'],
+  lesson: ['id', 'title', 'shortTitle', 'course', 'stage', 'questions'],
   question: ['id', 'kind', 'prompt', 'explanation', 'sources'],
   command: ['tool', 'code', 'blanks', 'output'],
   http: ['format', 'code', 'blanks'],
@@ -122,6 +124,11 @@ export function checkFiles(files, { stages, courseIds }) {
       claimId(lesson?.id, lid);
       onlyFields(lesson, FIELDS.lesson, lid);
       if (!isNonEmptyString(lesson?.title)) ng(lid, 'title がありません');
+      // <title> は「題 | gantlo」で 35 字まで (検索の結果で切られない長さ)。長い題には shortTitle を書く
+      else if (lesson.shortTitle !== undefined) {
+        if (!isNonEmptyString(lesson.shortTitle) || lesson.shortTitle.length > LESSON_TAB_TITLE_MAX) ng(lid, `shortTitle は ${LESSON_TAB_TITLE_MAX} 字までの文字にします`);
+        else if (lesson.shortTitle.length >= lesson.title.length) ng(lid, 'shortTitle は title より短くします');
+      } else if (lesson.title.length > LESSON_TAB_TITLE_MAX) ng(lid, `title が ${LESSON_TAB_TITLE_MAX} 字を超えます。タブと検索の結果に出す shortTitle (${LESSON_TAB_TITLE_MAX} 字まで) を書きます`);
       if (!courseIds.includes(lesson?.course)) ng(lid, `course は ${courseIds.join(' / ')} のどれかにします (${lesson?.course})`);
       else if (inCourses && lesson.course !== folder) ng(lid, `course (${lesson.course}) が置き場所 (courses/${folder}/) と違います`);
       if (lesson?.stage === undefined) {

@@ -76,6 +76,8 @@ export type QuestionKind = Question['kind'];
 export type Lesson = {
   id: string;
   title: string;
+  /** タブと検索の結果に出す短い題 (<title>)。題にサイト名を付けて 35 字を超えるときだけ書く (検査は scripts/check-content.mjs) */
+  shortTitle?: string;
   course: CourseId;
   /** リクエストの旅の段 (src/content/stages.ts の id)。本編では必須、ほかのコースでは任意 */
   stage?: string;
