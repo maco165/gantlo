@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { CATALOG_FIELDS } from './src/content/catalog-fields.ts';
+import { purgeAtomicCssPlugin } from './scripts/purge-atomic-css.ts';
 
 // GitHub Pages では https://maco165.github.io/gantlo/ に置かれる。
 const BASE = '/gantlo/';
@@ -32,7 +33,8 @@ function lessonCatalog(): Plugin {
 
 export default defineConfig({
   base: BASE,
-  plugins: [lessonCatalog(), react()],
+  // purgeAtomicCssPlugin: 使われない StyleX の原子クラスを CSS から落とす (scripts/purge-atomic-css.ts)
+  plugins: [lessonCatalog(), react(), purgeAtomicCssPlugin()],
   test: {
     environment: 'jsdom',
     include: ['tests/**/*.test.ts'],
