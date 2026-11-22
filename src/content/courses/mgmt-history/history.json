@@ -4,6 +4,40 @@
       "id": "mgmt-history-l1",
       "title": "ハーモノグラム (Karol Adamiecki)",
       "course": "mgmt-history",
+      "intro": {
+        "goals": [
+          "Adamiecki の経歴を、出典の文でたどる",
+          "ポーランド語の出典で、年と号の書き方を読む",
+          "人が書いた紹介を孫引きせず、原文で確かめる"
+        ],
+        "body": [
+          "Karol Adamiecki (1866〜1933) は、ポーランドの技師で、組織と管理の学の研究者です。Dąbrowa Górnicza に生まれ、Petersburg の工科の学校で学びました。",
+          "1899〜1905 年は南ロシアの工場で働き、生産の現場で組織がうまく働かない原因を調べました。1925 年から亡くなるまで、Warsaw の科学的な組織の研究所の所長でした。",
+          "Praha (1924)・Roma (1927)・Paris (1929) の国際会議での発表は、大きな関心を集めました。1929 年には、Genève に本部を置く国際委員会の副会長になりました。",
+          "出典は Warsaw 工科大学の図書館の「教授の横顔」(Sylwetki Profesorów) の 1 枚で、ポーランド語です。年は数字の後に r. を付け、雑誌の号は nr と書きます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "出典を読むためのポーランド語 (語の意味は Wiktionary の Polish の項で確かめたもの)",
+          "items": [
+            { "label": "odczyt", "note": "講演" },
+            { "label": "praca zbiorowa", "note": "共同作業 (多くの人で行う仕事)" },
+            { "label": "Stowarzyszenie Techników", "note": "技術者の協会" },
+            { "label": "Przegląd Techniczny", "note": "技術の雑誌の名 (「技術の評論」の意)" },
+            { "label": "nr", "note": "雑誌の号" },
+            { "label": "r.", "note": "年 (rok の略)。年の数字の後に付く" }
+          ]
+        },
+        "sources": [
+          "https://bcpw.bg.pw.edu.pl/Content/815/download",
+          "https://en.wiktionary.org/wiki/odczyt#Polish",
+          "https://en.wiktionary.org/wiki/zbiorowy#Polish",
+          "https://en.wiktionary.org/wiki/stowarzyszenie#Polish",
+          "https://en.wiktionary.org/wiki/przegl%C4%85d#Polish",
+          "https://en.wiktionary.org/wiki/nr#Polish",
+          "https://en.wiktionary.org/wiki/r.#Polish"
+        ]
+      },
       "questions": [
         {
           "id": "mgmt-history-l1-q1",
@@ -94,6 +128,33 @@
       "id": "mgmt-history-l2",
       "title": "ガントチャート (Henry Gantt)",
       "course": "mgmt-history",
+      "intro": {
+        "goals": [
+          "Clark の本が扱う図の種類を見分ける",
+          "Clark の本の序文から、図が使われた場の広さを読む",
+          "Mermaid の gantt の 1 行を、ID・始まり・長さに分けて読む"
+        ],
+        "body": [
+          "Henry L. Gantt は、工場の生産の相談役として働いた技師で、1919 年 11 月 23 日に亡くなりました。Wallace Clark の本『The Gantt Chart』は、Gantt の図の描き方と使い方をまとめています。",
+          "序文によると、図は過去の静的な記録ではなく、今と先を扱うものです。使われた場は、2〜3 人の自動車の塗装の店から、国じゅうに広がる産業まででした。Clark は、この本は管理の方法の全部ではなく、図が受け持つ部分だけを示すと断っています。",
+          "今の道具の Mermaid でも gantt の図を書けます。作業の名前とメタデータをコロンで分け、メタデータはコンマで区切ります。3 つ書けば、ID・始まり・長さとして読まれます。長さは 3d のように数と単位で書きます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "Clark の本が挙げる図の種類 (『The Gantt Chart』の III 章)",
+          "items": [
+            { "label": "Machine Record Chart", "note": "機械が使われていない時と、その理由を示す" },
+            { "label": "Man Record Chart", "note": "人が働く時間を適切に使っているか、そうでなければ理由を示す" },
+            { "label": "Layout Chart", "note": "人と設備の遊びを避け、大事な順に仕事を割り付けて計画する" },
+            { "label": "Load Chart", "note": "工場やその一部に控えている仕事の量を、時間か日数で示す" },
+            { "label": "Progress Chart", "note": "立てた計画を実行に移し、仕事を進めるための図" }
+          ]
+        },
+        "sources": [
+          "https://archive.org/details/cu31924004570853",
+          "https://mermaid.js.org/syntax/gantt.html"
+        ]
+      },
       "questions": [
         {
           "id": "mgmt-history-l2-q1",
@@ -206,6 +267,34 @@
       "id": "mgmt-history-l3",
       "title": "PERT と CPM",
       "course": "mgmt-history",
+      "intro": {
+        "goals": [
+          "矢印の図から、作業のいちばん早い始まりと終わりを求める",
+          "critical な作業と、余裕のある作業を見分ける",
+          "PERT の 3 つの見積もりが、何の不確かさを表すかを読む"
+        ],
+        "body": [
+          "CPM は、計画を矢印の図にします。1 つの作業を 1 本の矢印で表し、矢印が出会う点を event と呼びます。作業ごとに、いちばん早い始まりと終わり、いちばん遅い始まりと終わりを求めます。",
+          "使える時間が作業の長さと等しい作業を critical と呼び、その遅れは全体の遅れになります。つながった critical な作業の道が critical-path です。使える時間が長さを超える作業には、余裕 (float) があります。",
+          "PERT は、米海軍の特別計画局の計画を、統計と数学で計画し、評価し、管理するために始まりました。各作業の時間を、担当の技術者から、楽観・最可能・悲観の 3 つで聞きます。",
+          "報告書は、時間の分布の山は 1 つで、その頂が最可能の値だと考えます。分散が大きいほど、終わる時期の不確かさが大きいと読みます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "CPM と PERT の言葉 (Kelley と Walker の 1959 年の論文、PERT の第 1 段の報告書)",
+          "items": [
+            { "label": "event", "note": "矢印が出会う点。ある作業が終わり、次の作業が始まる時点" },
+            { "label": "critical", "note": "使える時間が作業の長さと等しい作業。遅れが全体の遅れになる" },
+            { "label": "critical-path", "note": "つながった critical な作業の道" },
+            { "label": "float", "note": "使える時間が作業の長さを超える分の余裕。測り方が何通りかある" },
+            { "label": "a・m・b", "note": "PERT の楽観・最可能・悲観の見積もり" }
+          ]
+        },
+        "sources": [
+          "https://mosaicprojects.com.au/PDF/PM-History_Critical_Path_Planning_&_Scheduling_Kelley_and_Walker_1959.pdf",
+          "https://archive.org/details/DTIC_AD0735902"
+        ]
+      },
       "questions": [
         {
           "id": "mgmt-history-l3-q1",
@@ -292,8 +381,20 @@
           "prompt": "PERT の第 1 段の報告書の式で、作業の日数の期待値と標準偏差を出します。楽観 a = 2、最可能 m = 5、悲観 b = 14 (日) のとき、空欄を埋めてください。",
           "code": "{\n  \"optimistic\": 2,\n  \"mostLikely\": 5,\n  \"pessimistic\": 14,\n  \"expected\": {{blank}},\n  \"standardDeviation\": {{blank}}\n}",
           "blanks": [
-            { "answers": ["6", "6.0"] },
-            { "answers": ["2", "2.0"] }
+            {
+              "answers": ["6", "6.0"],
+              "wrong": [
+                { "answer": "5", "why": "5 は最可能の値 m そのものです。期待値は、楽観と悲観も重みを付けて混ぜた平均です。" },
+                { "answer": "7", "why": "7 は 3 つの見積もりを同じ重みで平均した値です。報告書の式は、最可能の値に重みを多く置きます。" }
+              ]
+            },
+            {
+              "answers": ["2", "2.0"],
+              "wrong": [
+                { "answer": "4", "why": "4 は標準偏差を 2 乗した分散です。報告書は分散も求めますが、ここで問うのはその平方根の方です。" },
+                { "answer": "12", "why": "12 は悲観と楽観の幅 (b − a) そのものです。報告書は、この幅をさらに割って、ばらつきの目安にします。" }
+              ]
+            }
           ],
           "explanation": "報告書は期待値を (a + 4m + b) / 6、ばらつきを幅の 6 分の 1 ((b − a) / 6) として求めます。(2 + 20 + 14) / 6 = 6、(14 − 2) / 6 = 2 です。1 つの数で見積もらず 3 つ聞くのは、研究開発のように前例の無い仕事の不確かさを数で扱うためです。",
           "sources": ["https://archive.org/details/DTIC_AD0735902"]
@@ -338,6 +439,32 @@
       "id": "mgmt-history-l4",
       "title": "ウォーターフォール (Winston Royce)",
       "course": "mgmt-history",
+      "intro": {
+        "goals": [
+          "Royce の論文が、どこで発表されたかを確かめる",
+          "論文の図が、それぞれ何を描いているかを読み分ける",
+          "原典と、のちの呼び名の違いを確かめる"
+        ],
+        "body": [
+          "Winston W. Royce の論文は、1970 年 8 月の IEEE WESCON の論文集に載りました。題は「Managing the Development of Large Software Systems」です。元は TRW が出したものです。Royce は、宇宙機の飛行計画や指令、飛行後の分析のソフトウェアを作った経験から書いています。",
+          "論文の Figure 3 は、各段が前後の隣の段と行き来し、遠い段とはめったに行き来しない形を描きます。そうすれば、設計が進むほど、変更の範囲を扱える大きさに収められると書いています。",
+          "文書の量について、Royce の答えは「かなり多く」です。5 百万ドルのハードウェアなら、仕様は 30 ページで足りると見積もりました。同じ額のソフトウェアには、千ページ台の仕様が要るとしています。",
+          "この論文は「ウォーターフォール」の原典と呼ばれますが、本文にその語は出てきません。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "Royce の論文の図 (各図の題。IEEE WESCON 1970 の再録)",
+          "items": [
+            { "label": "Figure 1", "note": "小さく、内部で使うプログラムを渡すまでの段" },
+            { "label": "Figure 2", "note": "顧客に渡す大きなプログラムを作るまでの段" },
+            { "label": "Figure 3", "note": "段と段の行き来が、隣の段にとどまってほしい形" },
+            { "label": "Figure 6", "note": "段に合わせた文書の計画。6 つの文書を作る" }
+          ]
+        },
+        "sources": [
+          "https://web.archive.org/web/20170110144214/http://www-scf.usc.edu/~csci201/lectures/Lecture11/royce1970.pdf"
+        ]
+      },
       "questions": [
         {
           "id": "mgmt-history-l4-q1",
@@ -448,6 +575,33 @@
       "id": "mgmt-history-l5",
       "title": "かんばん (トヨタ生産方式)",
       "course": "mgmt-history",
+      "intro": {
+        "goals": [
+          "スーパーマーケット方式の前の、組立の現場の困りごとを読む",
+          "方式を入れる前に整えた、機械加工の取り組みを挙げる",
+          "トヨタ生産方式に関わった人を、出典で確かめる"
+        ],
+        "body": [
+          "トヨタの 75 年史によると、生産の量が増えるにつれ、生産の管理の大切さが意識されるようになりました。",
+          "組立の現場では、月の初めは部品がそろわず、計画の半分ほどしか組めませんでした。月末に部品がそろうと、コンベヤーを速めて追い上げていました。月の初めは、部品を待つだけの人が多くいたことになります。",
+          "そこで、機械加工の工程を種類ごとに標準化し、部品ごとの標準作業票を作り、機械を毎日点検して予防保全をしました。ムダ・ムラ・ムリもなくしました。そのうえで、加工から組立へ部品を運ぶ仕事を見直しました。",
+          "当時の日本ではスーパーマーケットが珍しく、使った経験のある人はいませんでした。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "トヨタ生産方式 (TPS) に関わった人 (トヨタの公式サイトの Toyota Production System の頁)",
+          "items": [
+            { "label": "豊田佐吉 (1867〜1930)", "note": "トヨタグループの創始者。自動織機を発明した" },
+            { "label": "豊田喜一郎 (1894〜1952)", "note": "トヨタ自動車の創業者" },
+            { "label": "豊田英二 (1913〜2013)", "note": "TPS を実現し、欧米の会社と正面から競えるようにした" },
+            { "label": "大野耐一 (1912〜1990)", "note": "英二の後押しを受けて、TPS の確立を助けた" }
+          ]
+        },
+        "sources": [
+          "https://www.toyota-global.com/company/history_of_toyota/75years/text/taking_on_the_automotive_business/chapter2/section7/item4.html",
+          "https://global.toyota/en/company/vision-and-philosophy/production-system/"
+        ]
+      },
       "questions": [
         {
           "id": "mgmt-history-l5-q1",
@@ -559,6 +713,34 @@
       "id": "mgmt-history-l6",
       "title": "スクラムとアジャイル",
       "course": "mgmt-history",
+      "intro": {
+        "goals": [
+          "アジャイルソフトウェア開発宣言が生まれた経緯を、出典で読む",
+          "スクラムのイベントと作成物を見分ける",
+          "作成物と、それぞれの約束 (commitment) を結び付ける"
+        ],
+        "body": [
+          "宣言の前に、Kent Beck が 2000 年の春、Oregon の Rogue River Lodge で集まりを開いていました。当時こうした方法は「Light」と呼ばれましたが、この呼び名を好む人はいませんでした。",
+          "宣言を書いた人たちは、自分たちを「Agile Alliance」と名乗りました。宣言は、価値を「左の項目」と「右の項目」の組で並べて書いています。",
+          "Scrum Guide は、スクラムを軽量のフレームワークと呼びます。スプリントはほかのイベントをすべて入れる器で、その中に 4 つの正式なイベントがあります。スプリントプランニング、デイリースクラム、スプリントレビュー、スプリントレトロスペクティブです。",
+          "スクラムの 3 本の柱は、透明性・検査・適応です。スクラムチームは、ふつう 10 人以下です。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "スクラムの作成物とその約束 (Scrum Guide 2020 の Scrum Artifacts)",
+          "items": [
+            { "label": "プロダクトバックログ", "note": "約束はプロダクトゴール (プロダクトの将来の姿)" },
+            { "label": "スプリントバックログ", "note": "約束はスプリントゴール (スプリントのただ 1 つの目的)" },
+            { "label": "インクリメント", "note": "約束は完成の定義 (品質の基準を満たした状態の説明)" }
+          ]
+        },
+        "sources": [
+          "https://agilemanifesto.org/history.html",
+          "https://agilemanifesto.org/",
+          "https://scrumguides.org/scrum-guide.html#scrum-theory",
+          "https://scrumguides.org/scrum-guide.html#scrum-artifacts"
+        ]
+      },
       "questions": [
         {
           "id": "mgmt-history-l6-q1",
@@ -623,8 +805,19 @@
           "prompt": "2020 年版の Scrum Guide の時間の決まりを JSON にしました。1 か月のスプリントのときの空欄を埋めてください (数だけ)。",
           "code": "{\n  \"sprint\": \"1 か月以内の決まった長さ\",\n  \"dailyScrumMinutes\": {{blank}},\n  \"sprintPlanningMaxHours\": {{blank}}\n}",
           "blanks": [
-            { "answers": ["15"] },
-            { "answers": ["8"] }
+            {
+              "answers": ["15"],
+              "wrong": [
+                { "answer": "10", "why": "10 は、スクラムチームのふつうの人数の上限 (10 人以下) です。Daily Scrum の長さは、分で決まった別の数です。" }
+              ]
+            },
+            {
+              "answers": ["8"],
+              "wrong": [
+                { "answer": "4", "why": "4 時間は、1 か月のスプリントでのスプリントレビューの上限です。スプリントプランニングの上限はそれより長く決まっています。" },
+                { "answer": "3", "why": "3 時間は、1 か月のスプリントでのスプリントレトロスペクティブの上限です。スプリントプランニングの上限とは別です。" }
+              ]
+            }
           ],
           "explanation": "Scrum Guide は、Daily Scrum を開発者のための 15 分のイベントとし、Sprint Planning は 1 か月のスプリントで最大 8 時間 (短いスプリントならふつうはもっと短い) としています。スプリント自体は 1 か月以内の決まった長さです。",
           "sources": [

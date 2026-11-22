@@ -3,7 +3,7 @@
 //      どのレッスンのどの問題で見るかは問題データから選ぶ (いちばん長い出典を持つ問題)
 //   2. 用語集の「出てくるレッスン」と「出典」の区切り (・) が 1 行を占めず、前か後ろのリンクと同じ行に出る。
 //      区切りの字の縦の中心が、前か後ろのリンクの箱の上端と下端の間にあることで見る (区切りの作りに依らない)
-import { answer, loadLessons } from './e2e-lessons.mjs';
+import { answer, loadLessons, startLesson } from './e2e-lessons.mjs';
 
 /** いちばん長い出典を持つ問題と、その前の問題の数 */
 function longestSource(lessons) {
@@ -32,6 +32,7 @@ export async function runNarrow(browser, { base, check, noHorizontalOverflow }) 
     // 1. 出典の外部リンクの印
     const { lesson, index, url } = target;
     await page.goto(`${base}lesson/${lesson.id}/`);
+    await startLesson(page);
     for (let i = 0; i < index; i++) {
       await page.getByRole('heading', { name: lesson.questions[i].prompt }).waitFor();
       await answer(page, lesson.questions[i], 'right');

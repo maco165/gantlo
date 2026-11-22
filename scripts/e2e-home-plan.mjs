@@ -5,13 +5,14 @@
 //   R-17 (390 幅): 計画の画面でコースを選び、上下のボタンとキーボード (Tab・Enter・Space) だけで並べ替えると帯の順が変わる。
 //        ボタンはどれも 44px 以上。PUT この順で学ぶ で 200 OK を出し、読み直しても同じ順 (予定と巻き・遅れは e2e-schedule.mjs)
 //   R-18 (1280 幅): 計画の帯・済みの塗り・今ここの印・次のレッスンへのリンクが出て、そのリンクでレッスンが開く
-import { COURSE_ORDER, XP_PER_CORRECT, XP_PER_LAB, answer, loadLessons } from './e2e-lessons.mjs';
+import { COURSE_ORDER, XP_PER_CORRECT, XP_PER_LAB, answer, loadLessons, startLesson } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 
 /** 開いているレッスンを、模範解答で最後まで解く (画面は #17 のレッスンの画面) */
 async function finishLesson(page, lesson) {
   const next = () => page.getByRole('button', { name: /^(次の問題へ|POST 結果を記録する)$/ }).click();
+  await startLesson(page);
   for (const q of lesson.questions) {
     await page.getByRole('heading', { name: q.prompt }).waitFor();
     await answer(page, q, 'right');
@@ -179,6 +180,7 @@ export async function runHomeAndPlan(browser, { base, check, noHorizontalOverflo
         const link = page.locator('.gantt__next a');
         check((await link.getAttribute('href'))?.endsWith(`/lesson/${second.id}/`) === true, `${t} 次のレッスン (${second.id}) へのリンクが出る`);
         await link.click();
+        await startLesson(page);
         await page.getByRole('heading', { name: second.questions[0].prompt }).waitFor();
         check(new URL(page.url()).pathname.endsWith(`/lesson/${second.id}/`), `${t} 次のレッスンへのリンクでレッスンが開く`);
       } else {
@@ -191,6 +193,7 @@ export async function runHomeAndPlan(browser, { base, check, noHorizontalOverflo
         const link = page.locator('.gantt__next a');
         check((await link.getAttribute('href'))?.endsWith(`/lesson/${first.id}/`) === true, `${t} 次のレッスン (${first.id}) へのリンクが出る`);
         await link.click();
+        await startLesson(page);
         await page.getByRole('heading', { name: first.questions[0].prompt }).waitFor();
         check(new URL(page.url()).pathname.endsWith(`/lesson/${first.id}/`), `${t} 次のレッスンへのリンクでレッスンが開く`);
       }

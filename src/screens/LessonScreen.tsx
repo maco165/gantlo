@@ -11,6 +11,7 @@ import AnswerResponse from '../components/AnswerResponse';
 import ChoiceQuestionView from '../components/ChoiceQuestionView';
 import FillQuestionView from '../components/FillQuestionView';
 import LabQuestionView from '../components/LabQuestionView';
+import { IntroFolded, IntroGate } from '../components/LessonIntro';
 import OrderQuestionView from '../components/OrderQuestionView';
 import type { Lesson, Question } from '../content/types';
 import { answerRequest, finishLesson, lessonScore, resultCode, resultBody, resultLocation, reviewResultBody, type Outcome } from '../lib/lessonRun';
@@ -37,13 +38,14 @@ const OUTCOME_LABEL: Record<Outcome, string> = {
 
 /** 上の帯: 閉じる・レッスン名と何問目か・進み具合 */
 function LessonBar({ title, current, total, closeHref }: { title: string; current: number; total: number; closeHref: string }) {
+  // 要点を読んでいる間 (current が 0) は「要点」と出す
   return (
     <header className="lesson-bar">
       <Button variant="ghost" label="レッスンを閉じる" isIconOnly icon={<XMarkIcon width={20} height={20} />} href={closeHref} />
       <div className="lesson-bar__progress">
         {/* レッスン名がこの画面の h1 (書き出す HTML の h1 と同じ)。見た目は補足の字のまま */}
         <div className="lesson-bar__label">
-          <h1 className="lesson-bar__title">{title}</h1> · {current} / {total} 問
+          <h1 className="lesson-bar__title">{title}</h1> · {current === 0 ? `要点 · 全 ${total} 問` : `${current} / ${total} 問`}
         </div>
         <ProgressBar label="レッスンの進み具合" isLabelHidden value={current} max={total} />
       </div>
@@ -59,6 +61,9 @@ export default function LessonScreen({ lesson, progress, updateProgress, review 
   const [codes, setCodes] = useState<number[]>([]);
   const [finished, setFinished] = useState(false);
   const [attempt, setAttempt] = useState(0);
+  // 要点 (intro) は、はじめて解くレッスンでだけ問題の前に出す。済みのレッスン (開いた時点で 1 回だけ見る) と復習では飛ばし、
+  // 問題の上に畳んで置く。「もう一度解く」では要点に戻さない
+  const [started, setStarted] = useState(() => review !== undefined || !lesson.intro || progress.lessons[lesson.id]?.done === true);
   // 4 択の選択肢と並べ替えの項目は、開いたときと「もう一度解く」のたびに混ぜ直す (attempt が変わるたび)
   const questions = useMemo(() => lesson.questions.map((q) => (q.kind === 'order' ? shuffleItems(q) : shuffleChoices(q))), [lesson, attempt]);
   const total = questions.length;
@@ -106,6 +111,24 @@ export default function LessonScreen({ lesson, progress, updateProgress, review 
 
   if (finished) return <ResultView lesson={lesson} questions={questions} outcomes={outcomes} codes={codes} score={score} progress={progress} onRetry={restart} review={review} />;
 
+  const closeHref = review?.backHref ?? homeHref;
+  if (!started && lesson.intro)
+    return (
+      <div className="lesson">
+        <LessonBar title={lesson.title} current={0} total={total} closeHref={closeHref} />
+        <div className="lesson__main">
+          <IntroGate
+            intro={lesson.intro}
+            total={total}
+            onStart={() => {
+              setStarted(true);
+              scrollToTop();
+            }}
+          />
+        </div>
+      </div>
+    );
+
   const head = `${index + 1} / ${total} 問`;
   const request = answerRequest(lesson.id, index, review !== undefined);
   const nextLabel = isLast ? 'POST 結果を記録する' : '次の問題へ';
@@ -121,8 +144,10 @@ export default function LessonScreen({ lesson, progress, updateProgress, review 
 
   return (
     <div className="lesson">
-      <LessonBar title={lesson.title} current={index + 1} total={total} closeHref={review?.backHref ?? homeHref} />
+      <LessonBar title={lesson.title} current={index + 1} total={total} closeHref={closeHref} />
       <div className="lesson__main">
+        {/* 復習では要点を出さない (問題は別々のレッスンから集めるため) */}
+        {!review && lesson.intro && <IntroFolded key={`intro-${attempt}-${index}`} intro={lesson.intro} />}
         <QuestionHeadingLevel.Provider value={2}>{view}</QuestionHeadingLevel.Provider>
       </div>
     </div>

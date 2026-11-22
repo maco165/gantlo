@@ -5,6 +5,39 @@
       "title": "メソッドとステータスコード",
       "course": "main",
       "stage": "http",
+      "intro": {
+        "goals": [
+          "メソッドの「安全」と「冪等」を区別できる",
+          "ステータスコードの先頭の桁から応答の分類を読む",
+          "curl で送るメソッドと返ってくるコードを確かめる"
+        ],
+        "body": [
+          "HTTP の要求は、メソッドで「何をしたいか」を伝えます。GET は読む、PUT は置き換える、DELETE は消す、が基本の意味です。",
+          "読むだけでサーバーの状態の変化を求めないメソッドを「安全」と呼びます。同じ要求を何回送っても、意図した効果が 1 回と同じなら「冪等」です。安全なメソッドは冪等でもありますが、逆は成り立ちません。",
+          "応答のステータスコードは 3 桁で、先頭の桁が分類を表します。後ろの 2 桁に分類の意味はありません。転送の 3xx には、メソッドを保つコードと保たないコードがあります。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "ステータスコードの先頭の桁と分類 (RFC 9110 15)",
+          "items": [
+            { "label": "1xx", "note": "情報。受け取って処理を続けている" },
+            { "label": "2xx", "note": "成功。受け取り、理解し、受け入れた" },
+            { "label": "3xx", "note": "転送。終えるにはさらに動作が要る" },
+            { "label": "4xx", "note": "クライアントの誤り。要求に問題がある" },
+            { "label": "5xx", "note": "サーバーの誤り。正しそうな要求を果たせなかった" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -sI https://example.com/", "expect": "1 行目に HTTP/2 200 のようなステータス行が出て、続けてヘッダーが並びます。" },
+          { "command": "curl -s -o /dev/null -w '%{http_code}\\n' https://example.com/nope", "expect": "無い道なので 4xx (手元では 404) が出ます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9110#section-9.2.1",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-15",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l1-q1",
@@ -12,7 +45,17 @@
           "tool": "curl",
           "prompt": "id が 42 の資源を消す要求を送りたい。curl で使うメソッドを DELETE に変えるオプションを埋めてください。",
           "code": "curl {{blank}} DELETE https://example.com/items/42",
-          "blanks": [{ "answers": ["-X", "--request"] }],
+          "blanks": [
+            {
+              "answers": ["-X", "--request"],
+              "wrong": [
+                { "answer": "-d", "why": "-d は本文のデータを送るオプションで、HTTP では POST で送ります。メソッドの語を差し替えるものではありません。" },
+                { "answer": "-H", "why": "-H はヘッダーを 1 行足すオプションです。メソッドは要求の行に書く語で、ヘッダーでは変わりません。" },
+                { "answer": "-I", "why": "-I (--head) は HEAD の要求を送り、ヘッダーだけを出すオプションです。メソッドの名前を受け取りません。" },
+                { "answer": "--method", "why": "curl に --method というオプションはありません。メソッドの語を差し替えるのは別の名前のオプションです。" }
+              ]
+            }
+          ],
           "explanation": "-X (--request) は、要求の行に書くメソッドの語を差し替えます (指定しなければ GET)。curl の man ページは、変わるのは送る語だけで curl の振る舞いは変わらないと書いています。たとえば本当の HEAD の要求には -X HEAD ではなく --head (-I) を使います。DELETE は RFC 9110 9.3.5 で定められたメソッドです。",
           "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.5"]
         },
@@ -50,7 +93,16 @@
           "format": "http",
           "prompt": "GET と HEAD しか受け付けない資源に PUT を送ったときの応答です。使えるメソッドの一覧を伝えるヘッダー名を埋めてください。",
           "code": "HTTP/1.1 405 Method Not Allowed\n{{blank}}: GET, HEAD\nContent-Length: 0",
-          "blanks": [{ "answers": ["Allow"], "match": "header-name" }],
+          "blanks": [
+            {
+              "answers": ["Allow"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "Accept", "why": "Accept は、クライアントが受け取れるメディアタイプを伝える要求のヘッダーです。使えるメソッドは伝えません。" },
+                { "answer": "Access-Control-Allow-Methods", "why": "これは CORS の事前確認 (preflight) への応答に使う、Fetch の仕様のヘッダーです。405 で使えるメソッドを伝えるのは RFC 9110 のヘッダーです。" }
+              ]
+            }
+          ],
           "explanation": "405 は、メソッド自体はサーバーが知っているが、その資源では使えないことを表します。405 を返すオリジンサーバーは、今使えるメソッドの一覧を Allow ヘッダーに入れなければなりません (MUST、RFC 9110 15.5.6)。Allow ヘッダーそのものは 10.2.1 で定められています。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.5.6", "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.1"]
         },
@@ -108,6 +160,40 @@
       "title": "URI を分解する",
       "course": "main",
       "stage": "uri",
+      "intro": {
+        "goals": [
+          "URI を区切りの文字で部品に分けられる",
+          "HTTP/1.1 の要求の行と Host ヘッダーに載る部分を見分ける",
+          "% 符号化された文字を読み解く"
+        ],
+        "body": [
+          "URI は、資源を指す名前を決まった構文で書いたものです。一般の構文では、区切りの文字で 5 つの部品に分かれます。scheme と path は必ずあり (path は空でもよい)、ほかの部品は無いこともあります。",
+          "HTTP/1.1 でサーバーに直接送るとき、要求の行には URI の全部を書くわけではありません。host と port は Host ヘッダーで伝えます。どの部品がどこに載るかは、RFC 9112 3.2 と RFC 9110 7 に決まっています。",
+          "URI にそのまま書けない文字や、区切りと紛れる文字は % 符号化で書きます。% のあとに、そのバイトの値を 16 進 2 桁で続けます。16 進の A〜F は大文字と小文字が同じ意味で、作る側は大文字を使うべきとされています。",
+          "curl に -G を付けると、送るデータは本文ではなく URL のクエリとして後ろに付き、GET で送られます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "URI の区切りの文字 (RFC 3986 2.1・3)",
+          "items": [
+            { "label": "#", "note": "fragment の始まり。URI の終わりまで続く" },
+            { "label": "%", "note": "後ろの 16 進 2 桁で 1 バイトを表す" },
+            { "label": ":", "note": "先頭の scheme の終わり" },
+            { "label": "?", "note": "query の始まり。# か URI の終わりまで続く" },
+            { "label": "//", "note": "authority の始まり。次の / ? # か終わりまで続く" }
+          ]
+        },
+        "tryIt": [
+          { "command": "python3 -c \"from urllib.parse import quote; print(quote('€'))\"", "expect": "%E2%82%AC が出ます。€ を UTF-8 にした 3 バイトが、1 バイトずつ % と大文字の 16 進 2 桁になっています。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc3986#section-3",
+          "https://www.rfc-editor.org/rfc/rfc3986#section-2.1",
+          "https://www.rfc-editor.org/rfc/rfc9112#section-3.2",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-7.2",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l2-q1",
@@ -144,7 +230,22 @@
           "format": "http",
           "prompt": "https://example.com:8443/search?q=api#top を HTTP/1.1 で直接サーバーに取りに行きます。要求の行の宛先と、Host ヘッダーの値を埋めてください (host は小文字で書いてください)。",
           "code": "GET {{blank}} HTTP/1.1\nHost: {{blank}}",
-          "blanks": [{ "answers": ["/search?q=api"] }, { "answers": ["example.com:8443"] }],
+          "blanks": [
+            {
+              "answers": ["/search?q=api"],
+              "wrong": [
+                { "answer": "/search?q=api#top", "why": "fragment は要求の対象から外れ、クライアントの側で使う部品です。要求の行に # から後ろは載せません。" },
+                { "answer": "https://example.com:8443/search?q=api", "why": "URI を丸ごと書く形 (absolute-form) は、プロキシに送るときの書き方です。オリジンサーバーに直接送るときは使いません。" }
+              ]
+            },
+            {
+              "answers": ["example.com:8443"],
+              "wrong": [
+                { "answer": "example.com", "why": "Host の値は、URI の authority と同じにしなければなりません。既定の 443 ではない port は省けません。" },
+                { "answer": "https://example.com:8443", "why": "Host の値は host と port だけで、scheme は付けません。" }
+              ]
+            }
+          ],
           "explanation": "オリジンサーバーに直接送るとき、クライアントは要求の行に URI の path と query だけを書かなければなりません (MUST、RFC 9112 3.2.1 の origin-form)。fragment は要求の対象から外れるので #top は送りません (RFC 9110 7.1)。host と port は Host ヘッダーで伝えます (RFC 9110 7.2、Host = uri-host [ \":\" port ])。https の既定の 443 ではないので port も書きます。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc9112#section-3.2.1",
@@ -214,9 +315,18 @@
           "tool": "curl",
           "prompt": "検索語に空白を含むので、curl に符号化させてクエリに付けたい。-G と組み合わせて、値を URL 符号化して渡すオプションを埋めてください。",
           "code": "curl -G {{blank}} \"q=hello world\" https://example.com/search",
-          "blanks": [{ "answers": ["--data-urlencode"] }],
+          "blanks": [
+            {
+              "answers": ["--data-urlencode", "--url-query"],
+              "wrong": [
+                { "answer": "-d", "why": "-d は、渡したデータを手を加えずそのまま送ります。空白は符号化されません。" },
+                { "answer": "--data-binary", "why": "--data-binary は、データを何も処理せずそのまま送るオプションです。URL 符号化はしません。" },
+                { "answer": "--data-raw", "why": "--data-raw は -d とほぼ同じで、@ を特別に扱わないだけです。URL 符号化はしません。" }
+              ]
+            }
+          ],
           "output": "> GET /search?q=hello+world HTTP/1.1",
-          "explanation": "--data-urlencode は値を URL 符号化して送るデータにします。ふつうは POST の本文になりますが、-G (--get) を付けると GET の要求になり、データは URL のクエリとして後ろに付きます (curl の man ページ)。手元の curl 8.18.0 では、空白は + に、「あ」は %e3%81%82 になりました。16 進の大文字と小文字は同じ意味です (RFC 3986 2.1)。",
+          "explanation": "--data-urlencode は値を URL 符号化して送るデータにします。ふつうは POST の本文になりますが、-G (--get) を付けると GET の要求になり、データは URL のクエリとして後ろに付きます (curl の man ページ)。手元の curl 8.18.0 では、空白は + に、「あ」は %e3%81%82 になりました。16 進の大文字と小文字は同じ意味です (RFC 3986 2.1)。--url-query も --data-urlencode と同じ書き方で値を符号化し、URL のクエリに足します (curl 7.87.0 から)。",
           "sources": ["https://curl.se/docs/manpage.html", "https://www.rfc-editor.org/rfc/rfc3986#section-2.1"]
         }
       ]
@@ -226,6 +336,39 @@
       "title": "ヘッダーと MIME タイプ",
       "course": "main",
       "stage": "mime",
+      "intro": {
+        "goals": [
+          "ヘッダーの名前と値の形を読む",
+          "メディアタイプを type・subtype・引数に分けられる",
+          "本文の形式と、欲しい応答の形式を伝えるヘッダーを見分ける"
+        ],
+        "body": [
+          "HTTP のヘッダーは、名前とコロンのあとに値を書く 1 行です。ヘッダーの名前は、大文字と小文字を区別しません。",
+          "Content-Type は、本文 (表現) がどんな形式かを伝えるヘッダーです。値はメディアタイプで、type と subtype を / でつなぎ、後ろに ; で区切った名前と値の組 (引数) を続けられます。",
+          "応答をどの形式で欲しいかは、要求の側の別のヘッダーで伝えます。本文の形式を伝えるヘッダーと取り違えないようにします。",
+          "curl の -d は、要求の本文を送るオプションです。curl は自分でもいくつかのヘッダーを付けて送ります。同じ名前のヘッダーを自分で足すと、足したほうが使われます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "メディアタイプの部品 (RFC 9110 8.3.1)",
+          "items": [
+            { "label": "type", "note": "/ の左。大きな分類 (例: image/png の image)" },
+            { "label": "subtype", "note": "/ の右。その中の形式 (例: image/png の png)" },
+            { "label": "引数 (parameter)", "note": "; のあとの 名前=値 の組 (例: charset=us-ascii)" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -sI https://example.com/ | grep -i '^content-type'", "expect": "content-type: text/html; charset=utf-8 のような 1 行が出ます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9110#section-5.1",
+          "https://www.rfc-editor.org/rfc/rfc9112#section-5",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-8.3",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-8.3.1",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l3-q1",
@@ -233,7 +376,17 @@
           "format": "http",
           "prompt": "応答は JSON で欲しい、とサーバーに伝える要求です。空欄のヘッダー名を埋めてください。",
           "code": "GET /items HTTP/1.1\nHost: example.com\n{{blank}}: application/json",
-          "blanks": [{ "answers": ["Accept"], "match": "header-name" }],
+          "blanks": [
+            {
+              "answers": ["Accept"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "Content-Type", "why": "Content-Type は、そのメッセージの本文の形式を伝えるヘッダーです。応答で欲しい形式の好みは伝えません。" },
+                { "answer": "Accept-Encoding", "why": "Accept-Encoding は、gzip のような内容の符号化 (圧縮など) の好みを伝えるヘッダーです。メディアタイプは伝えません。" },
+                { "answer": "Accept-Language", "why": "Accept-Language は、応答に望む自然言語 (日本語・英語など) を伝えるヘッダーです。データの形式は伝えません。" }
+              ]
+            }
+          ],
           "explanation": "Accept は、ユーザーエージェントが応答のメディアタイプの好みを伝えるヘッダーです (RFC 9110 12.5.1)。送る本文の形式を伝える Content-Type と取り違えやすいので注意します。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1"]
         },
@@ -289,7 +442,16 @@
           "tool": "curl",
           "prompt": "JSON の本文を POST したい。-d だけでは JSON と伝わらないので、Content-Type のヘッダーを足すオプションを埋めてください。",
           "code": "curl {{blank}} 'Content-Type: application/json' -d '{\"name\":\"gantlo\"}' https://example.com/items",
-          "blanks": [{ "answers": ["-H", "--header"] }],
+          "blanks": [
+            {
+              "answers": ["-H", "--header"],
+              "wrong": [
+                { "answer": "-d", "why": "-d は本文のデータを送るオプションで、この行ではもう使っています。ヘッダーの行は足せません。" },
+                { "answer": "-A", "why": "-A (--user-agent) は User-Agent の値だけを決めるオプションです。ほかのヘッダーは足せません。" },
+                { "answer": "-h", "why": "小文字の -h は --help で、使い方の説明を出すオプションです。ヘッダーを足すのは大文字のほうです。" }
+              ]
+            }
+          ],
           "explanation": "-H (--header) は要求にヘッダーを足します。curl が自分で付けるヘッダーと同じ名前なら、こちらが使われます。-d は既定で application/x-www-form-urlencoded の Content-Type を付けるので、JSON を送るときは -H で上書きします (curl の man ページ)。",
           "sources": ["https://curl.se/docs/manpage.html"]
         },
@@ -342,6 +504,38 @@
       "title": "JSON と UTF-8",
       "course": "main",
       "stage": "mime",
+      "intro": {
+        "goals": [
+          "JSON の値の種類を見分ける",
+          "JSON の文法に合うかどうかを確かめる",
+          "UTF-8 のバイト数を文字の番号から考える"
+        ],
+        "body": [
+          "JSON は、データを文字で書き表す形式です。値は、オブジェクト・配列・数・文字列と、決まった 3 つのリテラルのどれかです。リテラルは小文字で書かなければならず、ほかの語は使えません。",
+          "オブジェクトは { } で名前と値の組を囲み、名前は文字列です。配列は [ ] で値を並べます。文字列は二重引用符で囲み、数は 10 進の数字で書きます。",
+          "UTF-8 は、Unicode の 1 文字を 1〜4 バイトで表す符号化です。文字の番号の範囲でバイト数が決まります。複数バイトの文字は、先頭のバイトの上位のビットの並びで、全部で何バイトかが分かります。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "JSON の値の種類 (RFC 8259 3〜7)",
+          "items": [
+            { "label": "オブジェクト", "note": "{ } で、名前と値の組を 0 個以上囲む" },
+            { "label": "配列", "note": "[ ] で、値を 0 個以上カンマで並べる" },
+            { "label": "数", "note": "10 進の数字。小数の部分と指数の部分を付けられる" },
+            { "label": "文字列", "note": "二重引用符で囲む" },
+            { "label": "リテラル", "note": "決まった 3 つの語だけ。小文字で書く" }
+          ]
+        },
+        "tryIt": [
+          { "command": "printf '€' | od -An -tx1", "expect": "e2 82 ac が出ます。€ (U+20AC) を UTF-8 にしたバイト列を 16 進で並べたものです。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc8259#section-3",
+          "https://www.rfc-editor.org/rfc/rfc8259#section-4",
+          "https://www.rfc-editor.org/rfc/rfc8259#section-7",
+          "https://www.rfc-editor.org/rfc/rfc3629#section-3"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l4-q1",
@@ -349,7 +543,22 @@
           "format": "json",
           "prompt": "ok は真、next は「値が無い」ことを表したい。JSON のリテラルを埋めてください。",
           "code": "{\"ok\": {{blank}}, \"next\": {{blank}}}",
-          "blanks": [{ "answers": ["true"] }, { "answers": ["null"] }],
+          "blanks": [
+            {
+              "answers": ["true"],
+              "wrong": [
+                { "answer": "True", "why": "JSON のリテラルは小文字で書かなければなりません。True は Python の書き方で、JSON では書けません。" },
+                { "answer": "\"true\"", "why": "二重引用符で囲むと、真偽の値ではなく文字列になります。" }
+              ]
+            },
+            {
+              "answers": ["null"],
+              "wrong": [
+                { "answer": "None", "why": "None は Python の書き方です。JSON のリテラルは 3 つだけで、None はその中にありません。" },
+                { "answer": "undefined", "why": "undefined は JavaScript の値で、JSON のリテラルにはありません。" }
+              ]
+            }
+          ],
           "explanation": "JSON のリテラルは false・null・true の 3 つだけで、小文字で書かなければなりません (MUST、RFC 8259 3)。True や NULL、None は JSON では書けません。この欄は大文字と小文字を区別して採点します。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc8259#section-3"]
         },
@@ -462,7 +671,15 @@
           "tool": "curl",
           "prompt": "JSON の本文を POST し、Content-Type と Accept を application/json にする、までを 1 つで済ませる curl のオプションを埋めてください。",
           "code": "curl {{blank}} '{\"name\":\"gantlo\"}' https://example.com/items",
-          "blanks": [{ "answers": ["--json"] }],
+          "blanks": [
+            {
+              "answers": ["--json"],
+              "wrong": [
+                { "answer": "-d", "why": "-d は本文を POST しますが、Content-Type は application/x-www-form-urlencoded になります。JSON の Content-Type と Accept は付きません。" },
+                { "answer": "--data-binary", "why": "--data-binary はデータをそのまま送りますが、既定の Content-Type は -d と同じフォームの形式です。ヘッダーは自分で足す必要があります。" }
+              ]
+            }
+          ],
           "output": "> POST /items HTTP/1.1\n> Content-Type: application/json\n> Accept: application/json",
           "explanation": "--json は、--data-binary と --header \"Content-Type: application/json\" と --header \"Accept: application/json\" の 3 つをまとめた近道です (curl 7.82.0 で追加)。中身が正しい JSON かは調べません (curl の man ページ)。",
           "sources": ["https://curl.se/docs/manpage.html"]
@@ -474,6 +691,40 @@
       "title": "実習: curl -v で 1 件のやり取りを読む",
       "course": "main",
       "stage": "http",
+      "intro": {
+        "goals": [
+          "HTTP/1.1 のメッセージの並びを読む",
+          "要求の行と応答のステータスの行を見分ける",
+          "curl の記録で、送った行と受け取った行を読み分ける"
+        ],
+        "body": [
+          "HTTP/1.1 のメッセージは、最初の行、ヘッダーの行の並び、空の行、本文の順です。空の行がヘッダーの終わりの印で、本文は無いこともあります。",
+          "要求の最初の行は、メソッド・宛先・版を空白で区切ります。応答の最初の行は、版・ステータスコード・理由の句です。理由の句は説明の文で、クライアントは中身を無視すべきとされています。",
+          "HTTP の版が違っても、メッセージの意味は変わらないように決められています。書き方が版ごとに違うだけです。",
+          "curl -v は、やり取りの記録を、行の頭の印で分けて出します。送った行、受け取った行、curl 自身の説明で印が違います。印の意味は man ページの -v の節にあります。"
+        ],
+        "figure": {
+          "kind": "flow",
+          "caption": "HTTP/1.1 のメッセージの形 (RFC 9112 2.1)",
+          "items": [
+            { "label": "最初の行", "note": "要求なら要求の行、応答ならステータスの行" },
+            { "label": "ヘッダーの行", "note": "名前: 値 の行が 0 行以上" },
+            { "label": "空の行", "note": "ヘッダーの終わり" },
+            { "label": "本文", "note": "無いこともある" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -s -o /dev/null -w '%{http_version} %{response_code}\\n' https://example.com/", "expect": "2 200 のように、使った HTTP の版とステータスコードが出ます。" },
+          { "command": "curl -sI --http1.1 https://example.com/ | head -n 1", "expect": "HTTP/1.1 200 OK が出ます。版・ステータスコード・理由の句の順です。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9112#section-2.1",
+          "https://www.rfc-editor.org/rfc/rfc9112#section-3",
+          "https://www.rfc-editor.org/rfc/rfc9112#section-4",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-6",
+          "https://curl.se/docs/manpage.html"
+        ]
+      },
       "questions": [
         {
           "id": "main-w1-l5-q1",

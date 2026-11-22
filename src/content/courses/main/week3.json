@@ -5,6 +5,32 @@
       "title": "REST の制約",
       "course": "main",
       "stage": "rest",
+      "intro": {
+        "goals": [
+          "REST が示された論文と章を言える",
+          "制約を足していく設計の見方を説明できる",
+          "制約ごとに得る性質と失うものを読む"
+        ],
+        "body": [
+          "REST は、Fielding の博士論文の 5 章が示したアーキテクチャのスタイルです。分散ハイパーメディアのシステムのために作られました。スタイルは、部品に課す制約の組で表します。",
+          "設計の進め方には 2 つの見方があります。1 つは、何も無いところから部品を積み上げる見方です。もう 1 つは、制約の無い全体から始めて制約を足し、設計の幅を絞る見方です。REST は後者で作られました。",
+          "出発点の Null Style は、制約の空集合です。部品の間に、区別された境目がありません。",
+          "論文は、制約を 1 つ足すごとに、どんな性質が生まれるかを調べます。見通し (visibility)・信頼性・スケーラビリティなどです。多くの制約には、引き換えに失うものも書かれています。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "アーキテクチャの設計の 2 つの見方 (Fielding 2000 5.1.1)",
+          "items": [
+            { "label": "積み上げる見方", "note": "何も無い所から、なじみの部品を積み上げる。創造性を重んじる" },
+            { "label": "制約を足す見方", "note": "制約の無い全体から始め、制約を足して設計の幅を絞る。抑制と文脈の理解を重んじる" }
+          ]
+        },
+        "sources": [
+          "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1",
+          "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_1",
+          "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_1_8"
+        ]
+      },
       "questions": [
         {
           "id": "main-w3-l1-q1",
@@ -99,6 +125,44 @@
       "title": "資源・表現とメソッド",
       "course": "main",
       "stage": "rest",
+      "intro": {
+        "goals": [
+          "メソッドが要求の何を表すかを説明できる",
+          "GET・POST・DELETE の求めることを見分ける",
+          "Content-Type で表現の形式を確かめる"
+        ],
+        "body": [
+          "REST では、部品どうしが資源の表現を送り合います。資源は、URL などの資源の識別子で見分けます。表現のデータの形式は、メディアタイプと呼びます。",
+          "HTTP のメソッドは、クライアントが要求した目的と、成功したときに期待することを表します。メソッドの名前は大文字と小文字を区別し、決まったものは大文字で書きます。",
+          "POST は、同封の表現を資源ごとの決まりで処理させます。新しい資源を作る、フォームのデータを渡す、などに使います。新しい資源を作れたときは 201 (Created) を返せます。",
+          "Content-Type ヘッダーは、表現のメディアタイプを示します。内容を含むメッセージには、形式が分からない場合を除き、付けるべきです (SHOULD)。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "RFC 9110 のメソッドのいくつか (RFC 9110 9.3)",
+          "items": [
+            { "label": "GET", "note": "対象の資源の、今の表現を送るよう求める" },
+            { "label": "HEAD", "note": "GET と同じだが、サーバーは応答に内容を入れてはならない (MUST NOT)" },
+            { "label": "POST", "note": "対象の資源が、自分の決まりで同封の表現を処理するよう求める" },
+            { "label": "DELETE", "note": "対象の資源と、今の機能との結び付きを外すよう求める" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -s https://httpbin.org/post -H 'Content-Type: application/json' -d '{\"name\": \"Taro\"}'", "expect": "送った要求の中身が JSON で返ってきます。method に POST、json に送った {\"name\": \"Taro\"} が入ります。" }
+        ],
+        "sources": [
+          "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_2_1",
+          "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_2_1_1",
+          "https://ics.uci.edu/~fielding/pubs/dissertation/rest_arch_style.htm#sec_5_2_1_2",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-9.1",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.1",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.3",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.5",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-8.3",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-15.3.2"
+        ]
+      },
       "questions": [
         {
           "id": "main-w3-l2-q1",
@@ -134,7 +198,16 @@
           "format": "http",
           "prompt": "利用者 42 番の資源を、送る表現の内容で丸ごと置き換えたい。メソッドを埋めてください。",
           "code": "{{blank}} /users/42 HTTP/1.1\nHost: api.example.com\nContent-Type: application/json\n\n{\"name\": \"Hanako\", \"email\": \"hanako@example.com\"}",
-          "blanks": [{ "answers": ["PUT"] }],
+          "blanks": [
+            {
+              "answers": ["PUT"],
+              "wrong": [
+                { "answer": "POST", "why": "POST は、対象の資源が自分の決まりで同封の表現を処理するよう求めるメソッドです。送った表現で丸ごと置き換えるという意味は決まっていません。" },
+                { "answer": "PATCH", "why": "PATCH は、送った変更の組 (patch document) を資源に当てる、部分の書き換えのメソッドです (RFC 5789)。丸ごとの置き換えではありません。" },
+                { "answer": "put", "why": "メソッドの名前は大文字と小文字を区別します。小文字の put は、決まったメソッドとは別の名前になります。" }
+              ]
+            }
+          ],
           "explanation": "RFC 9110 の 9.3.4 は、PUT を、対象の資源の状態を送った表現の状態で作るか置き換えるよう求めるメソッドと定めています。メソッド名は大文字と小文字を区別します (RFC 9110 9.1)。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.4",
@@ -161,7 +234,17 @@
           "format": "http",
           "prompt": "POST /users で新しい利用者を作り終えました。作った資源の場所を伝えるヘッダー名を埋めてください。",
           "code": "HTTP/1.1 201 Created\n{{blank}}: /users/43\nContent-Type: application/json\n\n{\"id\": 43, \"name\": \"Taro\"}",
-          "blanks": [{ "answers": ["Location"], "match": "header-name" }],
+          "blanks": [
+            {
+              "answers": ["Location"],
+              "match": "header-name",
+              "wrong": [
+                { "answer": "Content-Location", "why": "Content-Location は、この応答の内容の表現に対応する資源の URI を示す、表現のメタデータです。作った資源を指すと決まっているのは別のヘッダーです。" },
+                { "answer": "Referer", "why": "Referer は要求のヘッダーで、対象の URI をどの資源から得たかをユーザーエージェントが伝えます。応答で作った資源を指すものではありません。" },
+                { "answer": "Host", "why": "Host は要求のヘッダーで、対象の URI のホストとポートを伝えます。応答で資源の場所を伝えるものではありません。" }
+              ]
+            }
+          ],
           "explanation": "Location ヘッダーは、応答に関係する特定の資源を指します (RFC 9110 10.2.2)。201 の応答では、作った資源を Location で示せます (15.3.2)。値が相対参照なら、対象の URI を基準に解決します。",
           "sources": [
             "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.2",
@@ -189,6 +272,39 @@
       "title": "OpenAPI で仕様を書く",
       "course": "main",
       "stage": "rest",
+      "intro": {
+        "goals": [
+          "OpenAPI の文書の根の欄を見分ける",
+          "仕様の表で必須 (REQUIRED) の欄を探す",
+          "Parameter Object の欄の決まりを読む"
+        ],
+        "body": [
+          "OpenAPI Specification (OAS) は、HTTP の API を記述する決まりです。言語に依りません。書いた記述は OpenAPI Description (OAD) と呼びます。文書やコードを作る道具、テストの道具がこれを読みます。",
+          "文書の根は OpenAPI Object です。仕様の表で REQUIRED と書かれた欄は必ず書きます。根では info が必須です。components・paths・webhooks のうち少なくとも 1 つが要ります (MUST)。info の中では title と version が必須です。",
+          "仕様の欄の名前は、大文字と小文字を区別します。",
+          "Parameter Object は、操作の引数を 1 つ表します。name と in は必須で、in は引数を置く場所を表します。schema と content のどちらか一方を必ず持ちます (MUST)。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "OpenAPI Object の主な欄 (OAS 4.1.1)",
+          "items": [
+            { "label": "info", "note": "必須。API のメタデータ" },
+            { "label": "servers", "note": "接続先のサーバーの情報。無ければ url が / のサーバー 1 つとみなす" },
+            { "label": "paths", "note": "API で使える道と操作" },
+            { "label": "components", "note": "OAD の中で使う、さまざまなオブジェクトを置く場所" }
+          ]
+        },
+        "tryIt": [
+          { "command": "echo '{\"info\": {\"title\": \"Users API\", \"version\": \"1.0.0\"}}' | python3 -m json.tool", "expect": "字下げして整形した JSON が出ます。" },
+          { "command": "echo '{\"info\": }' | python3 -m json.tool", "expect": "Expecting value: line 1 column 10 (char 9) のように、行と列の番号つきのエラーが出ます。" }
+        ],
+        "sources": [
+          "https://spec.openapis.org/oas/v3.2.0.html#openapi-object",
+          "https://spec.openapis.org/oas/v3.2.0.html#info-object",
+          "https://spec.openapis.org/oas/v3.2.0.html#parameter-object",
+          "https://docs.python.org/3/library/json.html#module-json.tool"
+        ]
+      },
       "questions": [
         {
           "id": "main-w3-l3-q1",
@@ -196,9 +312,18 @@
           "format": "json",
           "prompt": "OpenAPI の文書の先頭です。この文書が使う OpenAPI Specification の版を書く欄の名前を埋めてください。",
           "code": "{\n  \"{{blank}}\": \"3.2.0\",\n  \"info\": { \"title\": \"Users API\", \"version\": \"1.0.0\" },\n  \"paths\": {}\n}",
-          "blanks": [{ "answers": ["openapi"] }],
+          "blanks": [
+            {
+              "answers": ["openapi"],
+              "wrong": [
+                { "answer": "version", "why": "OpenAPI Object の根に version という欄はありません。version は info の中に書く欄です。" },
+                { "answer": "swagger", "why": "swagger は、前の版の Swagger 2.0 の文書で版を書いた欄です (値は \"2.0\")。OpenAPI 3 の文書の根の欄にはありません。" },
+                { "answer": "OpenAPI", "why": "仕様の欄の名前は、大文字と小文字を区別します。大文字を混ぜると、別の名前の欄になります。" }
+              ]
+            }
+          ],
           "explanation": "OpenAPI Object の openapi は必須 (REQUIRED) の欄で、文書が使う OpenAPI Specification の版の番号でなければなりません (MUST)。info も必須で、components・paths・webhooks のうち少なくとも 1 つが要ります (MUST)。",
-          "sources": ["https://spec.openapis.org/oas/latest.html#openapi-object"]
+          "sources": ["https://spec.openapis.org/oas/v3.2.0.html#openapi-object"]
         },
         {
           "id": "main-w3-l3-q2",
@@ -213,8 +338,8 @@
           "answer": "a",
           "explanation": "Info Object の version は必須 (REQUIRED) で、OpenAPI の文書の版を表し、OpenAPI Specification の版とも、記述している API の版とも別だと書かれています。openapi の欄の説明も、info.version とは関係が無いと念を押しています。",
           "sources": [
-            "https://spec.openapis.org/oas/latest.html#info-object",
-            "https://spec.openapis.org/oas/latest.html#openapi-object"
+            "https://spec.openapis.org/oas/v3.2.0.html#info-object",
+            "https://spec.openapis.org/oas/v3.2.0.html#openapi-object"
           ]
         },
         {
@@ -223,11 +348,26 @@
           "format": "json",
           "prompt": "/users/{id} の {id} を表す Parameter Object です。場所 (in) と、required の値を埋めてください。",
           "code": "{\n  \"name\": \"id\",\n  \"in\": \"{{blank}}\",\n  \"required\": {{blank}},\n  \"schema\": { \"type\": \"integer\" }\n}",
-          "blanks": [{ "answers": ["path"] }, { "answers": ["true"] }],
+          "blanks": [
+            {
+              "answers": ["path"],
+              "wrong": [
+                { "answer": "query", "why": "query は、URL の ? の後ろに付ける引数の場所です。/users/{id} の {id} のように、URL の道の一部になる値には使いません。" },
+                { "answer": "url", "why": "in に url という値はありません。決まった場所は 5 つで、その中から選びます。" }
+              ]
+            },
+            {
+              "answers": ["true"],
+              "wrong": [
+                { "answer": "false", "why": "false は、道の一部になる引数以外での required の既定の値です。道の一部になる引数では、別の値にしなければなりません (MUST)。" },
+                { "answer": "\"true\"", "why": "引用符で囲むと JSON の文字列になります。required の型は boolean (真偽値) です。" }
+              ]
+            }
+          ],
           "explanation": "URL の一部になる値は、in を path にします (Parameter Locations)。in が path のとき、required は必須 (REQUIRED) で、値は true でなければなりません (MUST)。ほかの場所では required の既定は false です。",
           "sources": [
-            "https://spec.openapis.org/oas/latest.html#parameter-locations",
-            "https://spec.openapis.org/oas/latest.html#parameter-object"
+            "https://spec.openapis.org/oas/v3.2.0.html#parameter-locations",
+            "https://spec.openapis.org/oas/v3.2.0.html#parameter-object"
           ]
         },
         {
@@ -242,7 +382,7 @@
           ],
           "answer": "a",
           "explanation": "Responses Object の default は、個別のステータスコードで宣言していない応答を記述する欄です。範囲は 1XX〜5XX のように大文字の X で書けます。Responses Object は少なくとも 1 つの応答のコードを持たなければなりません (MUST)。",
-          "sources": ["https://spec.openapis.org/oas/latest.html#responses-object"]
+          "sources": ["https://spec.openapis.org/oas/v3.2.0.html#responses-object"]
         },
         {
           "id": "main-w3-l3-q5",
@@ -256,7 +396,7 @@
           ],
           "answer": "a",
           "explanation": "Responses Object の HTTP Status Code の欄は、JSON と YAML の互換のために文字列で表さなければなりません (MUST)。仕様は例として、YAML では 200 を引用符で囲むと書いています。",
-          "sources": ["https://spec.openapis.org/oas/latest.html#responses-object"]
+          "sources": ["https://spec.openapis.org/oas/v3.2.0.html#responses-object"]
         },
         {
           "id": "main-w3-l3-q6",
@@ -275,10 +415,10 @@
           "answer": "a",
           "explanation": "Media Type Object の schema は Schema Object で、Schema Object は既定では JSON Schema (Draft 2020-12) の上位集合です。その中の $ref は JSON Schema の参照のキーワードで、ここでは同じ文書の components の schemas に置いた User を指します。仕様は、Reference Object と、$ref を持つ Schema Object は別物だと注意しています。Components Object は、文書の中で使い回すオブジェクトを置く場所です。",
           "sources": [
-            "https://spec.openapis.org/oas/latest.html#schema-object",
-            "https://spec.openapis.org/oas/latest.html#media-type-object",
-            "https://spec.openapis.org/oas/latest.html#reference-object",
-            "https://spec.openapis.org/oas/latest.html#components-object"
+            "https://spec.openapis.org/oas/v3.2.0.html#schema-object",
+            "https://spec.openapis.org/oas/v3.2.0.html#media-type-object",
+            "https://spec.openapis.org/oas/v3.2.0.html#reference-object",
+            "https://spec.openapis.org/oas/v3.2.0.html#components-object"
           ]
         }
       ]
@@ -288,6 +428,40 @@
       "title": "エラーをどう返すか",
       "course": "main",
       "stage": "rest",
+      "intro": {
+        "goals": [
+          "4xx の分類が表すことを説明できる",
+          "要求のどこが受け入れられないかでコードを選ぶ",
+          "Problem Details の欄の役目を読み分ける"
+        ],
+        "body": [
+          "4xx は、クライアントが誤ったらしいことを表す分類で、どのメソッドへの応答にも使えます。サーバーは、誤りの説明と、一時的か恒久的かを含む表現を送るべきです (SHOULD)。HEAD への応答は除きます。",
+          "コードを選ぶときは、要求のどこが受け入れられないのかを見ます。400 は広いコードです。構文の誤りなど、クライアントの誤りと見えることのために、処理できない・しないことを表します。",
+          "ステータスコードだけでは、API の利用者に十分な情報を伝えられないことがあります。RFC 9457 の Problem Details は、問題の詳細を JSON か XML の文書で表す形です。",
+          "問題の種類は type の URI で見分け、type が無いときは about:blank とみなします。利用者は、知らない拡張の欄を無視しなければなりません (MUST)。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "Problem Details の主な欄 (RFC 9457 3.1)",
+          "items": [
+            { "label": "type", "note": "問題の種類を見分ける URI の参照" },
+            { "label": "title", "note": "問題の種類の、人が読む短い要約" },
+            { "label": "detail", "note": "この発生に固有の、人が読む説明" },
+            { "label": "instance", "note": "この発生そのものを見分ける URI の参照" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -s -o /dev/null -w '%{http_code}\\n' -X POST https://httpbin.org/get", "expect": "その道が受け付けないメソッドを送ったので、4xx のコード (手元では 405) が出ます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9110#section-15.5",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.1",
+          "https://www.rfc-editor.org/rfc/rfc9457#section-1",
+          "https://www.rfc-editor.org/rfc/rfc9457#section-3.1",
+          "https://www.rfc-editor.org/rfc/rfc9457#section-3.1.1",
+          "https://www.rfc-editor.org/rfc/rfc9457#section-3.2"
+        ]
+      },
       "questions": [
         {
           "id": "main-w3-l4-q1",
@@ -309,7 +483,15 @@
           "format": "http",
           "prompt": "JSON しか受け付けない API に、XML の本文が送られてきました。ステータスコードを埋めてください (数字 3 桁)。",
           "code": "POST /users HTTP/1.1\nHost: api.example.com\nContent-Type: application/xml\n\n<user><name>Taro</name></user>\n\nHTTP/1.1 {{blank}} Unsupported Media Type",
-          "blanks": [{ "answers": ["415"] }],
+          "blanks": [
+            {
+              "answers": ["415"],
+              "wrong": [
+                { "answer": "400", "why": "400 は、構文の誤りなどクライアントの誤りと見えることへの広いコードです。本文の形式そのものを扱えないときには、もっと詳しいコードがあります。" },
+                { "answer": "406", "why": "406 は、要求の Accept などから見て、受け入れてもらえる表現が無いことを表すコードです。応答の形式の話で、送られた本文の形式の話ではありません。" }
+              ]
+            }
+          ],
           "explanation": "RFC 9110 の 15.5.16 は、415 (Unsupported Media Type) を、本文がこのメソッドと対象の資源で扱えない形式なので断ることを表すコードと定めています。原因が Content-Type や Content-Encoding の場合があります。",
           "sources": ["https://www.rfc-editor.org/rfc/rfc9110#section-15.5.16"]
         },
@@ -337,8 +519,21 @@
           "prompt": "RFC 9457 の Problem Details でエラーを返します。メディアタイプと、ステータスコードを入れる欄の名前を埋めてください。",
           "code": "HTTP/1.1 403 Forbidden\nContent-Type: {{blank}}\n\n{\n  \"type\": \"https://example.com/probs/out-of-credit\",\n  \"title\": \"You do not have enough credit.\",\n  \"{{blank}}\": 403\n}",
           "blanks": [
-            { "answers": ["application/problem+json"], "match": "media-type" },
-            { "answers": ["status"] }
+            {
+              "answers": ["application/problem+json"],
+              "match": "media-type",
+              "wrong": [
+                { "answer": "application/json", "why": "application/json は JSON 一般のメディアタイプです。Problem Details には、JSON で表すとき専用のメディアタイプがあります。" },
+                { "answer": "application/problem+xml", "why": "これは Problem Details を XML で表すときのメディアタイプです (RFC 9457 付録 B)。この本文は JSON です。" }
+              ]
+            },
+            {
+              "answers": ["status"],
+              "wrong": [
+                { "answer": "code", "why": "RFC 9457 に code という欄はありません。定めの無い欄は拡張として扱われ、知らない利用者は無視します。" },
+                { "answer": "type", "why": "type は、問題の種類を見分ける URI の参照を入れる欄です。数のステータスコードを入れる欄ではありません。" }
+              ]
+            }
           ],
           "explanation": "RFC 9457 の 3 節は、Problem Details を JSON で表すときのメディアタイプを application/problem+json としています。3.1 は欄として type・status・title・detail・instance を定め、status は問題が起きたときにオリジンサーバーが出したステータスコードです (3.1.2)。",
           "sources": [
@@ -384,6 +579,40 @@
       "title": "実習: 公開 API の設計を読み、仕様を書く",
       "course": "main",
       "stage": "rest",
+      "intro": {
+        "goals": [
+          "公開の API の応答のヘッダーから設計の考えを読む",
+          "ETag と If-None-Match で条件付きの GET を送る",
+          "手元で書いた OpenAPI の文書を JSON として確かめる"
+        ],
+        "body": [
+          "この実習では、公開の API の応答を読みます。REST のキャッシュやハイパーメディアの考えが、HTTP のどこに現れるかを見ます。最後に、小さな OpenAPI の文書を手元で書きます。",
+          "Cache-Control ヘッダーは、キャッシュへの指示 (directive) を並べます。宛先は、要求と応答の通り道にいるキャッシュです。指示は片方向で、要求に書いた指示が応答にも写るわけではありません。",
+          "ETag は、中身の分からない検証子 (validator) です。同じ資源の複数の表現を見分けます。If-None-Match に持っている ETag を入れると、要求を条件付きにできます。",
+          "304 は、条件付きの GET か HEAD で条件が偽になったことを表します。クライアントは、手元の表現をそのまま使えます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "実習で読むヘッダー (RFC 9110 8.3・8.8.3・13.1.2、RFC 9111 5.2)",
+          "items": [
+            { "label": "Content-Type", "note": "表現のメディアタイプ" },
+            { "label": "Cache-Control", "note": "通り道のキャッシュへの指示の並び" },
+            { "label": "ETag", "note": "選ばれた表現の、今のエンティティタグ" },
+            { "label": "If-None-Match", "note": "持っている ETag と合わないときだけ処理させる条件" }
+          ]
+        },
+        "tryIt": [
+          { "command": "curl -si https://httpbin.org/etag/abc", "expect": "1 行目が HTTP/2 200 で、ヘッダーに etag の行が出ます。" },
+          { "command": "curl -si -H 'If-None-Match: \"abc\"' https://httpbin.org/etag/abc", "expect": "ETag が合うので、1 行目が HTTP/2 304 になり、本文は返ってきません。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9110#section-8.3",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-8.8.3",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-13.1.2",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.5",
+          "https://www.rfc-editor.org/rfc/rfc9111#section-5.2"
+        ]
+      },
       "questions": [
         {
           "id": "main-w3-l5-q1",
@@ -429,7 +658,7 @@
           "explanation": "python3 -m json.tool は JSON を検証して整形するコマンドです (Python の json.tool の説明)。必須の欄は OpenAPI Object・Info Object・Parameter Object の表で REQUIRED と書かれたものです。",
           "sources": [
             "https://docs.python.org/3/library/json.html#module-json.tool",
-            "https://spec.openapis.org/oas/latest.html#openapi-object"
+            "https://spec.openapis.org/oas/v3.2.0.html#openapi-object"
           ]
         },
         {
