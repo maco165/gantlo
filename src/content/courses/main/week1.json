@@ -358,7 +358,7 @@
           ]
         },
         "tryIt": [
-          { "command": "curl -sI https://example.com/ | grep -i '^content-type'", "expect": "content-type: text/html; charset=utf-8 のような 1 行が出ます。type・subtype・引数の 3 つが見えます。" }
+          { "command": "curl -sI https://example.com/ | grep -i '^content-type'", "expect": "content-type: text/html; charset=utf-8 のような 1 行が出ます。" }
         ],
         "sources": [
           "https://www.rfc-editor.org/rfc/rfc9110#section-5.1",
