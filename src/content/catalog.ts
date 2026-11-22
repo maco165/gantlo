@@ -7,8 +7,13 @@ import { COURSES, type CourseId } from '../lib/route';
 import type { CATALOG_FIELDS } from './catalog-fields';
 import type { Lesson } from './types';
 
+/** 目録の問題 1 つ。id と、実習 (採点しない) なら lab。全部のデータの問題は kind を持つ */
+export type QuestionMeta = { id: string; lab?: boolean; kind?: string };
 /** 目録のレッスン 1 つ。Lesson から問題の中身を除いたもの (Lesson はこの形を満たす) */
-export type LessonMeta = Pick<Lesson, (typeof CATALOG_FIELDS)[number]> & { questions: readonly { id: string }[] };
+export type LessonMeta = Pick<Lesson, (typeof CATALOG_FIELDS)[number]> & { questions: readonly QuestionMeta[] };
+
+/** 採点する問題か (実習でない)。目録の lab と、全部のデータの kind のどちらでも見る */
+export const isGraded = (q: QuestionMeta): boolean => q.lab !== true && q.kind !== 'lab';
 
 /** コースの順 (route.ts の COURSES) → ファイル名の順 → ファイルの中の順に並べる。目録と全部のデータで同じ順にする */
 export function sortLessons<L extends { course: CourseId }>(files: Record<string, { lessons: L[] }>): L[] {

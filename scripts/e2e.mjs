@@ -23,6 +23,7 @@
 // メニューの下端の「このサイト」の 2 つ・上の帯の GitHub のボタン・このサイトについての画面 (B-023) は scripts/e2e-about.mjs が確かめる。
 // コースの画面 (B-024) は scripts/e2e-course.mjs が確かめる。
 // 模擬試験の画面 (B-027) は scripts/e2e-exam.mjs が確かめる。
+// 休みの札・週の目標・.ics・カレンダー・到達・まとめのカード (#55) は scripts/e2e-habits.mjs が確かめる。
 // ページごとの共有の画像と、結果の共有のボタン (#55) は scripts/e2e-share.mjs が確かめる。
 // 390 幅の崩れ (出典の外部リンクの印・用語集の区切り。B-025) は scripts/e2e-narrow.mjs が確かめる。
 // テーマが Gothic であることと、文字と地のコントラスト (4.5:1 以上) は scripts/e2e-contrast.mjs が確かめる。
@@ -33,6 +34,7 @@ import { runAbout } from './e2e-about.mjs';
 import { runContrast } from './e2e-contrast.mjs';
 import { runCourse } from './e2e-course.mjs';
 import { runExam } from './e2e-exam.mjs';
+import { runHabits } from './e2e-habits.mjs';
 import { runHomeAndPlan } from './e2e-home-plan.mjs';
 import {
   XP_PER_CORRECT,
@@ -685,6 +687,7 @@ try {
   await runCourse(browser, { base: BASE, check, noHorizontalOverflow });
   // 模擬試験 (B-027)
   await runExam(browser, { base: BASE, check, noHorizontalOverflow });
+  await runHabits(browser, { base: BASE, check, noHorizontalOverflow });
   // ページごとの共有の画像と、結果の共有のボタン (#55)
   await runShare(browser, { base: BASE, check, noHorizontalOverflow });
   // 390 幅の崩れ (B-025)
