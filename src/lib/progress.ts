@@ -226,6 +226,11 @@ export function normalizeProgress(raw: unknown): Progress | null {
     if (view) out.profile.ganttView = view;
     if (isWeeklyGoal(raw.profile.weeklyGoalDays)) out.profile.weeklyGoalDays = raw.profile.weeklyGoalDays;
   }
+  if (isObject(raw.answered)) {
+    const answered: Record<string, number> = {};
+    for (const [day, n] of Object.entries(raw.answered)) if (isValidDay(day) && isCount(n)) answered[day] = Math.floor(n);
+    if (Object.keys(answered).length > 0) out.answered = answered;
+  }
   if (isObject(raw.freeze) && isCount(raw.freeze.count) && isCount(raw.freeze.toward)) {
     const used = Array.isArray(raw.freeze.used) ? raw.freeze.used.filter(isValidDay) : [];
     out.freeze = {
@@ -233,11 +238,6 @@ export function normalizeProgress(raw: unknown): Progress | null {
       toward: Math.min(Math.floor(raw.freeze.toward), FREEZE_EVERY - 1),
       used: [...new Set(used)].sort().reverse().slice(0, MAX_FREEZE_LOG),
     };
-  }
-  if (isObject(raw.answered)) {
-    const answered: Record<string, number> = {};
-    for (const [day, n] of Object.entries(raw.answered)) if (isValidDay(day) && isCount(n)) answered[day] = Math.floor(n);
-    if (Object.keys(answered).length > 0) out.answered = answered;
   }
   if (isObject(raw.plan) && Array.isArray(raw.plan.courses)) {
     // 知らないコースと重なりを落とし、順は残す
@@ -251,7 +251,10 @@ export function normalizeProgress(raw: unknown): Progress | null {
       if (Object.keys(days).length > 0) out.plan.days = days;
     }
   }
-  return out;
+  // 一番外の欄の並びは、読んだ記録の並びのままにする (欄は記録が作られた順に並ぶので、読み直しても
+  // localStorage の中身・書き出したファイルと同じ文字列になる)。読んだ記録に無い欄は後ろ
+  const order = [...Object.keys(raw).filter((k) => k in out), ...Object.keys(out).filter((k) => !(k in raw))];
+  return Object.fromEntries(order.map((k) => [k, out[k as keyof Progress]])) as Progress;
 }
 
 /** 書き出したファイルの中身を読む。読めない・形が違うときは null */

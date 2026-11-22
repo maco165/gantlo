@@ -539,3 +539,13 @@ describe('週の目標 (profile.weeklyGoalDays)', () => {
     expect(parseProgressText(JSON.stringify(p))!.profile?.weeklyGoalDays).toBeUndefined();
   });
 });
+
+describe('読み直しの欄の並び', () => {
+  it('一番外の欄は読んだ記録の並びのまま (localStorage と書き出しが同じ文字列になる)', () => {
+    let p = recordAnswer(emptyProgress(), 'q1', true, at('2026-11-01'));
+    p = completeReview(p, 3, at('2026-11-01'));
+    p = setProfile(p, { dailyGoalXp: 10 });
+    const text = JSON.stringify(p);
+    expect(JSON.stringify(parseProgressText(text))).toBe(text);
+  });
+});
