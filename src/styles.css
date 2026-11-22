@@ -1309,6 +1309,22 @@ code {
   border-radius: 2px;
   background: var(--color-background-muted);
 }
+.cal:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+}
+.cal .cal__cell {
+  cursor: pointer;
+}
+/* 選んだ日は枠で示す (字は下の「選んだ日」に出す) */
+.cal .cal__cell[aria-selected='true'] {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 0;
+}
+.cal__readout {
+  margin: 0;
+  font-family: var(--font-family-code);
+}
 .cal__legend .cal__cell {
   width: 0.875rem;
 }

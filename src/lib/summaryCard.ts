@@ -1,7 +1,6 @@
 // 学習のまとめのカード (1080×1350 の PNG)。中身の数を集め (summaryOf)、canvas に描く (drawSummary)。
 // 個人を特定する情報 (名前・端末・答えの中身・日付と時刻の細かい記録) は入れない。入れるのは期間・数・連続日数・コースごとの到達だけ
 import type { Lesson } from '../content/types';
-import { accuracy } from './stats';
 import { courseMastery, MASTERY_LABELS, MASTERY_ORDER, share, type MasteryCounts } from './mastery';
 import { currentStreak, dayKey, rangeDays, studiedDays, type Progress } from './progress';
 import { SITE_NAME, SITE_TAGLINE } from './site';
@@ -14,7 +13,7 @@ export type Summary = {
   spanDays: number;
   /** 学んだ日の数 */
   studied: number;
-  /** 解いた問題の数 (問題データにある採点する問題に答えた回数) */
+  /** 解いた問題の数 (問題データにある採点する問題のうち、一度でも答えたことのある問題の数。答えた回数ではない) */
   answered: number;
   streak: number;
   courses: { title: string; counts: MasteryCounts }[];
@@ -26,7 +25,7 @@ export function summaryOf(p: Progress, now: Date, lessons: readonly Lesson[]): S
   return {
     spanDays,
     studied: days.length,
-    answered: accuracy(p, lessons).total,
+    answered: lessons.flatMap((l) => l.questions).filter((q) => q.kind !== 'lab' && (p.answers[q.id]?.right ?? 0) + (p.answers[q.id]?.wrong ?? 0) > 0).length,
     streak: currentStreak(p, now),
     courses: courseMastery(p, lessons)
       .filter((c) => c.counts.total > 0)

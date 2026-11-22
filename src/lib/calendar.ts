@@ -15,7 +15,7 @@ export const LEVEL_MIN = [1, 6, 16, 31] as const;
 
 export type CalendarCell = {
   day: string;
-  /** その日に答えた問題の数 (記録が無ければ 0) */
+  /** その日に答えた問題の数。学んだ日 (終えた日) だけ数え、答えただけで終えていない日は 0 (週の目標・連続日数と食い違わないように) */
   count: number;
   /** 学んだ日 (レッスン・復習・模擬試験を終えた日) か */
   studied: boolean;
@@ -42,8 +42,8 @@ export function studyCalendar(p: Progress, now: Date, weeks = CALENDAR_WEEKS): C
     for (let i = 0; i < 7; i++) {
       const day = addDays(first, w * 7 + i);
       const future = day > today;
-      const count = future ? 0 : (p.answered?.[day] ?? 0);
-      const studied = !future && day in p.xp.byDay;
+      const studied = !future && Object.hasOwn(p.xp.byDay, day);
+      const count = studied ? (p.answered?.[day] ?? 0) : 0;
       col.push({ day, count, studied, level: future ? 0 : levelOf(count, studied), future });
     }
     out.push(col);

@@ -143,12 +143,20 @@ export async function runHabits(browser, { base, check, noHorizontalOverflow }) 
     await page.goto(`${base}progress/`);
     await page.getByTestId('calendar').waitFor();
     const cells = await page.locator('[data-testid="calendar"] li').count();
-    check(cells === 26 * 7, `${tag} カレンダーは 26 週 × 7 日のマス (${cells})`);
+    // 今週の今日より先の日 (水曜なので木〜日の 4 日) はマスを出さない
+    check(cells === 26 * 7 - 4, `${tag} カレンダーは 26 週 × 7 日のマス (今日まで。${cells})`);
     const d8 = dayIn(tz, nowMs, -8);
     const cell = page.locator(`[data-testid="calendar"] li[data-day="${d8}"]`);
     const title = await cell.getAttribute('title');
     check(title?.endsWith('24 問') && (await cell.getAttribute('data-level')) === '3', `${tag} マスに日付と数の title (${title})・数で濃さ (16〜30 問は 3)`);
-    check((await cell.locator('.visually-hidden').textContent()) === title, `${tag} マスの読み上げは見えない文字で、title と同じ`);
+    check((await cell.getAttribute('aria-label')) === title, `${tag} マスの読み上げ (aria-label) は title と同じ`);
+    // 押すかフォーカスして矢印のキーで選ぶと、日付と数が字で見える (スマホでも読める)
+    await cell.click();
+    check((await page.getByTestId('calendar-readout').innerText()).endsWith(title), `${tag} マスを押すと、選んだ日と数が字で出る (${await page.getByTestId('calendar-readout').innerText()})`);
+    await page.getByTestId('calendar').focus();
+    await page.keyboard.press('ArrowRight');
+    const d1 = dayIn(tz, nowMs, -1);
+    check((await page.getByTestId('calendar').getAttribute('aria-activedescendant')) === `cal-${d1}` && (await page.getByTestId('calendar-readout').innerText()).includes('問'), `${tag} 矢印のキー (右で 1 週先) で日を移る (${await page.getByTestId('calendar').getAttribute('aria-activedescendant')})`);
     check((await page.locator('[data-testid="forecast"] li').count()) === 14, `${tag} この先 14 日の復習が 14 本`);
     // 3 日後: 入れておいた 1 問と、今日の復習で正解して 3 日後に回った 1 問
     check((await page.locator(`[data-testid="forecast"] li[data-day="${dayIn(tz, nowMs, 3)}"]`).getAttribute('data-due')) === '2', `${tag} 3 日後の復習が 2 件`);

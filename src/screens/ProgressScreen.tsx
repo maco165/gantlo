@@ -1,6 +1,6 @@
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useState, type KeyboardEvent } from 'react';
 import StatusLine from '../components/StatusLine';
 import Waterfall from '../components/Waterfall';
 import { LESSONS } from '../content/index';
@@ -42,6 +42,59 @@ function shortLabel(day: string): string {
 function cellLabel(c: { day: string; count: number; studied: boolean }): string {
   if (c.count > 0) return `${dayLabel(c.day)} ${c.count} 問`;
   return c.studied ? `${dayLabel(c.day)} 学んだ日 (問題の数の記録なし)` : `${dayLabel(c.day)} 0 問`;
+}
+
+/**
+ * 過去 26 週のマス。一覧 (listbox) 全体で 1 つのフォーカスを持ち、矢印のキー (上下で 1 日・左右で 1 週)・Home・End で日を移る。
+ * マスを押しても選べる。選んだ日の日付と数は、マスの下に字で出す (色だけに頼らず、スマホでも数が読める)。
+ * マス 1 つずつを押せる部品にしないのは、182 の小さな押す所 (24px 未満) を作らないため
+ */
+function StudyCalendar({ cells }: { cells: { day: string; count: number; studied: boolean; level: number }[] }) {
+  const [sel, setSel] = useState(cells.length - 1);
+  const cur = cells[Math.min(sel, cells.length - 1)];
+  const onKey = (e: KeyboardEvent<HTMLOListElement>) => {
+    const step = { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 }[e.key];
+    let next = sel;
+    if (step !== undefined) next = sel + step;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = cells.length - 1;
+    else return;
+    e.preventDefault();
+    setSel(Math.max(0, Math.min(cells.length - 1, next)));
+  };
+  return (
+    <>
+      <ol
+        className="cal"
+        data-testid="calendar"
+        role="listbox"
+        tabIndex={0}
+        aria-label={`過去 ${CALENDAR_WEEKS} 週の学んだ日 (日ごとに答えた問題の数)。矢印のキーで日を移る`}
+        aria-activedescendant={`cal-${cur.day}`}
+        onKeyDown={onKey}
+      >
+        {cells.map((c, i) => (
+          <li
+            key={c.day}
+            id={`cal-${c.day}`}
+            role="option"
+            aria-selected={i === sel}
+            aria-label={cellLabel(c)}
+            title={cellLabel(c)}
+            className={`cal__cell cal__cell--l${c.level}`}
+            data-day={c.day}
+            data-count={c.count}
+            data-level={c.level}
+            onClick={() => setSel(i)}
+          />
+        ))}
+      </ol>
+      <p className="cal__readout" data-testid="calendar-readout" aria-live="polite">
+        <Text type="supporting">選んだ日: </Text>
+        {cellLabel(cur)}
+      </p>
+    </>
+  );
 }
 
 /**
@@ -141,17 +194,7 @@ export default function ProgressScreen({ progress, now = new Date(), lessons = L
         <Text type="supporting">
           {totals.studied} 日学び、{totals.answered} 問に答えました。列が週 (月曜から日曜)、色の濃さが日ごとに答えた問題の数です。
         </Text>
-        <ol className="cal" data-testid="calendar" aria-label={`過去 ${CALENDAR_WEEKS} 週の学んだ日 (日ごとに答えた問題の数)`}>
-          {calendar.flat().map((c) =>
-            c.future ? (
-              <li key={c.day} className="cal__cell cal__cell--future" aria-hidden="true" />
-            ) : (
-              <li key={c.day} className={`cal__cell cal__cell--l${c.level}`} data-day={c.day} data-count={c.count} data-level={c.level} title={cellLabel(c)}>
-                <span className="visually-hidden">{cellLabel(c)}</span>
-              </li>
-            ),
-          )}
-        </ol>
+        <StudyCalendar cells={calendar.flat().filter((c) => !c.future)} />
         <p className="cal__legend">
           <Text type="supporting">少ない</Text>
           {[0, 1, 2, 3, 4].map((l) => (

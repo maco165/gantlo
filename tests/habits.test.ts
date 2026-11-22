@@ -133,11 +133,12 @@ describe('学習のまとめのカード', () => {
     p = recordAnswer(p, 'm1', true, now);
     p = recordAnswer(p, 'm1', true, now);
     const s = summaryOf(p, now, lessons);
-    expect(s).toMatchObject({ spanDays: 6, studied: 2, answered: 2, streak: 1 });
+    // 同じ問題に 2 回答えても、解いた問題は 1 問
+    expect(s).toMatchObject({ spanDays: 6, studied: 2, answered: 1, streak: 1 });
     const { ctx, texts } = fakeCtx();
     drawSummary(ctx, s, theme);
     const all = texts.join('\n');
-    for (const t of ['6 日', '2 日', '2 問', '1 日', '本編 4 週', '2 回続けて 1 / 3 (33%)', 'maco165.github.io/gantlo/']) expect(all).toContain(t);
+    for (const t of ['6 日', '2 日', '1 問', '1 日', '本編 4 週', '2 回続けて 1 / 3 (33%)', 'maco165.github.io/gantlo/']) expect(all).toContain(t);
     expect(all).not.toMatch(/m1|2026-11|@/);
   });
 });
@@ -160,10 +161,19 @@ describe('画面', () => {
     p = completeReview(p, 3, now);
     await act(async () => root.render(createElement(ProgressScreen, { progress: p, now, lessons })));
     const cells = host.querySelectorAll('.cal li[data-day]');
-    expect(cells).toHaveLength(26 * 7 - 4); // 今週の木〜日は先の日
+    expect(cells).toHaveLength(26 * 7 - 4); // 今週の木〜日は先の日なので出さない
     const today = host.querySelector('.cal li[data-day="2026-11-25"]')!;
     expect(today.getAttribute('title')).toBe('11/25 (水) 1 問');
-    expect(today.textContent).toBe('11/25 (水) 1 問');
+    expect(today.getAttribute('aria-label')).toBe('11/25 (水) 1 問');
+    // 始めは今日を選び、字でも出す。矢印のキー (左で 1 週前) と、押して選ぶ
+    const readout = () => host.querySelector('[data-testid="calendar-readout"]')?.textContent;
+    expect(readout()).toBe('選んだ日: 11/25 (水) 1 問');
+    const cal = host.querySelector('.cal') as HTMLElement;
+    await act(async () => cal.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
+    expect(readout()).toBe('選んだ日: 11/18 (水) 0 問');
+    expect(cal.getAttribute('aria-activedescendant')).toBe('cal-2026-11-18');
+    await act(async () => (host.querySelector('.cal li[data-day="2026-11-24"]') as HTMLElement).click());
+    expect(readout()).toBe('選んだ日: 11/24 (火) 0 問');
     expect(host.querySelectorAll('[data-testid="forecast"] li')).toHaveLength(14);
     expect(host.querySelector('[data-testid="forecast"] li[data-day="2026-11-26"]')?.getAttribute('data-due')).toBe('1');
     expect(host.querySelector('tr[data-mastery-course="main"] td[data-mastery="wrong"]')?.getAttribute('data-count')).toBe('1');
@@ -176,5 +186,15 @@ describe('画面', () => {
     await act(async () => root.render(createElement(Home, { progress: p, now })));
     expect(host.querySelector('[data-header="X-Streak-Freeze"] dd')?.textContent).toBe('休みの札 0 / 2 · 次の札まで あと 6 日');
     expect(host.querySelector('[data-header="X-Weekly-Target"] dd')?.textContent).toBe('今週 1 / 4 日');
+  });
+});
+
+describe('カレンダーの学んだ日は「終えた日」', () => {
+  it('答えただけで終えていない日は 0 問・0 段 (週の目標・連続日数と同じ定義)', () => {
+    const p = recordAnswer(emptyProgress(), 'm1', true, at('2026-11-24'));
+    const cell = studyCalendar(p, now).flat().find((c) => c.day === '2026-11-24')!;
+    expect(cell).toMatchObject({ count: 0, studied: false, level: 0 });
+    const done = completeReview(p, 3, at('2026-11-24'));
+    expect(studyCalendar(done, now).flat().find((c) => c.day === '2026-11-24')).toMatchObject({ count: 1, studied: true, level: 1 });
   });
 });
