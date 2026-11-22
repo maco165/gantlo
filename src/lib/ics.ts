@@ -26,7 +26,7 @@ export type StudyPlanIcs = {
 
 
 /** TEXT の値の escape (RFC 5545 3.3.11)。\ ; , と改行 */
-export const escapeText = (s: string): string => s.replace(/\\/g, '\\\\').replace(/;/g, '\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
+export const escapeText = (s: string): string => s.replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\r?\n/g, '\\n');
 
 /**
  * 1 行を 75 octet ごとに折り返す (RFC 5545 3.1)。続きの行は空白 1 つで始め、その空白も 75 octet に数える。

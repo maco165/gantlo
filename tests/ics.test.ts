@@ -62,7 +62,10 @@ describe('折り返しと escape', () => {
   });
 
   it('\\ ; , と改行を escape する', () => {
-    expect(escapeText('a\\b;c,d\ne')).toBe('a\\\\b\;c\\,d\\ne');
+    expect(escapeText('a\\b;c,d\ne')).toBe(String.raw`a\\b\;c\,d\ne`);
+    // セミコロンは \ と ; の 2 字になる (JS の '\;' は ';' と同じで、置き換わらない書き方に気づけるよう、字の数でも見る)
+    expect(escapeText('a;b')).toBe(String.raw`a\;b`);
+    expect(escapeText('a;b')).toHaveLength(4);
   });
 });
 
