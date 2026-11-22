@@ -10,6 +10,8 @@ export type Route =
   | { name: 'course'; course: CourseId }
   /** レッスンの id があるかは画面の側で見る (無ければ 404)。経路は問題データを読まない */
   | { name: 'lesson'; lessonId: string }
+  /** ハンドブック。topic が無ければ一覧。項目の id があるかは画面の側で見る (無ければ 404) */
+  | { name: 'handbook'; topic?: string }
   | { name: 'notFound' };
 
 /** サイトの置き場所 (vite の base。/gantlo/) */
@@ -37,6 +39,8 @@ export function parseRoute(pathname: string): Route {
     const course = COURSES.find((c) => c.id === parts[1]);
     if (course) return { name: 'course', course: course.id };
   }
+  if (parts[0] === 'handbook' && parts.length === 1) return { name: 'handbook' };
+  if (parts[0] === 'handbook' && parts.length === 2 && /^[a-z0-9-]+$/.test(parts[1])) return { name: 'handbook', topic: parts[1] };
   if (parts.length === 2 && parts[0] === 'lesson') {
     // 壊れた %xx (例: %E0) は decodeURIComponent が投げるので、知らない道として扱う
     try {
@@ -52,6 +56,7 @@ export const homeHref = BASE;
 export const pageHref = (page: PageName) => `${BASE}${page}/`;
 export const courseHref = (course: CourseId) => `${BASE}course/${course}/`;
 export const lessonHref = (lessonId: string) => `${BASE}lesson/${encodeURIComponent(lessonId)}/`;
+export const handbookHref = (topic?: string) => (topic ? `${BASE}handbook/${topic}/` : `${BASE}handbook/`);
 
 /**
  * 同じサイトの中のリンクなら、そのリンクを返す (ページを読み直さずに画面だけ切り替える)。
@@ -76,6 +81,22 @@ export function scrollToTop() {
 }
 
 /**
+ * 移った先の画面の # の位置へスクロールする。画面は開いたときに JS を読むので、要素が出るまで 1 フレームずつ待つ (3 秒まで)
+ */
+export function scrollToHash(hash: string, deadline = Date.now() + 3000) {
+  let id: string;
+  try {
+    id = decodeURIComponent(hash.slice(1));
+  } catch {
+    return scrollToTop();
+  }
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView();
+  else if (Date.now() < deadline) requestAnimationFrame(() => scrollToHash(hash, deadline));
+  else scrollToTop();
+}
+
+/**
  * 今の画面と、2 つの合図を返す。
  * - nav: 画面を移る操作の回数。同じ画面のリンクを押したときも、戻るでも増える。
  *   ただし # だけが違うリンクと、# だけが変わる戻る・進むでは増やさない (道が同じなので画面は移っていない)。
@@ -87,6 +108,8 @@ export function useRoute(): { route: Route; nav: number; close: number } {
   useEffect(() => {
     // # の移動でも popstate が来るので、道が変わったかを最後に見た道と比べる
     let lastPath = window.location.pathname;
+    // # 付きの URL を直に開いたとき (共有や読み直し)。画面の本文はあとから読むので、ブラウザの # の移動に任せず、出るまで待って送る
+    if (window.location.hash) scrollToHash(window.location.hash);
     const go = (pathname: string) => {
       lastPath = pathname;
       setState((s) => ({ route: parseRoute(pathname), nav: s.nav + 1, close: s.close + 1 }));
@@ -98,15 +121,19 @@ export function useRoute(): { route: Route; nav: number; close: number } {
         return;
       }
       go(window.location.pathname);
+      // 戻る・進むで別のページの # へ移ったときも、その位置へ送る
+      if (window.location.hash) scrollToHash(window.location.hash);
     };
     const onClick = (e: MouseEvent) => {
       const a = isInternalClick(e);
       if (!a) return;
       e.preventDefault();
       const url = new URL(a.href, window.location.href);
-      if (url.pathname !== window.location.pathname) window.history.pushState(null, '', url.pathname);
+      // # は残す (別のページの語の位置へ飛ぶリンク。例: ハンドブック → 用語集の #term-http)
+      if (url.pathname !== window.location.pathname) window.history.pushState(null, '', url.pathname + url.hash);
       go(url.pathname);
-      scrollToTop();
+      if (url.hash) scrollToHash(url.hash);
+      else scrollToTop();
     };
     window.addEventListener('popstate', onPop);
     document.addEventListener('click', onClick);
