@@ -5,6 +5,37 @@
       "title": "TLS (SSL)",
       "course": "tech-history",
       "stage": "tls",
+      "intro": {
+        "goals": [
+          "TLS が通り道に与える 3 つの性質を見分ける",
+          "接続の版がどう決まるかを説明できる",
+          "openssl で接続の版と暗号の組を確かめる"
+        ],
+        "body": [
+          "TLS は、2 者のあいだに安全な通り道を作る規約です。下の運び手に求めるのは、確かで順序どおりのデータの流れだけです。",
+          "通り道には 3 つの性質があります。サーバーはいつも認証され、クライアントの認証は任意です。確立の後のデータは両端にしか見えず、気づかれずに書き換えることもできません。",
+          "使う版は、握手の中で決まります。openssl のクライアントは、既定では自分が話せる最も低い版から最も高い版までを示します。サーバーは、その中で自分も話せる最も高い版を選びます。",
+          "今の TLS 1.3 の正本は、2026 年 7 月の RFC 9846 です。RFC 8446 を置き換えました。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "TLS の通り道の性質 (RFC 9846 1)",
+          "items": [
+            { "label": "認証", "note": "サーバーの側はいつも認証する。クライアントの側は任意" },
+            { "label": "機密性", "note": "確立の後に送るデータは両端にしか見えない。長さは隠さない" },
+            { "label": "完全性", "note": "確立の後に送るデータは、気づかれずに書き換えられない" },
+            { "label": "運び手への求め", "note": "確かで順序どおりのデータの流れだけ" }
+          ]
+        },
+        "tryIt": [
+          { "command": "openssl s_client -connect example.com:443 -servername example.com -brief < /dev/null", "expect": "CONNECTION ESTABLISHED の後に、Protocol version と Ciphersuite の行が出ます。手元では Protocol version: TLSv1.3 でした。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc9846#section-1",
+          "https://docs.openssl.org/3.0/man1/openssl/",
+          "https://docs.openssl.org/3.0/man1/openssl-s_client/"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l12-q1",
@@ -104,6 +135,33 @@
       "title": "OAuth 2.0 と JWT",
       "course": "tech-history",
       "stage": "oauth",
+      "intro": {
+        "goals": [
+          "OAuth 2.0 の 4 つの役を見分ける",
+          "アクセストークンが表すものを説明できる",
+          "持つだけで使えるトークンを TLS で守る理由を読む"
+        ],
+        "body": [
+          "OAuth 2.0 は 4 つの役を定めます。資源の持ち主、資源のサーバー、クライアント、認可サーバーです。持ち主が人なら、エンドユーザーと呼びます。",
+          "アクセストークンは、守られた資源を使うための資格情報で、クライアントに与えた許可を表す文字列です。範囲 (scope) と期間を持ち、利用者名とパスワードのような認証の形を 1 つのトークンに置き換えます。",
+          "トークンには、持っている者なら誰でも使える種類があります。RFC 6750 は、そうしたトークンを付けた要求をいつも TLS (https) で送るよう求めています (MUST)。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "OAuth 2.0 の 4 つの役 (RFC 6749 1.1)",
+          "items": [
+            { "label": "資源の持ち主", "note": "守られた資源への許可を与えられる者。人ならエンドユーザー" },
+            { "label": "資源のサーバー", "note": "守られた資源を置き、アクセストークン付きの要求に応える" },
+            { "label": "クライアント", "note": "持ち主の許可を得て、その代わりに資源を求めるアプリ" },
+            { "label": "認可サーバー", "note": "持ち主を認証して許可を得た後、クライアントにアクセストークンを出す" }
+          ]
+        },
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc6749#section-1.1",
+          "https://www.rfc-editor.org/rfc/rfc6749#section-1.4",
+          "https://www.rfc-editor.org/rfc/rfc6750#section-5.3"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l13-q1",
@@ -208,6 +266,32 @@
       "id": "tech-history-l14",
       "title": "OpenAPI (Swagger)",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "API を機械が読める形で説明する文書の役割を説明できる",
+          "OpenAPI の文書の一番上の欄を読む",
+          "仕様の版と API の版を見分ける"
+        ],
+        "body": [
+          "OpenAPI の文書は、それ自体が 1 つの JSON のオブジェクトで、JSON か YAML で書けます。一番上の文書の名前は openapi.json か openapi.yaml にするのが勧められています。",
+          "仕様の欄の名前は、大文字と小文字を区別します。欄には、名前が決まった Fixed fields と、名前を正規表現で決める Patterned fields があります。",
+          "一番上の openapi の欄は、文書が使う OpenAPI の仕様の版を表します。版は major.minor.patch の形で、3.0 のような major.minor が機能の範囲を決めます。この欄は、API そのものの版とは関係がありません。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "OpenAPI Object の欄の一部 (OAS 3.0.0 4.7.1)",
+          "items": [
+            { "label": "openapi", "note": "文書が使う OpenAPI の仕様の版の番号" },
+            { "label": "servers", "note": "接続先のサーバーの一覧。無ければ url が / のサーバーとみなす" },
+            { "label": "components", "note": "使い回すスキーマなどを入れておく場所" },
+            { "label": "tags", "note": "タグの一覧。タグの名前は重ならない" },
+            { "label": "externalDocs", "note": "外の文書への参照" }
+          ]
+        },
+        "sources": [
+          "https://spec.openapis.org/oas/v3.0.0.html"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l14-q1",

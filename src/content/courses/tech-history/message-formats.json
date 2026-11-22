@@ -5,6 +5,34 @@
       "title": "MIME タイプ",
       "course": "tech-history",
       "stage": "mime",
+      "intro": {
+        "goals": [
+          "メディアタイプの「型/下位の型」の形を読む",
+          "上位の型から中身の大まかな扱いを決められる",
+          "メールの仕組みが HTTP の本文の種類の伝え方に使われていることを説明できる"
+        ],
+        "body": [
+          "MIME は、インターネットのメールの本文の形を広げた規格です。本文の種類を伝える値を、メディアタイプと呼びます。HTTP も同じメディアタイプを使い、本文の種類を伝えたり、受け取りたい種類を求めたりします。",
+          "メディアタイプは「上位の型/下位の型」の形で書きます。上位の型はデータの大まかな種類、下位の型は具体的な形式です。型の名前は大文字と小文字を区別しません。",
+          "上位の型だけで、受け手は大まかな扱いを決められます。たとえば image/xyz なら、xyz という形式を知らなくても画像だと分かります。",
+          "型の後ろには、; で区切った名前=値の引数を付けられます。text の型には charset の引数が使えます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "メディアタイプの部品 (RFC 2045 5、RFC 9110 8.3.1)",
+          "items": [
+            { "label": "上位の型 (type)", "note": "データの大まかな種類。text・image・audio・video・application など" },
+            { "label": "下位の型 (subtype)", "note": "その種類の中の具体的な形式" },
+            { "label": "引数 (parameter)", "note": "; の後ろに 名前=値 の形で付ける。下位の型を補う" },
+            { "label": "charset", "note": "text のどの下位の型にも使える、文字の符号化を表す引数" },
+            { "label": "boundary", "note": "multipart の下位の型で必須の、部分の区切りを表す引数" }
+          ]
+        },
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc2045#section-5",
+          "https://www.rfc-editor.org/rfc/rfc9110#section-8.3.1"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l9-q1",
@@ -95,6 +123,37 @@
       "id": "tech-history-l10",
       "title": "UTF-8",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "UCS と Unicode の関係を説明できる",
+          "UTF-8 の複数バイトの列の形を読む",
+          "文字が何バイトになるかを手元で確かめる"
+        ],
+        "body": [
+          "ISO/IEC 10646 は、世界の多くの文字を含む UCS という文字の集合を定めます。Unicode も同じ文字の集合を定め、両者は文字と番号の割り当てを揃えています。",
+          "UCS の符号化の形には UTF-8・UTF-16・UTF-32 などがあります。UTF-8 は符号化の単位が 1 バイトで、ほかの形はそれより大きい単位を使います。",
+          "UTF-8 は、U+0000〜U+10FFFF の文字を 1〜4 バイトの列で表します。複数バイトの列では、先頭のバイトの上のビットが、列が何バイトかを示します。続きのバイトは、上の 2 ビットがいつも 10 です。",
+          "U+D800〜U+DFFF は UTF-16 のために取ってあるので、UTF-8 では符号化しません。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "UTF-8 の複数バイトの列の形 (RFC 3629 3)",
+          "items": [
+            { "label": "2 バイト (U+0080〜U+07FF)", "note": "110xxxxx 10xxxxxx" },
+            { "label": "3 バイト (U+0800〜U+FFFF)", "note": "1110xxxx 10xxxxxx 10xxxxxx" },
+            { "label": "4 バイト (U+10000〜U+10FFFF)", "note": "11110xxx 10xxxxxx 10xxxxxx 10xxxxxx" },
+            { "label": "続きのバイト", "note": "上の 2 ビットが 10。残りの 6 ビットに文字の番号のビットを入れる" }
+          ]
+        },
+        "tryIt": [
+          { "command": "printf 'é' | od -An -tx1", "expect": "c3 a9 の 2 バイトが出ます。é は U+00E9 で、2 バイトの範囲に入ります。" },
+          { "command": "printf '😀' | od -An -tx1", "expect": "f0 9f 98 80 の 4 バイトが出ます。U+FFFF より大きい文字は 4 バイトになります。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc3629#section-1",
+          "https://www.rfc-editor.org/rfc/rfc3629#section-3"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l10-q1",
@@ -181,6 +240,39 @@
       "id": "tech-history-l11",
       "title": "JSON",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "JSON の構造の型と値の種類を見分ける",
+          "決まった名前の値を小文字で書ける",
+          "JSON の書き方の誤りを手元で確かめる"
+        ],
+        "body": [
+          "JSON は、データを文字で書いて受け渡すための形式です。構造の型はオブジェクトと配列の 2 つです。オブジェクトは名前と値の組の集まり、配列は値の並びです。",
+          "値に使えるのは、オブジェクト・配列・数・文字列と、決まった 3 つの名前 (literal names) です。3 つの名前は真・偽と、値が無いことを表します。名前は小文字で書かなければならず (MUST)、ほかの名前は使えません。",
+          "文字列は二重引用符で囲みます。オブジェクトの名前も文字列なので、二重引用符が要ります。数は 10 進で書き、先頭に余計な 0 を付けてはいけません。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "JSON の値の種類 (RFC 8259 3〜7)",
+          "items": [
+            { "label": "オブジェクト", "note": "{ } で囲んだ、名前と値の組の集まり。名前は文字列" },
+            { "label": "配列", "note": "[ ] で囲んだ、値の並び" },
+            { "label": "数", "note": "10 進で書く。先頭の余計な 0 は使えない" },
+            { "label": "文字列", "note": "二重引用符で始まり、二重引用符で終わる" },
+            { "label": "3 つの名前", "note": "真・偽・値が無いことを表す。小文字だけ" }
+          ]
+        },
+        "tryIt": [
+          { "command": "echo '{\"n\": 01}' | python3 -m json.tool", "expect": "先頭に 0 の付いた数は受け付けられず、Expecting ',' delimiter のような誤りが出ます。" },
+          { "command": "echo \"{'n': 1}\" | python3 -m json.tool", "expect": "名前を一重引用符で囲むと、Expecting property name enclosed in double quotes の誤りが出ます。" }
+        ],
+        "sources": [
+          "https://www.rfc-editor.org/rfc/rfc8259#section-1",
+          "https://www.rfc-editor.org/rfc/rfc8259#section-3",
+          "https://www.rfc-editor.org/rfc/rfc8259#section-6",
+          "https://www.rfc-editor.org/rfc/rfc8259#section-7"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l11-q1",
