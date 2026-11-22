@@ -11,7 +11,7 @@
         "text": "curl -sv --http1.1 https://example.com/ -o /dev/null"
       },
       "output": "> GET / HTTP/1.1\n> Host: example.com\n> User-Agent: curl/8.18.0\n> Accept: */*\n>\n< HTTP/1.1 200 OK\n< Date: Sun, 22 Nov 2026 17:33:58 GMT\n< Content-Type: text/html; charset=utf-8\n< Transfer-Encoding: chunked\n< Connection: keep-alive\n< allow: GET, HEAD\n<",
-      "note": "* で始まる接続の行と、応答のヘッダーの一部を省いています。日付やヘッダーは、試す日と経路で変わります。",
+      "note": "* で始まる接続の行と、{ や } で始まるデータの行と、応答のヘッダーの一部を省いています。日付やヘッダーは、試す日と経路で変わります。",
       "sources": [
         {
           "label": "RFC 9110 3.3",
@@ -67,6 +67,10 @@
         {
           "label": "RFC 9110 15.5.5",
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.5"
+        },
+        {
+          "label": "RFC 9113 8.3.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9113#section-8.3.2"
         }
       ]
     },
@@ -74,7 +78,7 @@
       "heading": "メソッド: 安全と冪等",
       "text": [
         "メソッドは、要求で何をしたいかを表します。GET は表現を取ってくる、HEAD は GET と同じ応答のヘッダーだけを受け取る、POST は送った内容を対象に処理させる、PUT は送った内容で対象の状態を作るか置き換える、DELETE は対象を消す、です。",
-        "安全 (safe) なメソッドは、サーバーの状態を変えることを求めない読み取りのためのもので、GET・HEAD・OPTIONS・TRACE がこれに当たります。冪等 (idempotent) なメソッドは、同じ要求を何回送ってもサーバーに及ぼす効果が 1 回と同じになることを意図するもので (返る応答は違ってよく、DELETE の 2 回目は 404 になりえます)、安全なメソッドに PUT と DELETE を加えたものです。POST はどちらでもないので、クライアントは、その要求が実は冪等だと分かるか、元の要求が届いていないと確かめられる手立てが無い限り、通信が切れたときに自動で送り直すべきではありません (SHOULD NOT)。",
+        "安全 (safe) なメソッドは、サーバーの状態を変えることを求めない読み取りのためのもので、GET・HEAD・OPTIONS・TRACE がこれに当たります。冪等 (idempotent) なメソッドは、同じ要求を何回送ってもサーバーに及ぼす効果が 1 回と同じになることを意図するもので (返る応答は違ってよく、DELETE の 2 回目は 404 になりえます)、安全なメソッドに PUT と DELETE を加えたものです。POST はどちらでもないので、クライアントは、その要求が実は冪等だと分かるか、元の要求が処理されていないと確かめられる手立てが無い限り、通信が切れたときに自動で送り直すべきではありません (SHOULD NOT)。",
         "curl の -I は HEAD で要求します。サーバーが知っていても、その対象では使えないメソッドを送ると、405 Method Not Allowed が返ります (サーバーが知らないメソッドなら 501 Not Implemented)。"
       ],
       "code": {
@@ -103,6 +107,10 @@
         {
           "label": "RFC 9110 15.5.6",
           "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.6"
+        },
+        {
+          "label": "RFC 9110 15.6.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.6.2"
         }
       ]
     },
@@ -190,7 +198,7 @@
         "text": "curl -sI -H 'If-None-Match: W/\"0d9f5fb8eb38d3c08b055f9b0671d68b\"' https://www.rfc-editor.org/rfc/rfc9110.html"
       },
       "output": "HTTP/2 304\ndate: Sun, 22 Nov 2026 18:31:34 GMT\netag: \"0d9f5fb8eb38d3c08b055f9b0671d68b\"",
-      "note": "応答のヘッダーの一部を省いています。ETag の値は、先に curl -sI で同じ URL を取ったときの etag ヘッダーです。304 でも、200 なら付けたはずの ETag は付けて返します (この例では W/ の付かない形で返っています)。文書が更新されると値が変わり、古い値では 200 が返ります。",
+      "note": "応答のヘッダーの一部を省いています。ETag の値は、先に curl -sI で同じ URL を取ったときの etag ヘッダーです。304 でも、200 なら付けたはずの ETag は付けて返します (この例では、200 では W/ 付きの値が 304 では W/ 無しで返っていて、厳密には同じ形になっていません)。文書が更新されると値が変わり、古い値では 200 が返ります。",
       "sources": [
         {
           "label": "RFC 9110 8.8.1",
