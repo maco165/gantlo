@@ -10,7 +10,7 @@
 //   7. 時計を進めて 60 分を過ぎると、408 Request Timeout・答えていない問題の数 (X-Unanswered) が出て、時間切れの回として残る
 //   8. 並べ替えを出した直後 (0.4 秒の間) の送るは受け付けない (2 度押しの 2 回目で次の問題を送らない)
 //   9. 横にはみ出さず、文が切れない。390 幅では始める・答えを送る・やめるのボタンの押せる範囲が 44px 以上。外へ何も送らず、ページのエラーが無い
-import { arrangeOrder, choiceRadio, fill, loadLessons, orderIds, rightInputs, unsortedTarget } from './e2e-lessons.mjs';
+import { EXAM_SEED, arrangeOrder, choiceRadio, fill, loadLessons, orderIds, rightInputs, unsortedTarget } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 const KEY = 'gantlo.v1';
@@ -42,6 +42,7 @@ const currentId = (page) => page.locator('[data-testid="exam-run"]').getAttribut
 
 export async function runExam(browser, { base, check, noHorizontalOverflow }) {
   const origin = new URL(base).origin;
+  console.log(`[exam] 模擬試験の種 seed=${EXAM_SEED} (E2E_EXAM_SEED で変えられる)`);
   for (const [name, width, height] of [
     ['phone', 390, 844],
     ['pc', 1280, 860],
@@ -71,7 +72,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     const statusCode = async () => (await page.locator('.status__code').first().innerText()).trim();
 
     // 1. 試験の画面
-    const res = await page.goto(`${base}exam/`);
+    const res = await page.goto(`${base}exam/?seed=${EXAM_SEED}`);
     check(res?.status() === 200, `${tag} /gantlo/exam/ が 200 (${res?.status()})`);
     await page.getByRole('heading', { level: 1, name: '模擬試験' }).waitFor();
     check((await statusCode()) === '200', `${tag} 始める前は 200 OK`);
@@ -193,7 +194,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     check(page.url().includes('/lesson/main-w4-'), `${tag} 読み直すリンクで第 4 週のレッスンが開く (${new URL(page.url()).pathname})`);
 
     // 5. 試験の画面に、これまでの回が出る
-    await page.goto(`${base}exam/`);
+    await page.goto(`${base}exam/?seed=${EXAM_SEED}`);
     await page.getByRole('heading', { level: 1, name: '模擬試験' }).waitFor();
     const history = await page.locator('#astryx-app-shell-main').innerText();
     check(history.includes('30 / 40 問 (75%)') && history.includes('合格'), `${tag} これまでの回に 30 / 40 問 (75%)・合格が出る`);

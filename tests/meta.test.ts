@@ -440,3 +440,34 @@ describe.skipIf(!existsSync(join(DIST, 'sitemap.xml')))('npm run build のあと
     expect(nf.canonical).toBeNull();
   });
 });
+
+// 画面にあるページどうしのつながりを、JS なしの HTML にも書く (検索エンジンがリンクをたどれるように)
+describe('JS なしの HTML のページどうしのリンク', () => {
+  const docOf = (p: SitePage) => new DOMParser().parseFromString(renderPage(template, p), 'text/html');
+  const docs = pages.map((p) => ({ page: p, doc: docOf(p) }));
+  const inner = (root: ParentNode, prefix = '') =>
+    [...root.querySelectorAll('a[href]')].map((a) => a.getAttribute('href')!).filter((h) => h.startsWith(`${BASE}${prefix}`)).map((h) => h.slice(BASE.length));
+  const glossary = docs.find(({ page }) => page.path === 'glossary/')!.doc;
+  it('サイトの中へのリンクは、どれも書き出すページを指す (用語集の語は一覧の # を指す)', () => {
+    const paths = new Set(pages.map((p) => p.path));
+    const termIds = new Set([...glossary.querySelectorAll('dt[id]')].map((d) => d.id));
+    const broken = docs.flatMap(({ page, doc }) =>
+      inner(doc.querySelector('#root')!)
+        .filter((h) => {
+          const [p, hash] = h.split('#');
+          return !paths.has(p) || (p === 'glossary/' && hash !== undefined && !termIds.has(hash));
+        })
+        .map((h) => `${page.path} → ${h}`),
+    );
+    expect(broken).toEqual([]);
+  });
+  it('用語集の語とレッスンは両向きにつながる (語 → 出てくるレッスン、レッスン → 出てくる用語)', () => {
+    const pairs = [...glossary.querySelectorAll('dt[id]')].flatMap((dt) => inner(dt.nextElementSibling!, 'lesson/').map((l) => [dt.id, l] as const));
+    const expected = [...SORTED.standards, ...SORTED.others].reduce((n, t) => n + t.lessons.filter((id) => LESSONS.some((l) => l.id === id)).length, 0);
+    expect(pairs.length).toBe(expected);
+    expect(pairs.length).toBeGreaterThan(0);
+    const lessonDoc = (path: string) => docs.find(({ page }) => page.path === path)!.doc;
+    const missing = pairs.filter(([term, lesson]) => !inner(lessonDoc(lesson).querySelector('#root')!, 'glossary/').includes(`glossary/#${term}`));
+    expect(missing).toEqual([]);
+  });
+});

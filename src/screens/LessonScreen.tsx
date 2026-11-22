@@ -1,3 +1,4 @@
+import { QuestionHeadingLevel } from '../components/QuestionFrame';
 import { Button } from '@astryxdesign/core/Button';
 import { CodeBlock } from '@astryxdesign/core/CodeBlock';
 import { List, ListItem } from '@astryxdesign/core/List';
@@ -40,9 +41,10 @@ function LessonBar({ title, current, total, closeHref }: { title: string; curren
     <header className="lesson-bar">
       <Button variant="ghost" label="レッスンを閉じる" isIconOnly icon={<XMarkIcon width={20} height={20} />} href={closeHref} />
       <div className="lesson-bar__progress">
-        <Text type="supporting">
-          {title} · {current} / {total} 問
-        </Text>
+        {/* レッスン名がこの画面の h1 (書き出す HTML の h1 と同じ)。見た目は補足の字のまま */}
+        <div className="lesson-bar__label">
+          <h1 className="lesson-bar__title">{title}</h1> · {current} / {total} 問
+        </div>
         <ProgressBar label="レッスンの進み具合" isLabelHidden value={current} max={total} />
       </div>
     </header>
@@ -120,7 +122,9 @@ export default function LessonScreen({ lesson, progress, updateProgress, review 
   return (
     <div className="lesson">
       <LessonBar title={lesson.title} current={index + 1} total={total} closeHref={review?.backHref ?? homeHref} />
-      <div className="lesson__main">{view}</div>
+      <div className="lesson__main">
+        <QuestionHeadingLevel.Provider value={2}>{view}</QuestionHeadingLevel.Provider>
+      </div>
     </div>
   );
 }

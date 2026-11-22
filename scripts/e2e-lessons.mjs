@@ -173,3 +173,9 @@ export function coverLessons(lessons, needs) {
   }
   return out;
 }
+
+/**
+ * 模擬試験を開くときの種 (?seed=)。出題を固定し、どの問題が出たかで結果が変わらないようにする。
+ * 別の出題で確かめたいときは E2E_EXAM_SEED で変える (落ちたら、ログの種で同じ出題を作り直せる)
+ */
+export const EXAM_SEED = Number(process.env.E2E_EXAM_SEED ?? 1);

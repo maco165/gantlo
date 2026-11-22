@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { LESSONS } from '../src/content/index';
 import type { ChoiceQuestion, Lesson } from '../src/content/types';
 import {
+  examRandom,
+  seededRandom,
   EXAM_PER_WEEK,
   EXAM_TOTAL,
   EXAM_WEEKS,
@@ -225,6 +227,27 @@ describe('表示の部品', () => {
       const t = expectedText(it.question);
       expect(t.length, it.question.id).toBeGreaterThan(0);
       if (it.question.kind === 'choice') expect(t).toBe(it.question.choices.find((c) => c.id === (it.question as ChoiceQuestion).answer)?.text);
+    }
+  });
+});
+
+describe('模擬試験の種 (検査で出題を固定する)', () => {
+  const ids = (r: () => number) => pickExam(undefined, r).map((x) => `${x.question.id}:${JSON.stringify(x.question)}`);
+  it('同じ種なら、選ぶ問題・並び・選択肢の順まで同じ', () => {
+    expect(ids(examRandom('?seed=7'))).toEqual(ids(examRandom('?seed=7')));
+    expect(ids(seededRandom(7))).toEqual(ids(examRandom('?seed=7')));
+  });
+  it('種が違えば出題が変わる', () => {
+    expect(ids(examRandom('?seed=1'))).not.toEqual(ids(examRandom('?seed=2')));
+  });
+  it('種が無いか読めなければ Math.random を使う (本番の出題は固定しない)', () => {
+    for (const q of ['', '?seed=', '?seed=abc', '?seed=-1', '?seed=12345678901']) expect(examRandom(q), q).toBe(Math.random);
+  });
+  it('乱数は 0 以上 1 未満', () => {
+    const r = seededRandom(0);
+    for (let i = 0; i < 1000; i++) {
+      const v = r();
+      expect(v >= 0 && v < 1).toBe(true);
     }
   });
 });

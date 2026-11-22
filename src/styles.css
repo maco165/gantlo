@@ -780,6 +780,16 @@ code {
   padding: var(--spacing-1) max(var(--spacing-4), env(safe-area-inset-right)) var(--spacing-1) var(--spacing-1);
   border-bottom: 1px solid var(--color-border);
 }
+.lesson-bar__label {
+  font-size: var(--text-supporting-size);
+  color: var(--color-text-secondary);
+}
+.lesson-bar__title {
+  display: inline;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+}
 .lesson-bar__progress {
   flex: 1;
   min-width: 0;

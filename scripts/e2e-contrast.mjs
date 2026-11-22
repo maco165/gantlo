@@ -6,7 +6,7 @@
 //   - 押せないボタン (disabled・aria-disabled) は WCAG 1.4.3 の対象外なので数えない。空の入力欄は placeholder の字と色を測る
 //   - 390 幅でスマホのメニューを開いた状態も測る (開いたモーダルの外は操作できないので、モーダルの中だけを測る)
 //   - 測り方の確かめ: opacity の群 (祖先の opacity も含む) を地と字の両方に重ねて測れること (合成のページで約 3.98:1 になる)
-import { answer, coverLessons, hasKind, isPlainFill, loadLessons, pickWalkLesson } from './e2e-lessons.mjs';
+import { EXAM_SEED, answer, coverLessons, hasKind, isPlainFill, loadLessons, pickWalkLesson } from './e2e-lessons.mjs';
 
 /** WCAG 1.4.3 の最小のコントラスト比。大きな文字の例外 (3:1) は使わない */
 export const MIN_CONTRAST = 4.5;
@@ -318,7 +318,7 @@ export async function runContrast(browser, { base, check }) {
       const min = await checkContrast(examPage, check, `${tag} ${screen}`, must);
       mins.push({ label: `${name} ${screen}`, ratio: min.ratio, text: min.text });
     };
-    await examPage.goto(`${base}exam/`);
+    await examPage.goto(`${base}exam/?seed=${EXAM_SEED}`);
     await examPage.getByRole('button', { name: '模擬試験を始める' }).waitFor();
     await measureExam('模擬試験 (始める前)', ['模擬試験を始める', '75% 以上']);
     // ボタンの上にポインタがある状態 (テーマが hover で 1 色の膜 = 両端が同じ色の linear-gradient を重ねる)。

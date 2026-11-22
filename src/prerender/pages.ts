@@ -2,7 +2,7 @@
 // scripts/prerender.mjs が npm run build のあとに読み、dist/<道>/index.html を書く。tests/meta.test.ts も同じものを見る。
 // 画面の JS には入らない (src/main.tsx からは読まない)。
 import { SORTED } from '../content/glossary';
-import { LESSONS } from '../content/index';
+import { LESSONS, findLesson } from '../content/index';
 import type { Lesson } from '../content/types';
 import type { GlossaryTerm } from '../lib/glossary';
 import { documentTitle, lessonDocumentTitle, PAGE_TITLES } from '../lib/pageMeta';
@@ -139,13 +139,26 @@ export function breadcrumbLd(crumbs: readonly Crumb[]): Record<string, unknown> 
 /** 作り手 (Course の provider)。個人のサイトなので、サイトそのものを名前と URL で書く */
 const PROVIDER = { '@type': 'Organization', name: SITE_NAME, url: absUrl(homeHref), sameAs: REPO_URL };
 
+/** 語の出てくるレッスンへのリンク (画面の用語集の「出てくるレッスン」と同じ並びと名前) */
+function termLessons(t: GlossaryTerm): string {
+  const ls = t.lessons.map((id) => findLesson(id)).filter((l) => l !== undefined);
+  const courseTitle = (id: string) => COURSES.find((c) => c.id === id)?.title ?? id;
+  return ls.length ? ` 出てくるレッスン: ${ls.map((l) => a(lessonHref(l.id), `${courseTitle(l.course)} ${l.title}`)).join('・')}` : '';
+}
+
+/** レッスンに出てくる用語 (用語集の語の「出てくるレッスン」の逆向き)。用語集の一覧の語の位置へリンクする */
+export function lessonTermsHtml(lessonId: string, sorted: { standards: readonly GlossaryTerm[]; others: readonly GlossaryTerm[] } = SORTED): string[] {
+  const ts = [...sorted.standards, ...sorted.others].filter((t) => t.lessons.includes(lessonId));
+  return ts.length ? ['<h2>出てくる用語</h2>', `<ul>${ts.map((t) => `<li>${a(`${pageHref('glossary')}#term-${t.id}`, t.term)}</li>`).join('')}</ul>`] : [];
+}
+
 /** 用語集の本文 (検索に載せるので、画面と同じ語・説明・出典を書く。画面を描くと React が置き換える) */
 export function glossaryBody(sorted: { standards: readonly GlossaryTerm[]; others: readonly GlossaryTerm[] } = SORTED): string[] {
   const dl = (terms: readonly GlossaryTerm[]) =>
     `<dl>${terms
       .map(
         (t) =>
-          `<dt id="term-${t.id}">${esc(t.term)}${t.aliases?.length ? ` (${esc(t.aliases.join(' · '))})` : ''}</dt><dd>${esc(t.description)} 出典: ${t.sources.map((s) => a(s.url, s.label)).join('・')}</dd>`,
+          `<dt id="term-${t.id}">${esc(t.term)}${t.aliases?.length ? ` (${esc(t.aliases.join(' · '))})` : ''}</dt><dd>${esc(t.description)} 出典: ${t.sources.map((s) => a(s.url, s.label)).join('・')}${termLessons(t)}</dd>`,
       )
       .join('')}</dl>`;
   return ['<h2>11 の規格</h2>', dl(sorted.standards), '<h2>問題に出る用語</h2>', dl(sorted.others)];
@@ -300,6 +313,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
         // 答える前に見えるものまでを書き、答えと解説は書かない (画面でも答えるまで出さないため)
         '<h2>問題</h2>',
         `<ol>${l.questions.map(questionHtml).join('')}</ol>`,
+        ...lessonTermsHtml(l.id),
         ...neighbors(l, lessons),
         back,
       ].join('\n'),
