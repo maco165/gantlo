@@ -15,6 +15,7 @@ import { EXAM_MINUTES, EXAM_PER_WEEK, EXAM_TOTAL, EXAM_WEEKS, PASS_MARK, PASS_MA
 import { kindLabel } from '../lib/questionKind';
 import { STAGES } from '../content/stages';
 import type { Question } from '../content/types';
+import { introHtml } from './intro';
 
 // 公開の場所の正本は lib/site.ts (誤りの報告のリンクも同じ URL を使う)
 export { ORIGIN };
@@ -311,6 +312,8 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
         // 見出しはレッスンの題 (画面の h1 は 1 問目の問題文だが、ページの見出しとしては題のほうが合う)
         `<h1>${esc(l.title)}</h1>`,
         `<p>${esc(lessonLead(l, courseTitle))}</p>`,
+        // 問題の前に読む要点 (画面でも 1 問目の前に出す)
+        ...introHtml(l.intro),
         // 答える前に見えるものまでを書き、答えと解説は書かない (画面でも答えるまで出さないため)
         '<h2>問題</h2>',
         `<ol>${l.questions.map(questionHtml).join('')}</ol>`,

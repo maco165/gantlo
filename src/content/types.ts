@@ -11,7 +11,12 @@ export type Blank = {
   answers: string[];
   /** 省略すると text (大文字と小文字を区別する) */
   match?: BlankMatch;
+  /** よくある誤答と、なぜ違うか。答えがどれかに当たれば (match の比べ方で) その why を出す */
+  wrong?: WrongAnswer[];
 };
+
+/** 穴埋めのよくある誤答 1 つ。4 択の why と同じ考え方 */
+export type WrongAnswer = { answer: string; why: string };
 
 type QuestionBase = {
   id: string;
@@ -73,6 +78,29 @@ export type LabQuestion = QuestionBase & {
 export type Question = CommandQuestion | HttpQuestion | OrderQuestion | ChoiceQuestion | LabQuestion;
 export type QuestionKind = Question['kind'];
 
+/** 要点の図。flow は矢印でつなぐ箱の並び、table は 2 列の表 (名前と意味) */
+export type IntroFigure = { kind: 'flow' | 'table'; caption: string; items: { label: string; note?: string }[] };
+
+/** 手元で試すコマンドと、期待する出力の要点 */
+export type IntroTry = { command: string; expect: string };
+
+/**
+ * レッスンの要点。問題の前に読む。答えの文字列は書かない (考え方だけを書く)。
+ * 図は figure か、要らない理由 (figureOmitted) のどちらか一方
+ */
+export type LessonIntro = {
+  /** このレッスンで分かるようになること (ちょうど 3 行、動詞で終える) */
+  goals: [string, string, string];
+  /** 短い説明の段落 (合わせて 200〜400 字) */
+  body: string[];
+  figure?: IntroFigure;
+  figureOmitted?: string;
+  /** 手元で試すなら (1〜2 個) */
+  tryIt?: IntroTry[];
+  /** 出典の https の URL (1 つ以上) */
+  sources: string[];
+};
+
 export type Lesson = {
   id: string;
   title: string;
@@ -81,6 +109,8 @@ export type Lesson = {
   course: CourseId;
   /** リクエストの旅の段 (src/content/stages.ts の id)。本編では必須、ほかのコースでは任意 */
   stage?: string;
+  /** 問題の前に読む要点。問題データでは全レッスンが持つ (検査は scripts/check-content.mjs)。型が任意なのは、復習などで組み立てるレッスンのため */
+  intro?: LessonIntro;
   questions: Question[];
 };
 

@@ -78,6 +78,19 @@ export const choiceRadio = (page, q, choiceId) => page.getByRole('radio', { name
 export const orderIds = (page) => page.locator('[data-testid="order-rows"] > li').evaluateAll((ls) => ls.map((l) => l.dataset.item));
 export const orderText = (q, id) => q.items.find((it) => it.id === id).text;
 
+/** 要点の「問題を始める」のボタンの文字 (src/lib/intro.ts の INTRO_START_LABEL と同じ) */
+export const INTRO_START = '問題を始める';
+
+/**
+ * レッスンを開いたあと、1 問目を出す。はじめてのレッスンは要点が先に出るので「問題を始める」を押す。
+ * 済みのレッスンは要点が畳まれて 1 問目が出ているので、何もしない。どちらかが出るまで待つ
+ */
+export async function startLesson(page) {
+  await page.locator('[data-testid="lesson-intro"], [data-testid="lesson-intro-folded"]').first().waitFor();
+  if ((await page.getByTestId('lesson-intro').count()) > 0) await page.getByRole('button', { name: INTRO_START }).click();
+  await page.getByTestId('lesson-intro-folded').waitFor();
+}
+
 export async function fill(page, values) {
   const inputs = page.locator('[data-testid="fill-code"] input');
   for (const [i, v] of values.entries()) await inputs.nth(i).fill(v);
