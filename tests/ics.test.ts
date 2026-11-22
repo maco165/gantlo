@@ -90,3 +90,48 @@ describe('時刻帯 (VTIMEZONE)', () => {
     expect(offsetMinutes('America/Los_Angeles', Date.UTC(2026, 0, 1))).toBe(-480);
   });
 });
+
+describe('VTIMEZONE を全部の時刻帯で Intl と突き合わせる', () => {
+  /** VTIMEZONE の行から、切り替わり (UTC の時刻と、そのあとのずれ) を読み直す */
+  const parse = (lines: string[]) => {
+    const toMin = (o: string) => (o[0] === '-' ? -1 : 1) * (Number(o.slice(1, 3)) * 60 + Number(o.slice(3, 5)));
+    const out: { at: number; to: number; from: number }[] = [];
+    let cur: { starts: string[]; from?: number; to?: number } | null = null;
+    for (const l of lines) {
+      if (l === 'BEGIN:STANDARD' || l === 'BEGIN:DAYLIGHT') cur = { starts: [] };
+      else if (cur && (l.startsWith('DTSTART:') || l.startsWith('RDATE:'))) cur.starts.push(...l.slice(l.indexOf(':') + 1).split(','));
+      else if (cur && l.startsWith('TZOFFSETFROM:')) cur.from = toMin(l.slice(13));
+      else if (cur && l.startsWith('TZOFFSETTO:')) cur.to = toMin(l.slice(11));
+      else if (cur && (l === 'END:STANDARD' || l === 'END:DAYLIGHT')) {
+        for (const s of cur.starts) {
+          const local = Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(9, 11), +s.slice(11, 13), +s.slice(13, 15));
+          // 壁時計の時刻は切り替わる前のずれで書いてある
+          out.push({ at: local - cur.from! * 60_000, to: cur.to!, from: cur.from! });
+        }
+        cur = null;
+      }
+    }
+    return out.sort((a, b) => a.at - b.at);
+  };
+
+  it('去年から 5 年先まで、3 日おきの正午 (UTC) のずれが Intl と同じ (Node の全時刻帯)', () => {
+    const zones = Intl.supportedValuesOf('timeZone');
+    expect(zones.length).toBeGreaterThan(300);
+    const from = Date.UTC(2025, 10, 23);
+    const to = Date.UTC(2031, 10, 23);
+    const bad: string[] = [];
+    for (const tz of zones) {
+      const ts = parse(vtimezoneLines(tz, from, to));
+      // 3 日おき (切り替わりの間が 3 日より短い時刻帯は無い。ラマダンの間の切り替えも数週間)
+      for (let t = from + 12 * 3_600_000; t < to; t += 3 * 86_400_000) {
+        const before = ts.filter((x) => x.at <= t);
+        const want = before.length > 0 ? before[before.length - 1].to : ts.length > 0 ? ts[0].from : offsetMinutes(tz, from);
+        if (want !== offsetMinutes(tz, t)) {
+          bad.push(`${tz} ${new Date(t).toISOString().slice(0, 10)}`);
+          break;
+        }
+      }
+    }
+    expect(bad).toEqual([]);
+  }, 120_000);
+});

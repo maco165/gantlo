@@ -63,8 +63,15 @@ const stamp = (y: number, mo: number, d: number, h: number, mi: number, s = 0) =
 export const utcStamp = (d: Date): string => `${stamp(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate(), d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds())}Z`;
 
 /** 時刻帯の UTC からのずれ (分)。その時刻帯の壁時計の値を UTC と見たときとの差 */
+const formatters = new Map<string, Intl.DateTimeFormat>();
 export function offsetMinutes(timeZone: string, utcMs: number): number {
-  const parts = new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }).formatToParts(new Date(utcMs));
+  // 書き出し 1 回で数千回呼ぶので、時刻帯ごとに 1 つ作って使い回す
+  let f = formatters.get(timeZone);
+  if (!f) {
+    f = new Intl.DateTimeFormat('en-US', { timeZone, hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    formatters.set(timeZone, f);
+  }
+  const parts = f.formatToParts(new Date(utcMs));
   const v = (t: string) => Number(parts.find((p) => p.type === t)?.value);
   const asUtc = Date.UTC(v('year'), v('month') - 1, v('day'), v('hour'), v('minute'), v('second'));
   return Math.round((asUtc - Math.floor(utcMs / 1000) * 1000) / 60_000);
