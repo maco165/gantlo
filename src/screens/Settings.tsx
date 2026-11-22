@@ -122,7 +122,7 @@ export default function Settings({ progress, updateProgress }: Props) {
         </h2>
         {/* 既定は決めない (選ぶまでどれも選ばれていない)。390 幅で 7 つが 44px に収まるよう、外すのは別のボタンにする */}
         <SegmentedControl
-          label="週に学ぶ日の数"
+          label="週に学ぶ日の数 (日)"
           layout="fill"
           value={progress.profile?.weeklyGoalDays === undefined ? '' : String(progress.profile.weeklyGoalDays)}
           onChange={(v) => {
@@ -131,7 +131,7 @@ export default function Settings({ progress, updateProgress }: Props) {
           }}
         >
           {[1, 2, 3, 4, 5, 6, 7].map((d) => (
-            <SegmentedControlItem key={d} value={String(d)} label={`${d} 日`} />
+            <SegmentedControlItem key={d} value={String(d)} label={String(d)} />
           ))}
         </SegmentedControl>
         {progress.profile?.weeklyGoalDays !== undefined && (

@@ -186,7 +186,7 @@ export default function ProgressScreen({ progress, now = new Date(), lessons = L
         <h2 id="prog-mastery-title" className="prog__title">
           問題ごとの到達
         </h2>
-        <table className="prog__table mastery" data-testid="mastery">
+        <table className="mastery" data-testid="mastery">
           <thead>
             <tr>
               <th scope="col">コース</th>

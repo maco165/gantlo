@@ -1121,30 +1121,36 @@ code {
   color: var(--color-text-primary);
   font-weight: 600;
 }
-.prog__table {
+.prog__table,
+.mastery {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--text-supporting-size);
 }
 .prog__table th,
-.prog__table td {
+.prog__table td,
+.mastery th,
+.mastery td {
   padding: var(--spacing-1-5) var(--spacing-2);
   border-bottom: 1px solid var(--color-border);
   text-align: left;
   vertical-align: middle;
   overflow-wrap: anywhere;
 }
-.prog__table thead th {
+.prog__table thead th,
+.mastery thead th {
   font-weight: 600;
   color: var(--color-text-secondary);
   border-top: 1px solid var(--color-border);
 }
-.prog__table tbody th {
+.prog__table tbody th,
+.mastery tbody th {
   font-weight: 400;
   color: var(--color-text-primary);
 }
-.prog__table th:first-child {
+.prog__table th:first-child,
+.mastery th:first-child {
   padding-left: 0;
 }
 .prog__table th:nth-child(2),
@@ -1341,7 +1347,6 @@ code {
 /* 進捗: 問題ごとの到達の表。数の下に割合 */
 .mastery th:nth-child(n + 2),
 .mastery td {
-  width: auto;
   text-align: right;
 }
 .mastery__share {

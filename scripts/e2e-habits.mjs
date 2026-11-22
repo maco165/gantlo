@@ -102,9 +102,9 @@ export async function runHabits(browser, { base, check, noHorizontalOverflow }) 
     // 2. 週の目標
     await page.goto(`${base}settings/`);
     await page.getByRole('heading', { level: 2, name: '週の目標' }).waitFor();
-    const week = page.getByRole('radiogroup', { name: '週に学ぶ日の数' });
+    const week = page.getByRole('radiogroup', { name: '週に学ぶ日の数 (日)' });
     await target(week.getByRole('radio'), '週の目標の切り替え');
-    await week.getByRole('radio', { name: '3 日' }).click();
+    await week.getByRole('radio', { name: '3', exact: true }).click();
     await page.locator('.settings__outcome[data-status="200"]').waitFor();
     check((await page.locator('.settings__outcome').innerText()).includes('週の目標を 3 日にしました'), `${tag} 週の目標を選ぶと PATCH /me/profile の 200`);
     const saved = await page.evaluate((k) => JSON.parse(localStorage.getItem(k)), KEY);
