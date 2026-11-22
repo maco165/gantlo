@@ -7,7 +7,7 @@ import SummaryCard from '../components/SummaryCard';
 import { CATALOG, type LessonMeta } from '../content/catalog';
 import { STAGES } from '../content/stages';
 import { stageStates } from '../lib/journey';
-import { CALENDAR_WEEKS, FORECAST_DAYS, LEVEL_MIN, calendarTotals, reviewForecast, studyCalendar } from '../lib/calendar';
+import { CALENDAR_WEEKS, FORECAST_DAYS, LEVEL_MIN, calendarTotals, reviewForecast, studyCalendar, type CalendarCell } from '../lib/calendar';
 import { freezeCountText, freezeText, weeklyTargetText } from '../lib/habits';
 import { MASTERY_ORDER, MASTERY_SHORT, courseMastery, share } from '../lib/mastery';
 import { currentStreak, type Progress } from '../lib/progress';
@@ -43,57 +43,90 @@ function cellLabel(c: { day: string; count: number; studied: boolean }): string 
 }
 
 /**
- * 過去 26 週のマス。一覧 (listbox) 全体で 1 つのフォーカスを持ち、矢印のキー (上下で 1 日・左右で 1 週)・Home・End で日を移る。
- * マスを押しても選べる。選んだ日の日付と数は、マスの下に字で出す (色だけに頼らず、スマホでも数が読める)。
- * マス 1 つずつを押せる部品にしないのは、182 の小さな押す所 (24px 未満) を作らないため
+ * 過去 26 週のマス。表 (role=grid) で、行が曜日 (月〜日)・列が週。表全体で 1 つのフォーカスを持ち (aria-activedescendant)、
+ * 矢印のキー (上下で 1 日・左右で 1 週)・Home・End で日を移る。マスを押しても選べるが、マスは 390 幅で 12px ほどと小さいので、
+ * 触る端末のために 44px の「前の週」「前の日」「次の日」「次の週」のボタンを下に置く。選んだ日の日付と数は字で出す
  */
-function StudyCalendar({ cells }: { cells: { day: string; count: number; studied: boolean; level: number }[] }) {
-  const [sel, setSel] = useState(cells.length - 1);
-  const cur = cells[Math.min(sel, cells.length - 1)];
-  const onKey = (e: KeyboardEvent<HTMLOListElement>) => {
+function StudyCalendar({ weeks }: { weeks: CalendarCell[][] }) {
+  // 選べる日 (今日まで) を古い順に並べ、選んだ日はその位置で持つ
+  const days = weeks.flat().filter((c) => !c.future);
+  const [sel, setSel] = useState(days.length - 1);
+  const at = Math.min(sel, days.length - 1);
+  const cur = days[at];
+  const move = (step: number) => setSel(Math.max(0, Math.min(days.length - 1, at + step)));
+  const onKey = (e: KeyboardEvent<HTMLDivElement>) => {
     const step = { ArrowUp: -1, ArrowDown: 1, ArrowLeft: -7, ArrowRight: 7 }[e.key];
-    let next = sel;
-    if (step !== undefined) next = sel + step;
-    else if (e.key === 'Home') next = 0;
-    else if (e.key === 'End') next = cells.length - 1;
+    if (step !== undefined) move(step);
+    else if (e.key === 'Home') setSel(0);
+    else if (e.key === 'End') setSel(days.length - 1);
     else return;
     e.preventDefault();
-    setSel(Math.max(0, Math.min(cells.length - 1, next)));
   };
+  const indexOf = new Map(days.map((c, i) => [c.day, i]));
   return (
     <>
-      <ol
+      <p id="cal-keys" className="cal__keys">
+        <Text type="supporting">表を選んで矢印のキー (上下で 1 日・左右で 1 週)・Home・End で日を移るか、マスか下のボタンで選びます。</Text>
+      </p>
+      <div
         className="cal"
         data-testid="calendar"
-        role="listbox"
+        role="grid"
         tabIndex={0}
-        aria-label={`過去 ${CALENDAR_WEEKS} 週の学んだ日 (日ごとに答えた問題の数)。矢印のキーで日を移る`}
+        aria-label={`過去 ${CALENDAR_WEEKS} 週の学んだ日 (行が曜日・列が週。日ごとに答えた問題の数)`}
+        aria-describedby="cal-keys"
         aria-activedescendant={`cal-${cur.day}`}
         onKeyDown={onKey}
       >
-        {cells.map((c, i) => (
-          <li
-            key={c.day}
-            id={`cal-${c.day}`}
-            role="option"
-            aria-selected={i === sel}
-            aria-label={cellLabel(c)}
-            title={cellLabel(c)}
-            className={`cal__cell cal__cell--l${c.level}`}
-            data-day={c.day}
-            data-count={c.count}
-            data-level={c.level}
-            onClick={() => setSel(i)}
-          />
+        {WEEK_ROWS.map((d, r) => (
+          <div key={d} className="cal__row" role="row" aria-label={`${d}曜日`}>
+            {weeks.map((w) => {
+              const c = w[r];
+              if (c.future) return <div key={c.day} className="cal__cell cal__cell--future" role="gridcell" aria-hidden="true" />;
+              const i = indexOf.get(c.day)!;
+              return (
+                <div
+                  key={c.day}
+                  id={`cal-${c.day}`}
+                  role="gridcell"
+                  aria-selected={i === at}
+                  aria-label={cellLabel(c)}
+                  title={cellLabel(c)}
+                  className={`cal__cell cal__cell--l${c.level}`}
+                  data-day={c.day}
+                  data-count={c.count}
+                  data-level={c.level}
+                  onClick={() => setSel(i)}
+                />
+              );
+            })}
+          </div>
         ))}
-      </ol>
+      </div>
       <p className="cal__readout" data-testid="calendar-readout" aria-live="polite">
         <Text type="supporting">選んだ日: </Text>
         {cellLabel(cur)}
       </p>
+      <p className="cal__nav">
+        <button type="button" className="btn" onClick={() => move(-7)} disabled={at - 7 < 0}>
+          前の週
+        </button>
+        <button type="button" className="btn" onClick={() => move(-1)} disabled={at === 0}>
+          前の日
+        </button>
+        <button type="button" className="btn" onClick={() => move(1)} disabled={at === days.length - 1}>
+          次の日
+        </button>
+        <button type="button" className="btn" onClick={() => move(7)} disabled={at + 7 > days.length - 1}>
+          次の週
+        </button>
+      </p>
     </>
   );
 }
+
+/** カレンダーの行 (週の頭は月曜) */
+const WEEK_ROWS = ['月', '火', '水', '木', '金', '土', '日'];
 
 /**
  * 進捗の画面 (/gantlo/progress/) = GET /me/stats への応答。
@@ -192,7 +225,7 @@ export default function ProgressScreen({ progress, now = new Date(), lessons = C
         <Text type="supporting">
           {totals.studied} 日学び、{totals.answered} 問に答えました。列が週 (月曜から日曜)、色の濃さが日ごとに答えた問題の数です。
         </Text>
-        <StudyCalendar cells={calendar.flat().filter((c) => !c.future)} />
+        <StudyCalendar weeks={calendar} />
         <p className="cal__legend">
           <Text type="supporting">少ない</Text>
           {[0, 1, 2, 3, 4].map((l) => (

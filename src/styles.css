@@ -1293,17 +1293,28 @@ code {
   margin: 0;
 }
 
-/* 進捗: 過去 26 週の学んだ日のマス。列が週 (月曜から日曜)、色の濃さは日ごとに答えた問題の数 (色だけに頼らず、マスごとに読み上げと title を持つ) */
+/* 進捗: 過去 26 週の学んだ日のマス。行が曜日・列が週、色の濃さは日ごとに答えた問題の数 (色だけに頼らず、選んだ日を字で出し、マスごとに aria-label と title を持つ) */
 .cal {
-  list-style: none;
   margin: 0;
-  padding: 0;
-  display: grid;
-  grid-template-rows: repeat(7, auto);
-  grid-auto-flow: column;
-  grid-auto-columns: minmax(0, 1fr);
+  display: flex;
+  flex-direction: column;
   gap: 2px;
   max-width: 40rem;
+}
+.cal__row {
+  display: grid;
+  grid-template-columns: repeat(26, minmax(0, 1fr));
+  gap: 2px;
+}
+.cal__keys {
+  margin: 0;
+}
+/* 触る端末でも日を選べるよう、44px のボタン (.btn) を並べる */
+.cal__nav {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
 }
 .cal__cell {
   display: inline-block;

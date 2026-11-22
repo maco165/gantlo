@@ -142,17 +142,21 @@ export async function runHabits(browser, { base, check, noHorizontalOverflow }) 
     // 4. 進捗
     await page.goto(`${base}progress/`);
     await page.getByTestId('calendar').waitFor();
-    const cells = await page.locator('[data-testid="calendar"] li').count();
-    // 今週の今日より先の日 (水曜なので木〜日の 4 日) はマスを出さない
-    check(cells === 26 * 7 - 4, `${tag} カレンダーは 26 週 × 7 日のマス (今日まで。${cells})`);
+    const cells = await page.locator('[data-testid="calendar"] [role="gridcell"]').count();
+    check(cells === 26 * 7 && (await page.locator('[data-testid="calendar"] [role="row"]').count()) === 7, `${tag} カレンダーは表 (行が曜日・列が週) で 26 週 × 7 日のマス (${cells})`);
     const d8 = dayIn(tz, nowMs, -8);
-    const cell = page.locator(`[data-testid="calendar"] li[data-day="${d8}"]`);
+    const cell = page.locator(`[data-testid="calendar"] [data-day="${d8}"]`);
     const title = await cell.getAttribute('title');
     check(title?.endsWith('24 問') && (await cell.getAttribute('data-level')) === '3', `${tag} マスに日付と数の title (${title})・数で濃さ (16〜30 問は 3)`);
     check((await cell.getAttribute('aria-label')) === title, `${tag} マスの読み上げ (aria-label) は title と同じ`);
     // 押すかフォーカスして矢印のキーで選ぶと、日付と数が字で見える (スマホでも読める)
     await cell.click();
     check((await page.getByTestId('calendar-readout').innerText()).endsWith(title), `${tag} マスを押すと、選んだ日と数が字で出る (${await page.getByTestId('calendar-readout').innerText()})`);
+    // 触る端末のための「前の日」などのボタンは 44px 以上で、押すと日が移る
+    await target(page.locator('.cal__nav button'), 'カレンダーの日を移るボタン');
+    await page.getByRole('button', { name: '前の日' }).click();
+    check((await page.getByTestId('calendar').getAttribute('aria-activedescendant')) === `cal-${dayIn(tz, nowMs, -9)}`, `${tag} 「前の日」で 1 日前へ移る`);
+    await page.getByRole('button', { name: '次の日' }).click();
     await page.getByTestId('calendar').focus();
     await page.keyboard.press('ArrowRight');
     const d1 = dayIn(tz, nowMs, -1);

@@ -160,9 +160,9 @@ describe('画面', () => {
     let p = recordAnswer(emptyProgress(), 'm1', false, now);
     p = completeReview(p, 3, now);
     await act(async () => root.render(createElement(ProgressScreen, { progress: p, now, lessons })));
-    const cells = host.querySelectorAll('.cal li[data-day]');
+    const cells = host.querySelectorAll('.cal [role="gridcell"][data-day]');
     expect(cells).toHaveLength(26 * 7 - 4); // 今週の木〜日は先の日なので出さない
-    const today = host.querySelector('.cal li[data-day="2026-11-25"]')!;
+    const today = host.querySelector('.cal [data-day="2026-11-25"]')!;
     expect(today.getAttribute('title')).toBe('11/25 (水) 1 問');
     expect(today.getAttribute('aria-label')).toBe('11/25 (水) 1 問');
     // 始めは今日を選び、字でも出す。矢印のキー (左で 1 週前) と、押して選ぶ
@@ -172,7 +172,19 @@ describe('画面', () => {
     await act(async () => cal.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowLeft', bubbles: true })));
     expect(readout()).toBe('選んだ日: 11/18 (水) 0 問');
     expect(cal.getAttribute('aria-activedescendant')).toBe('cal-2026-11-18');
-    await act(async () => (host.querySelector('.cal li[data-day="2026-11-24"]') as HTMLElement).click());
+    // 表 (行が曜日・列が週)。キーの働きは aria-describedby で書く
+    expect(cal.getAttribute('role')).toBe('grid');
+    expect(host.querySelectorAll('.cal [role="row"]')).toHaveLength(7);
+    expect(host.querySelector(`#${cal.getAttribute('aria-describedby')}`)?.textContent).toContain('矢印のキー');
+    // 触る端末のための 44px のボタンでも移る
+    const btn = (label: string) => [...host.querySelectorAll('.cal__nav button')].find((b) => b.textContent === label) as HTMLButtonElement;
+    await act(async () => btn('次の日').click());
+    expect(readout()).toBe('選んだ日: 11/19 (木) 0 問');
+    await act(async () => btn('前の週').click());
+    expect(readout()).toBe('選んだ日: 11/12 (木) 0 問');
+    // 11/12 からは次の週 (11/19) へ移れる。今日より先へは移れない (ボタンが押せない)
+    expect(btn('次の週').disabled).toBe(false);
+    await act(async () => (host.querySelector('.cal [data-day="2026-11-24"]') as HTMLElement).click());
     expect(readout()).toBe('選んだ日: 11/24 (火) 0 問');
     expect(host.querySelectorAll('[data-testid="forecast"] li')).toHaveLength(14);
     expect(host.querySelector('[data-testid="forecast"] li[data-day="2026-11-26"]')?.getAttribute('data-due')).toBe('1');
