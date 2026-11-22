@@ -88,7 +88,7 @@ export type Progress = {
   exams?: ExamRecord[];
 };
 
-type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem'>;
+export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem'>;
 
 export function emptyProgress(): Progress {
   return { v: 1, streak: { count: 0, lastDay: null }, xp: { total: 0, byDay: {} }, lessons: {}, answers: {} };
@@ -234,7 +234,7 @@ export function saveProgress(p: Progress, storage: KeyValueStorage | undefined =
   }
 }
 
-function safeLocalStorage(): Storage | undefined {
+export function safeLocalStorage(): Storage | undefined {
   try {
     return typeof window === 'undefined' ? undefined : window.localStorage;
   } catch {

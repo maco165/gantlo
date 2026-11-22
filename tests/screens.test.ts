@@ -1,6 +1,6 @@
 // ホームと計画の画面を jsdom で描き、進捗から出る中身と、ボタンでの並べ替え・保存を確かめる。
 // 幅・はみ出し・44px は描画の寸法が要るので e2e (Playwright) で見る。
-import { act, createElement, useState } from 'react';
+import { StrictMode, act, createElement, useState } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import LessonNetwork from '../src/components/LessonNetwork';
@@ -14,6 +14,9 @@ import { useProgress } from '../src/lib/useProgress';
 import Home from '../src/screens/Home';
 import Plan from '../src/screens/Plan';
 import CourseScreen from '../src/screens/CourseScreen';
+import Exam from '../src/screens/Exam';
+import { examBank, pickExam, seededRandom, toSavedExam } from '../src/lib/exam';
+import { EXAM_SAVE_KEY, saveExamRun } from '../src/lib/examSave';
 import { COURSES } from '../src/lib/route';
 import { sitePages } from '../src/prerender/pages';
 
@@ -242,5 +245,35 @@ describe('コースの画面 (B-024)', () => {
     const sentence = new DOMParser().parseFromString(empty, 'text/html').querySelectorAll('p')[1]?.textContent ?? '';
     expect(sentence).not.toBe('');
     expect(host.textContent).toContain(sentence);
+  });
+});
+
+describe('模擬試験の途中の回 (A3)', () => {
+  function ExamProbe() {
+    const [p, update] = useProgress();
+    return createElement(StrictMode, null, createElement(Exam, { progress: p, updateProgress: update }));
+  }
+  const items = pickExam(examBank(), seededRandom(3));
+
+  it('期限を過ぎた途中の回は、開くと時間切れとして 1 回だけ記録し (StrictMode でも)、途中の回を消す', async () => {
+    saveExamRun(toSavedExam(items, [{ correct: true, code: 200 }, { correct: false, code: 400 }], Date.now() - 1000));
+    await act(async () => root.render(createElement(ExamProbe)));
+    expect(text('.status__code')).toBe('408');
+    const p = loadProgress();
+    expect(p.exams).toHaveLength(1);
+    expect(p.exams![0]).toMatchObject({ correct: 1, total: items.length, timeUp: true });
+    expect(localStorage.getItem(EXAM_SAVE_KEY)).toBeNull();
+  });
+
+  it('期限の前なら「続きから解く / やめて最初から」を出し、続きから解くと答えた次の問題から始まる', async () => {
+    saveExamRun(toSavedExam(items, [{ correct: true, code: 200 }], Date.now() + 30 * 60_000));
+    await act(async () => root.render(createElement(ExamProbe)));
+    expect(host.querySelector('[data-testid="exam-resume"]')).not.toBeNull();
+    expect(text('.status__code')).toBe('206');
+    const button = (label: string) => [...host.querySelectorAll('button')].find((b) => b.textContent?.trim() === label);
+    expect(button('やめて最初から')).toBeDefined();
+    await act(async () => button('続きから解く')!.click());
+    expect(host.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question')).toBe(items[1].question.id);
+    expect(loadProgress().exams ?? []).toHaveLength(0);
   });
 });

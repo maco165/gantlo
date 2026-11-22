@@ -17,11 +17,15 @@ import {
   pickExam,
   recordExam,
   weekOf,
+  fromSavedExam,
+  loadExamRun,
+  toSavedExam,
   type ExamAnswer,
   type ExamItem,
 } from '../src/lib/exam';
+import { EXAM_SAVE_KEY, clearExamRun, saveExamRun } from '../src/lib/examSave';
 import { XP_PER_CORRECT } from '../src/lib/grade';
-import { MAX_EXAM_RECORDS, emptyProgress, normalizeProgress } from '../src/lib/progress';
+import { MAX_EXAM_RECORDS, STORAGE_KEY, emptyProgress, normalizeProgress } from '../src/lib/progress';
 import { examDone } from '../src/lib/status';
 
 /** 決まった並びを返す乱数 (毎回同じ結果にする) */
@@ -249,5 +253,64 @@ describe('模擬試験の種 (検査で出題を固定する)', () => {
       const v = r();
       expect(v >= 0 && v < 1).toBe(true);
     }
+  });
+});
+
+describe('途中の回の保存と読み直し (A3)', () => {
+  const bank = examBank();
+  const items = pickExam(bank, seeded(7));
+  const answers: ExamAnswer[] = [right, wrong, right];
+  const memory = () => {
+    const m = new Map<string, string>();
+    return { getItem: (k: string) => m.get(k) ?? null, setItem: (k: string, v: string) => void m.set(k, v), removeItem: (k: string) => void m.delete(k), m };
+  };
+
+  it('出題 (問題の id と、混ぜた選択肢・項目の並び)・答え・期限を残し、同じ回に読み直せる', () => {
+    const saved = toSavedExam(items, answers, 1_800_000_000_000);
+    const back = fromSavedExam(JSON.parse(JSON.stringify(saved)), bank);
+    expect(back).not.toBeNull();
+    expect(back!.items.map((it) => it.question)).toEqual(items.map((it) => it.question));
+    expect(back!.items.map((it) => [it.lesson.id, it.week])).toEqual(items.map((it) => [it.lesson.id, it.week]));
+    expect(back!.answers).toEqual(answers);
+    expect(back!.deadline).toBe(1_800_000_000_000);
+  });
+
+  it('localStorage の別のキー (gantlo.exam.v1) に置き、進捗のキー (gantlo.v1) は触らない。消すとキーごと無くなる', () => {
+    const s = memory();
+    saveExamRun(toSavedExam(items, answers, 1), s);
+    expect([...s.m.keys()]).toEqual([EXAM_SAVE_KEY]);
+    expect(EXAM_SAVE_KEY).not.toBe(STORAGE_KEY);
+    expect(loadExamRun(bank, s)?.answers).toEqual(answers);
+    clearExamRun(s);
+    expect(s.m.size).toBe(0);
+    expect(loadExamRun(bank, s)).toBeNull();
+  });
+
+  it('形が違う・問題データに無い問題・同じ問題が 2 回・選択肢や項目の並びが合わない・答えが多すぎる中身は読まず、消す', () => {
+    const good = toSavedExam(items, answers, 1);
+    const choiceAt = good.items.findIndex((it) => bank.find((b) => b.question.id === it.id)?.question.kind === 'choice');
+    expect(choiceAt).toBeGreaterThanOrEqual(0);
+    const bad: unknown[] = [
+      null,
+      'x',
+      { ...good, v: 2 },
+      { ...good, deadline: 'soon' },
+      { ...good, deadline: Number.POSITIVE_INFINITY },
+      { ...good, items: [] },
+      { ...good, items: good.items.map((it, i) => (i === 0 ? { ...it, id: 'no-such-question' } : it)) },
+      { ...good, items: good.items.map((it, i) => (i === 1 ? good.items[0] : it)) },
+      { ...good, items: good.items.map((it, i) => (i === choiceAt ? { ...it, order: it.order!.slice(1) } : it)) },
+      { ...good, items: good.items.map((it, i) => (i === choiceAt ? { ...it, order: undefined } : it)) },
+      { ...good, answers: good.items.map(() => right) },
+      { ...good, answers: [{ correct: 'yes', code: 200 }] },
+    ];
+    for (const raw of bad) expect(fromSavedExam(raw, bank), JSON.stringify(raw)?.slice(0, 80)).toBeNull();
+    const s = memory();
+    s.setItem(EXAM_SAVE_KEY, '{broken');
+    expect(loadExamRun(bank, s)).toBeNull();
+    expect(s.m.size).toBe(0);
+    s.setItem(EXAM_SAVE_KEY, JSON.stringify({ ...good, v: 2 }));
+    expect(loadExamRun(bank, s)).toBeNull();
+    expect(s.m.size).toBe(0);
   });
 });

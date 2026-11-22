@@ -9,11 +9,14 @@
 //   6. 途中でやめると記録しない
 //   7. 時計を進めて 60 分を過ぎると、408 Request Timeout・答えていない問題の数 (X-Unanswered) が出て、時間切れの回として残る
 //   8. 並べ替えを出した直後 (0.4 秒の間) の送るは受け付けない (2 度押しの 2 回目で次の問題を送らない)
+//  10. 途中で読み直すと「続きから解く / やめて最初から」が出て (206)、続きから解くと答えた次の問題から同じ回を解ける。
+//      やめて最初からを選ぶと、記録せずに新しい回を始める。やめる・終えると途中の回 (gantlo.exam.v1) は消える
 //   9. 横にはみ出さず、文が切れない。390 幅では始める・答えを送る・やめるのボタンの押せる範囲が 44px 以上。外へ何も送らず、ページのエラーが無い
 import { EXAM_SEED, arrangeOrder, choiceRadio, fill, loadLessons, orderIds, rightInputs, unsortedTarget } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 const KEY = 'gantlo.v1';
+const SAVE_KEY = 'gantlo.exam.v1';
 const SUBMIT = 'POST 答えを送って次へ';
 const PER_WEEK = 10;
 const TOTAL = 40;
@@ -62,6 +65,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
       outside.push(`${req.method()} ${req.url()}`);
     });
     const stored = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? 'null'), KEY);
+    const savedRun = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? 'null'), SAVE_KEY);
     const target = async (locator, label) => {
       if (!phone) return;
       const box = await locator.boundingBox();
@@ -104,6 +108,45 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     await page.getByRole('button', { name: '模擬試験をやめる (記録しません)' }).click();
     await page.getByRole('button', { name: '模擬試験を始める' }).waitFor();
     check(((await stored())?.exams ?? []).length === 0, `${tag} 途中でやめると回の記録は残らない`);
+    check((await savedRun()) === null, `${tag} やめると途中の回 (${SAVE_KEY}) も消える`);
+
+    // 10. 途中で読み直しても、続きから解ける
+    await page.getByRole('button', { name: '模擬試験を始める' }).click();
+    const before = [];
+    for (let i = 0; i < 2; i++) {
+      await page.locator('[data-testid="exam-run"]').waitFor();
+      const id = await currentId(page);
+      before.push(id);
+      await answerExam(page, byId.get(id).q, true);
+      await page.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, id);
+    }
+    const third = await currentId(page);
+    const kept = await savedRun();
+    check(kept?.answers?.length === 2 && kept.items?.length === TOTAL && kept.items[2]?.id === third, `${tag} 答えるたびに出題・答え・期限が ${SAVE_KEY} に残る (${kept?.answers?.length} 問の答え)`);
+    await page.reload();
+    await page.getByTestId('exam-resume').waitFor();
+    check((await statusCode()) === '206', `${tag} 読み直すと途中の回を 206 で出す`);
+    const resumeText = await page.locator('#astryx-app-shell-main').innerText();
+    check(resumeText.includes('40 問のうち 2 問に答え'), `${tag} 途中の回の答えた数が出る`);
+    await target(page.getByRole('button', { name: '続きから解く' }), '続きから解くボタン');
+    await target(page.getByRole('button', { name: 'やめて最初から' }), 'やめて最初からボタン');
+    await noHorizontalOverflow(page, width, `${tag} 続きの画面`);
+    await page.getByRole('button', { name: '続きから解く' }).click();
+    await page.locator('[data-testid="exam-run"]').waitFor();
+    check((await currentId(page)) === third, `${tag} 続きから解くと 3 問目 (読み直す前に出ていた問題) から始まる`);
+    check((await page.locator('.lesson-bar__progress').innerText()).includes('3 / 40 問'), `${tag} 続きは 3 / 40 問から`);
+    await answerExam(page, byId.get(third).q, true);
+    await page.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, third);
+    check((await savedRun())?.answers?.length === 3, `${tag} 続きで答えた問題も残る`);
+    // 閉じて開き直したとき (新しいページ) も同じ。やめて最初からは記録せずに新しい回を始める
+    await page.goto(`${base}exam/?seed=${EXAM_SEED}`);
+    await page.getByTestId('exam-resume').waitFor();
+    await page.getByRole('button', { name: 'やめて最初から' }).click();
+    await page.locator('[data-testid="exam-run"]').waitFor();
+    check((await page.locator('.lesson-bar__progress').innerText()).includes('1 / 40 問'), `${tag} やめて最初からは 1 問目から始める`);
+    check((await savedRun())?.answers?.length === 0 && ((await stored())?.exams ?? []).length === 0, `${tag} やめて最初からでは前の回を記録せず、新しい回を残す`);
+    await page.getByRole('button', { name: '模擬試験をやめる (記録しません)' }).click();
+    await page.getByRole('button', { name: '模擬試験を始める' }).waitFor();
 
     // 2〜4. 40 問を解く。週ごとに先頭の数問を正解にし、合わせて 30 問正解にする (第 1 週 10・第 2 週 9・第 3 週 7・第 4 週 4)
     const plan = { 1: 10, 2: 9, 3: 7, 4: 4 };
@@ -183,6 +226,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     const p = await stored();
     const rec = p?.exams?.[0];
     check(p?.exams?.length === 1 && rec.correct === 30 && rec.total === 40 && rec.timeUp === false, `${tag} 回の記録が残る (${JSON.stringify(rec)})`);
+    check((await savedRun()) === null, `${tag} 終えると途中の回 (${SAVE_KEY}) は消える`);
     check(wrongIds.every((id) => typeof p.answers[id]?.nextReview === 'string'), `${tag} 間違えた 10 問が復習に入る`);
     check(p.xp.total === 30 * 3, `${tag} XP は正解 1 問 3 XP で 90 (${p.xp.total})`);
 

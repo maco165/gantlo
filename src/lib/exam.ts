@@ -4,7 +4,8 @@ import { LESSONS } from '../content/index';
 import type { Lesson, Question } from '../content/types';
 import { XP_PER_CORRECT } from './grade';
 import { shuffleItems } from './order';
-import { MAX_EXAM_RECORDS, completeReview, recordAnswer, type ExamRecord, type Progress } from './progress';
+import { EXAM_SAVE_KEY, type ExamStorage, type SavedExam, type SavedExamItem } from './examSave';
+import { MAX_EXAM_RECORDS, completeReview, recordAnswer, safeLocalStorage, type ExamRecord, type Progress } from './progress';
 import { shuffleChoices, shuffled } from './shuffle';
 
 /** 週ごとに出す数。4 週で 40 問 */
@@ -149,4 +150,74 @@ export function seededRandom(seed: number): () => number {
 export function examRandom(search: string): () => number {
   const raw = new URLSearchParams(search).get('seed');
   return raw !== null && /^\d{1,10}$/.test(raw) ? seededRandom(Number(raw)) : Math.random;
+}
+
+/** 途中の回 (出題・答え・期限) を残す形にする。答えは前から順に埋まるので、答えた数が次に出す問題の位置になる */
+export function toSavedExam(items: readonly ExamItem[], answers: readonly (ExamAnswer | undefined)[], deadline: number): SavedExam {
+  return {
+    v: 1,
+    items: items.map(({ question: q }) => (q.kind === 'choice' ? { id: q.id, order: q.choices.map((c) => c.id) } : q.kind === 'order' ? { id: q.id, order: q.items.map((it) => it.id) } : { id: q.id })),
+    answers: answers.filter((a): a is ExamAnswer => a !== undefined).map((a) => ({ correct: a.correct, code: a.code })),
+    deadline,
+  };
+}
+
+const isPermutation = (ids: unknown, of: readonly string[]) =>
+  Array.isArray(ids) && ids.length === of.length && ids.every((id) => typeof id === 'string') && new Set(ids).size === of.length && of.every((id) => ids.includes(id));
+
+/**
+ * 残した途中の回を、出題の元 (examBank) と突き合わせて読み直す。形が違う・問題データから消えた問題がある・
+ * 同じ問題が 2 回ある・選択肢や項目の並びが今の問題と合わない・答えが問題の数以上、のどれかなら null (最初から)
+ */
+export function fromSavedExam(raw: unknown, bank: readonly ExamItem[] = examBank()): { items: ExamItem[]; answers: ExamAnswer[]; deadline: number } | null {
+  if (typeof raw !== 'object' || raw === null) return null;
+  const r = raw as Partial<Record<keyof SavedExam, unknown>>;
+  if (r.v !== 1 || !Array.isArray(r.items) || !Array.isArray(r.answers) || typeof r.deadline !== 'number' || !Number.isFinite(r.deadline)) return null;
+  if (r.items.length === 0 || r.items.length > EXAM_TOTAL || r.answers.length >= r.items.length) return null;
+  const byId = new Map(bank.map((b) => [b.question.id, b]));
+  const items: ExamItem[] = [];
+  const seen = new Set<string>();
+  for (const it of r.items as unknown[]) {
+    const id = (it as SavedExamItem | null)?.id;
+    if (typeof id !== 'string' || seen.has(id)) return null;
+    seen.add(id);
+    const b = byId.get(id);
+    if (!b) return null;
+    const q = b.question;
+    const order = (it as SavedExamItem).order;
+    if (q.kind === 'choice') {
+      if (!isPermutation(order, q.choices.map((c) => c.id))) return null;
+      items.push({ ...b, question: { ...q, choices: order!.map((cid) => q.choices.find((c) => c.id === cid)!) } });
+    } else if (q.kind === 'order') {
+      if (!isPermutation(order, q.items.map((x) => x.id))) return null;
+      items.push({ ...b, question: { ...q, items: order!.map((oid) => q.items.find((x) => x.id === oid)!) } });
+    } else items.push(b);
+  }
+  const answers: ExamAnswer[] = [];
+  for (const a of r.answers as unknown[]) {
+    const x = a as Partial<ExamAnswer> | null;
+    if (typeof x?.correct !== 'boolean' || typeof x.code !== 'number' || !Number.isInteger(x.code)) return null;
+    answers.push({ correct: x.correct, code: x.code });
+  }
+  return { items, answers, deadline: r.deadline };
+}
+
+/** 途中の回を読む。無い・読めない・形が違うときは null (壊れた中身は消して、次から最初の画面にする) */
+export function loadExamRun(bank?: readonly ExamItem[], storage: ExamStorage | undefined = safeLocalStorage()) {
+  if (!storage) return null;
+  try {
+    const text = storage.getItem(EXAM_SAVE_KEY);
+    if (!text) return null;
+    const run = fromSavedExam(JSON.parse(text), bank);
+    if (!run) storage.removeItem(EXAM_SAVE_KEY);
+    return run;
+  } catch {
+    // JSON として読めない中身も消す
+    try {
+      storage.removeItem(EXAM_SAVE_KEY);
+    } catch {
+      // 消せない環境では次も読めずに最初の画面になる
+    }
+    return null;
+  }
 }

@@ -24,16 +24,20 @@ import {
   isPassed,
   lessonsToReread,
   examRandom,
+  examBank,
+  loadExamRun,
   pickExam,
   recordExam,
+  toSavedExam,
   type ExamAnswer,
   type ExamItem,
   type ExamResult,
 } from '../lib/exam';
+import { clearExamRun, saveExamRun } from '../lib/examSave';
 import { XP_PER_CORRECT } from '../lib/grade';
 import type { Progress } from '../lib/progress';
 import { lessonHref, scrollToTop } from '../lib/route';
-import { examDone, examIntroStatus, type Status } from '../lib/status';
+import { examDone, examIntroStatus, examResumeStatus, type Status } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
 type Props = { progress: Progress; updateProgress: (fn: (p: Progress) => Progress) => void };
@@ -47,36 +51,94 @@ const ORDER_GUARD_MS = 400;
 type Run = { items: ExamItem[]; answers: (ExamAnswer | undefined)[]; index: number; deadline: number; shownAt: number };
 type Done = { items: ExamItem[]; answers: (ExamAnswer | undefined)[]; result: ExamResult };
 
+/** 残した途中の回 (lib/exam.ts の loadExamRun が読み直したもの) */
+type Saved = NonNullable<ReturnType<typeof loadExamRun>>;
+
 /**
  * 模擬試験の画面 (/gantlo/exam/)。本編 4 週から週ごとに 10 問ずつ選んで 60 分で解き、最後にまとめて採点する。
  * 解いている間は正誤を見せない。時間が切れたら、答えていない問題を不正解として採点する。
- * 解いている途中で画面を離れると、その回は記録しない
+ * 解いている途中の回 (出題・答え・期限) は localStorage の別のキー (gantlo.exam.v1) に残し、読み直したり閉じて開き直したりすると
+ * 「続きから解く / やめて最初から」を出す。期限 (始めてから 60 分) は閉じている間も進み、過ぎていれば時間切れとして採点する。
+ * 終えた・やめたときは残した回を消す。やめた回は記録しない
  */
 export default function Exam({ progress, updateProgress }: Props) {
   const [run, setRun] = useState<Run | null>(null);
   const [done, setDone] = useState<Done | null>(null);
+  // 開いたときに残っていた途中の回。期限の前なら続けるかを聞き、過ぎていれば下の effect で時間切れとして採点する
+  const [saved, setSaved] = useState<Saved | null>(() => loadExamRun(examBank()));
 
   const finish = useCallback(
-    (r: Run, timeUp: boolean) => {
+    (r: Pick<Run, 'items' | 'answers'>, timeUp: boolean) => {
+      clearExamRun();
       const result = gradeExam(r.items, r.answers, timeUp);
       updateProgress((p) => recordExam(p, r.items, r.answers, result, new Date()));
       setRun(null);
+      setSaved(null);
       setDone({ items: r.items, answers: r.answers, result });
       scrollToTop();
     },
     [updateProgress],
   );
 
+  // 期限を過ぎた回は、開いたときに 1 回だけ時間切れとして採点する。
+  // 採点の前に localStorage にまだ残っているかを読み直し、消してから記録する (StrictMode で effect が 2 回走っても 2 回記録しない)
+  useEffect(() => {
+    if (!saved || Date.now() < saved.deadline) return;
+    const still = loadExamRun(examBank());
+    if (!still) return;
+    finish(still, true);
+  }, [saved, finish]);
+
+  // 解いている間は、答えるたびに出題・答え・期限を残す
+  useEffect(() => {
+    if (run) saveExamRun(toSavedExam(run.items, run.answers, run.deadline));
+  }, [run]);
+
   const start = () => {
+    clearExamRun();
+    setSaved(null);
     setDone(null);
     const now = Date.now();
     setRun({ items: pickExam(undefined, examRandom(window.location.search)), answers: [], index: 0, deadline: now + LIMIT_MS, shownAt: now });
     scrollToTop();
   };
 
-  if (run) return <Running run={run} setRun={setRun} onFinish={finish} onQuit={() => setRun(null)} />;
+  const resume = (s: Saved) => {
+    setSaved(null);
+    setRun({ items: s.items, answers: s.answers, index: s.answers.length, deadline: s.deadline, shownAt: Date.now() });
+    scrollToTop();
+  };
+
+  const quit = () => {
+    clearExamRun();
+    setRun(null);
+  };
+
+  if (run) return <Running run={run} setRun={setRun} onFinish={finish} onQuit={quit} />;
   if (done) return <ResultView done={done} onRetry={start} />;
+  if (saved && Date.now() < saved.deadline) return <ResumePrompt saved={saved} onResume={() => resume(saved)} onRestart={start} />;
   return <Intro progress={progress} onStart={start} />;
+}
+
+/** 途中の回が残っているときの画面。続きから解くか、その回をやめて最初から始めるかを選ぶ (やめた回は記録しない) */
+function ResumePrompt({ saved, onResume, onRestart }: { saved: Saved; onResume: () => void; onRestart: () => void }) {
+  const isWide = useMediaQuery(WIDE_QUERY);
+  const width = isWide ? undefined : '100%';
+  const answered = saved.answers.length;
+  return (
+    <div className="page" data-testid="exam-resume">
+      <h1 className="page__title">模擬試験の続き</h1>
+      <StatusLine status={examResumeStatus(answered, saved.items.length)} request="GET /me/exams/current" />
+      <Text>
+        途中の回があります。{saved.items.length} 問のうち {answered} 問に答え、残り時間は {formatClock(saved.deadline - Date.now())} です (時間は閉じている間も進みます)。
+      </Text>
+      <Text type="supporting">「やめて最初から」を選ぶと、この回は記録せずに消し、問題を選び直して始めます。</Text>
+      <HStack gap={2} wrap="wrap">
+        <Button variant="primary" label="続きから解く" onClick={onResume} width={width} size="lg" />
+        <Button variant="secondary" label="やめて最初から" onClick={onRestart} width={width} size="lg" />
+      </HStack>
+    </div>
+  );
 }
 
 function Intro({ progress, onStart }: { progress: Progress; onStart: () => void }) {
@@ -119,7 +181,7 @@ function Intro({ progress, onStart }: { progress: Progress; onStart: () => void 
           ))}
         </List>
         <Text type="supporting">
-          実習は出しません。間違えた問題と、時間内に答えられなかった問題は、翌日の復習に入ります。正解 1 問ごとに {XP_PER_CORRECT} XP です。途中で閉じると、その回は記録しません。
+          実習は出しません。間違えた問題と、時間内に答えられなかった問題は、翌日の復習に入ります。正解 1 問ごとに {XP_PER_CORRECT} XP です。途中で閉じても、このブラウザに途中の回が残り、開き直すと続きから解けます (時間は閉じている間も進みます)。やめるボタンでやめた回は記録しません。
         </Text>
       </section>
       <p>
