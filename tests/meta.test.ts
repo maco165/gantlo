@@ -67,6 +67,21 @@ describe('共有したときのカードの画像 (og:image)', () => {
   });
 });
 
+describe('iOS のホーム画面の画像 (apple-touch-icon)', () => {
+  it('全ページの head に /gantlo/apple-touch-icon.png への link がある', () => {
+    for (const p of [...pages, NOT_FOUND_PAGE]) {
+      const doc = new DOMParser().parseFromString(renderPage(template, p), 'text/html');
+      expect(doc.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'), p.path).toBe(`${BASE}apple-touch-icon.png`);
+    }
+  });
+
+  it('画像は public/apple-touch-icon.png にあり、PNG で 180×180', () => {
+    const png = readFileSync(join(__dirname, '../public/apple-touch-icon.png'));
+    expect(png.subarray(1, 4).toString('ascii')).toBe('PNG');
+    expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([180, 180]);
+  });
+});
+
 describe('書き出すページの一覧', () => {
   it('ホーム・メニューの画面・全コース・全レッスンがそろう', () => {
     const expected = ['', ...Object.keys(PAGE_TITLES).map((p) => `${p}/`), ...COURSES.map((c) => `course/${c.id}/`), ...LESSONS.map((l) => `lesson/${l.id}/`)];
