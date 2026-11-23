@@ -175,7 +175,7 @@ export async function runHabits(browser, { base, check, noHorizontalOverflow }) 
     const size = pngSize(await readFile(await png.path()));
     check(size.width === 1080 && size.height === 1350 && png.suggestedFilename() === `gantlo-summary-${today}.png`, `${tag} まとめのカードは 1080×1350 の PNG (${size.width}×${size.height}・${png.suggestedFilename()})`);
     check((await page.locator('.summary-card__preview').count()) === 1, `${tag} 作ったカードを画面にも出す`);
-    check((await page.getByRole('button', { name: '共有する' }).count()) === 0, `${tag} 画像の共有に対応しない端末では保存だけ`);
+    check((await page.getByRole('button', { name: /共有する/ }).count()) === 0, `${tag} 画像の共有に対応しない端末では保存だけ`);
     await noHorizontalOverflow(page, width, `${tag} まとめのカードのあと`);
 
     check(outside.length === 0, `${tag} サイトの外へ何も送らない ${outside.join(' ')}`);
@@ -197,17 +197,20 @@ export async function runHabits(browser, { base, check, noHorizontalOverflow }) 
   await page.goto(`${base}progress/`);
   // 先にカードを作り、押したその場で share に渡す
   await page.getByRole('button', { name: '共有するカードを作る' }).click();
-  await page.getByRole('button', { name: '共有する' }).click();
+  // 「共有する」は「共有するカードを作る」の字も含むので exact で選び、カードができて出るまで待つ
+  const shareButton = page.getByRole('button', { name: '共有する', exact: true });
+  await shareButton.waitFor();
+  await shareButton.click();
   await page.waitForFunction(() => window.__shared.length > 0);
   const shared = await page.evaluate(() => window.__shared[0]);
   check(JSON.stringify(shared.keys) === '["files"]' && shared.files.length === 1 && shared.files[0].type === 'image/png' && shared.files[0].size > 1000 && shared.text === undefined && shared.url === undefined, `[phone まとめのカード] 共有では PNG を files だけで渡し、文・URL・題は付けない (${JSON.stringify(shared)})`);
   // 断られた (NotAllowedError) ときは画面に出し、閉じた (AbortError) ときは何も出さない
   await page.evaluate(() => (window.__fail = 'AbortError'));
-  await page.getByRole('button', { name: '共有する' }).click();
+  await shareButton.click();
   await page.waitForTimeout(200);
   check((await page.getByText('この端末では共有できませんでした').count()) === 0, `[phone まとめのカード] 共有の画面を閉じた (AbortError) ときは何も出さない`);
   await page.evaluate(() => (window.__fail = 'NotAllowedError'));
-  await page.getByRole('button', { name: '共有する' }).click();
+  await shareButton.click();
   await page.getByText('この端末では共有できませんでした').waitFor();
   check(true, `[phone まとめのカード] 共有を断られた (NotAllowedError) ときは画面に出す`);
   await context.close();
