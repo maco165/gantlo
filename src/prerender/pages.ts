@@ -13,6 +13,7 @@ import { NEW_ISSUE_URL, ORIGIN, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib
 import { breadcrumbs, type Crumb } from '../lib/breadcrumbs';
 import { EXAM_MINUTES, EXAM_PER_WEEK, EXAM_TOTAL, EXAM_WEEKS, PASS_MARK, PASS_MARK_NOTE, examBank, weekOf } from '../lib/exam';
 import { kindLabel } from '../lib/questionKind';
+import { ENDPOINTS, HOSTS, STATUS_CODES } from '../lib/tryApi';
 import { STAGES } from '../content/stages';
 import type { Question } from '../content/types';
 import { introHtml } from './intro';
@@ -51,6 +52,7 @@ const PAGE_DESCRIPTIONS: Record<PageName, string> = {
   progress: '正答率・この 7 日の XP・コースごとの進み具合・旅の 8 段の学習状況を見る gantlo の進捗の画面。記録はブラウザの localStorage にだけ残り、サーバーには送りません。',
   glossary: 'HTTP・URI・JSON・DNS・TLS・REST・OAuth など API の基礎の 11 の規格と、gantlo の問題に出る用語を、RFC などの一次情報の出典付きで短くまとめた用語集。',
   settings: 'gantlo の学び方の設定の画面。設定はブラウザの localStorage にだけ残り、サーバーには送りません。',
+  try: 'HTTP のメソッド・ステータスコード・ヘッダーと CORS を、ブラウザから公開の API (httpbin.org・api.github.com) に本物の要求を送って確かめる gantlo の画面。Cookie は送りません。',
   about: 'gantlo がどんなサイトかと、ソースコードの置き場所・問題の誤りの知らせ方・記録の置き場所・AI に聞くリンク・問題の出典・ライセンスをまとめたページ。',
 };
 
@@ -118,6 +120,19 @@ export function examBody(lessons: readonly Lesson[] = LESSONS): string[] {
       const n = bank.filter((b) => b.week === week).length;
       return `<h3>第 ${week} 週: ${esc(title)} (出題の元 ${n} 問)</h3><ul>${own.map((l) => `<li>${a(lessonHref(l.id), l.title)}</li>`).join('')}</ul>`;
     }),
+  ];
+}
+
+/** 試す画面の本文 (何を送れるか・何が見えるか・送らないもの)。送り先の一覧は src/lib/tryApi.ts の正本から書く */
+export function tryBody(): string[] {
+  return [
+    '<h2>送れる要求</h2>',
+    `<ul>${ENDPOINTS.map((e) => `<li><code>${esc(`${e.methods.join('・')} ${HOSTS[e.host].origin}${e.hasCode ? `${e.path}{コード}` : e.path}`)}</code>: ${esc(e.note)}</li>`).join('')}</ul>`,
+    `<p>ステータスコードは ${STATUS_CODES.join('・')} から選べます。リクエストヘッダーは Accept (CORS の safelist にある) と X-Gantlo-Try (safelist に無いので、ブラウザが先に OPTIONS の preflight を送る) を付け外しできます。</p>`,
+    '<h2>見えるもの</h2>',
+    '<p>本物のステータスコード、ブラウザが JS から読める応答ヘッダー (CORS の safelist の 7 つと、相手が Access-Control-Expose-Headers で公開した名前) と、本文です。読めないヘッダー (Date・Server など) は、届いていても読めないことを説明します。CORS で弾かれた・相手が止まっている・オフラインのときは、何が起きたかを説明します。</p>',
+    '<h2>送らないもの</h2>',
+    '<p>要求はあなたのブラウザから外のサービスに直に送られ、送るのはボタンを押したときだけです。Cookie や HTTP 認証 (credentials: omit) と Referer は送りません。学んだ記録も送りません。送り先には、あなたの IP アドレスと Origin ヘッダーが見えます。</p>',
   ];
 }
 
@@ -242,7 +257,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
             ]
           : []),
       ],
-      body: [crumbsHtml(crumbs), `<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), ...(p === 'exam' ? examBody(lessons) : []), back].join('\n'),
+      body: [crumbsHtml(crumbs), `<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), ...(p === 'exam' ? examBody(lessons) : []), ...(p === 'try' ? tryBody() : []), back].join('\n'),
       noindex: PERSONAL_PAGES.includes(p),
     });
   }

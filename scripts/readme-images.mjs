@@ -283,6 +283,8 @@ try {
   });
   await shoot('glossary-phone', phone, 'glossary/', (page) => page.locator('article.gloss').first().waitFor());
   await shoot('about-phone', phone, 'about/');
+  // 試す画面: 外へ送ることの断りと、選ぶ所 (README の画像では外へ送らない。応答の形は e2e が差し替えで見る)
+  await shoot('try-phone', phone, 'try/', (page) => page.getByTestId('try-notice').waitFor());
   await shoot('menu-phone', phone, '', async (page) => {
     await page.getByRole('button', { name: 'メニューを開く' }).click();
     await page.waitForTimeout(500);

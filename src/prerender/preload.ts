@@ -18,6 +18,7 @@ const SCREENS: Record<string, string> = {
   glossary: 'src/screens/Glossary.tsx',
   settings: 'src/screens/Settings.tsx',
   about: 'src/screens/About.tsx',
+  try: 'src/screens/Try.tsx',
 };
 
 /** 道 (BASE からの相対) から、先に取りに行く manifest の鍵 (画面、レッスンならそのレッスンを持つ問題データ) */
