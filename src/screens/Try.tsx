@@ -3,7 +3,8 @@ import { Text } from '@astryxdesign/core/Text';
 import { useRef, useState } from 'react';
 import StatusLine from '../components/StatusLine';
 import { pageHref } from '../lib/route';
-import type { Status } from '../lib/status';
+import { STORAGE_KEY } from '../lib/progress';
+import { TRY_ABOUT, type Status } from '../lib/status';
 import {
   ENDPOINTS,
   HEADER_CHOICES,
@@ -58,7 +59,10 @@ function CodeView({ title, code }: { title: string; code: string }) {
   );
 }
 
-const ABOUT: Status = { code: 200, reason: 'OK', ja: '外のサービスに要求を送り、本物の応答を見る画面です。送るのはボタンを押したときだけです' };
+// 試す画面の説明のステータスと、記録の置き場所の名前は、ほかの画面と同じ正本 (status.ts・progress.ts) から読む。
+// どちらも読まないと、rolldown がこの画面に合わせて共有のチャンクを切り直し、progress.ts と status.ts を入口の JS へ移して
+// 入口が 5 KB 重くなり、レッスンのページの LCP が落ちた (Actions の Lighthouse で 81 → 79)
+const ABOUT: Status = TRY_ABOUT;
 
 /**
  * 試す画面 (/gantlo/try/)。CORS を許している公開の API (httpbin.org・api.github.com) に、選んだメソッド・道・ヘッダーで fetch を送り、
@@ -131,7 +135,7 @@ export default function Try() {
           送るのは「送る」を押したときだけです。
         </p>
         <Text type="supporting">
-          Cookie や認証の情報は送りません (credentials: omit)。どのページから来たか (Referer) も送りません。送り先には、あなたの IP アドレスと、このサイトから送ったこと (Origin ヘッダー) が見えます。学んだ記録は送りません。
+          Cookie や認証の情報は送りません (credentials: omit)。どのページから来たか (Referer) も送りません。送り先には、あなたの IP アドレスと、このサイトから送ったこと (Origin ヘッダー) が見えます。学んだ記録 (このブラウザの {STORAGE_KEY}) は送りません。
         </Text>
       </div>
 

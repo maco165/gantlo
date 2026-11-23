@@ -481,6 +481,16 @@ describe.skipIf(!existsSync(join(DIST, 'sitemap.xml')))('npm run build のあと
     }
   });
 
+  it('入口の JS (index.html の script。ほかの JS より先に読み終えて動かす) は gzip -9 で 172 KB 以下', () => {
+    // 新しい画面が共有の部品の一部だけを読むと、rolldown が共有のチャンクを切り直し、progress.ts や status.ts を入口へ移す。
+    // 合計は変わらなくても入口が重くなり、レッスンのページの LCP が落ちた (#60 で 169 KB → 174 KB、Lighthouse で 81 → 79)
+    const top = read('index.html');
+    const entry = /<script type="module"[^>]*src="\/gantlo\/(assets\/[^"]+\.js)"/.exec(top)?.[1];
+    expect(entry).toBeDefined();
+    const size = gzipSync(readFileSync(join(DIST, entry!)), { level: 9 }).length;
+    expect(size, `${entry} が ${size} bytes`).toBeLessThanOrEqual(172_000);
+  });
+
   it('トップが最初に読む JS (script と modulepreload を gzip -9 した合計) が 300 KB 以下で、問題の本文を含まない', () => {
     const top = read('index.html');
     const files = [...new Set([...top.matchAll(/<(?:script type="module"[^>]*src|link rel="modulepreload"[^>]*href)="\/gantlo\/(assets\/[^"]+\.js)"/g)].map((m) => m[1]))];

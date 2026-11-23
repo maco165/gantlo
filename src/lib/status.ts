@@ -156,3 +156,6 @@ export function examDone(correct: number, total: number, passed: boolean, timeUp
   if (timeUp) return { code: 408, reason: 'Request Timeout', ja: `時間が切れました。答えていない問題は不正解です。${total} 問のうち ${correct} 問が正解で、${verdict}` };
   return { code: 201, reason: 'Created', ja: `模擬試験を終え、記録を作りました。${total} 問のうち ${correct} 問が正解で、${verdict}` };
 }
+
+/** 試す画面 (GET /try) */
+export const TRY_ABOUT: Status = { code: 200, reason: 'OK', ja: '外のサービスに要求を送り、本物の応答を見る画面です。送るのはボタンを押したときだけです' };
