@@ -4,10 +4,11 @@ import { Text } from '@astryxdesign/core/Text';
 import { TextInput } from '@astryxdesign/core/TextInput';
 import { Fragment, useState } from 'react';
 import type { CommandQuestion, HttpQuestion } from '../content/types';
-import { XP_PER_CORRECT, gradeFill, normalizeAnswer } from '../lib/grade';
+import { XP_PER_CORRECT, findWrong, gradeFill, normalizeAnswer } from '../lib/grade';
 import { RETRY_AFTER_SECONDS, fillStatus, type Status } from '../lib/status';
 import AnswerResponse, { sourceHeaders } from './AnswerResponse';
 import AskAi from './AskAi';
+import ReportIssue from './ReportIssue';
 import { ActionArea, EXAM_SUBMIT_LABEL, PrimaryAction, QuestionHead } from './QuestionFrame';
 import { kindLabel } from '../lib/questionKind';
 
@@ -82,6 +83,13 @@ export default function FillQuestionView({
 
   const status = checked ? fillStatus(question.blanks, results) : null;
   const correct = status?.code === 200;
+  // 自分の答えが、よくある誤答に当たった空欄だけ「なぜ違うか」を出す (当たらなければ今まで通り、解説だけ)
+  const wrongNotes = checked
+    ? question.blanks.flatMap((b, i) => {
+        const w = findWrong(b, values[i] ?? '');
+        return w ? [{ i, answer: normalizeAnswer(values[i]), why: w.why }] : [];
+      })
+    : [];
 
   return (
     <VStack gap={5}>
@@ -130,6 +138,15 @@ export default function FillQuestionView({
                 ...sourceHeaders(question.sources),
               ]}
             >
+              {wrongNotes.map((w) => (
+                <p key={w.i} className="wrong-note" data-testid="wrong-note">
+                  <Text weight="bold">
+                    {question.blanks.length > 1 ? `空欄 ${w.i + 1} の ` : ''}
+                    <code>{w.answer}</code> が違う理由
+                  </Text>{' '}
+                  <Text>{w.why}</Text>
+                </p>
+              ))}
               <Text>{question.explanation}</Text>
               {correct && question.kind === 'command' && question.output && (
                 <CodeBlock code={question.output} title="実行結果の例" width="100%" size="sm" hasCopyButton={false} />
@@ -137,6 +154,7 @@ export default function FillQuestionView({
             </AnswerResponse>
             <PrimaryAction label={nextLabel} onClick={onNext} />
             <AskAi question={question} answered={{ picked: values.map(normalizeAnswer).join(' / '), correct }} />
+            <ReportIssue questionId={question.id} />
           </>
         )}
       </ActionArea>

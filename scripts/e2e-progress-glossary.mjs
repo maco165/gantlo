@@ -11,7 +11,7 @@
 //   7. 横にはみ出さず、文が切れない。390 幅では押せる所 (探す欄・出典とレッスンのリンク・進捗の下のリンク) が 44px 以上。
 //      外へ何も送らず、ページのエラーが無い
 import { readFileSync } from 'node:fs';
-import { COURSE_ORDER, findLessonWith, loadLessons } from './e2e-lessons.mjs';
+import { COURSE_ORDER, findLessonWith, loadLessons, startLesson } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 const KEY = 'gantlo.v1';
@@ -43,11 +43,9 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
     const errors = [];
     const outside = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
     page.on('request', (req) => {
       const url = new URL(req.url());
       if (url.origin === origin || url.protocol === 'data:' || url.protocol === 'blob:') return;
-      if (req.method() === 'GET' && FONT_HOSTS.includes(url.hostname)) return;
       outside.push(`${req.method()} ${req.url()}`);
     });
     const target = async (locator, label) => {
@@ -149,7 +147,8 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
     check(JSON.stringify(standards) === JSON.stringify(STANDARDS), `${tag} 11 の規格が学ぶ順に先に並ぶ (${standards.join(',')})`);
     const head = page.locator('article.gloss[data-term="head"]');
     const headTerm = glossary.terms.find((t) => t.id === 'head');
-    check((await head.innerText()).includes(headTerm.description), `${tag} 語に短い説明が出る`);
+    // 語の箱は content-visibility: auto で、画面の外の語は描くまで innerText が空になる。DOM の文字 (検索・読み上げが読むもの) で見る
+    check((await head.textContent()).includes(headTerm.description), `${tag} 語に短い説明が出る`);
     const srcLinks = await page.locator('article.gloss .gloss__meta a[target="_blank"]').evaluateAll((as) => as.map((a) => a.href));
     const sourceCount = glossary.terms.reduce((s, t) => s + t.sources.length, 0);
     check(srcLinks.length === sourceCount && srcLinks.every((h) => h.startsWith('https://')), `${tag} 出典 ${sourceCount} 本がすべて https で新しいタブに開く (${srcLinks.length})`);
@@ -209,6 +208,7 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
     check(linkLesson !== undefined, `${tag} 出てくるレッスンを持つ語があり、そのレッスンが問題データにある (${linkTerm?.id} → ${linkTerm?.lessons[0]})`);
     if (linkLesson) {
       await page.locator(`article.gloss[data-term="${linkTerm.id}"] a[href="/gantlo/lesson/${linkLesson.id}/"]`).click();
+      await startLesson(page);
       await page.getByRole('heading', { name: linkLesson.questions[0].prompt }).waitFor();
       check(new URL(page.url()).pathname === `/gantlo/lesson/${linkLesson.id}/`, `${tag} 「出てくるレッスン」のリンクでレッスンが開く (${new URL(page.url()).pathname})`);
     }

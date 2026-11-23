@@ -283,6 +283,72 @@ describe('check-content', { timeout: 30_000 }, () => {
     }
   });
 
+  it('要点 (intro) の決まりを 1 つずつ NG にする (全レッスンが持つ・3 行・動詞で終える・字数・図・出典・答えを書かない)', async () => {
+    const { checkFiles, readStages, readIds } = await import(pathToFileURL(SCRIPT).href);
+    const opts = { stages: readStages(), courseIds: readIds('src/lib/route.ts', 'COURSES') };
+    const intro = (d: any) => d.lessons[0].intro;
+    const long = 'あ'.repeat(39) + '。';
+    const cases: [string, (d: any) => void, RegExp][] = [
+      ['no-intro', (d) => delete d.lessons[0].intro, /main-w1-l1: intro \(問題の前に読む要点\) がありません/],
+      ['two-goals', (d) => (intro(d).goals = intro(d).goals.slice(0, 2)), /intro\.goals \(分かるようになること\) はちょうど 3 行/],
+      ['four-goals', (d) => intro(d).goals.push('もう 1 つ読む'), /intro\.goals \(分かるようになること\) はちょうど 3 行/],
+      ['goal-noun', (d) => (intro(d).goals[1] = 'ヘッダーの読み方'), /intro\.goals\[1\] は動詞で終えます/],
+      ['body-short', (d) => (intro(d).body = ['短い説明です。']), /intro\.body は合わせて 200〜400 字にします \(7 字\)/],
+      ['body-long', (d) => (intro(d).body = Array(11).fill(long)), /intro\.body は合わせて 200〜400 字にします \(440 字\)/],
+      ['sentence-long', (d) => (intro(d).body[0] = 'あ'.repeat(61) + '。'), /intro\.body の 1 文は 60 字までにします/],
+      ['no-figure', (d) => delete intro(d).figure, /figure \(図\) か figureOmitted \(図を省く理由\) のどちらか一方/],
+      ['both-figure', (d) => (intro(d).figureOmitted = '要らない'), /figure \(図\) か figureOmitted \(図を省く理由\) のどちらか一方/],
+      ['figure-kind', (d) => (intro(d).figure.kind = 'pie'), /intro\.figure\.kind は flow \/ table のどれか/],
+      ['figure-one', (d) => (intro(d).figure.items = intro(d).figure.items.slice(0, 1)), /intro\.figure\.items は 2〜8 個にします \(1 個\)/],
+      ['table-no-note', (d) => {
+        intro(d).figure.kind = 'table';
+        delete intro(d).figure.items[0].note;
+      }, /intro\.figure\.items\[0\]\.note がありません/],
+      ['try-three', (d) => (intro(d).tryIt = Array(3).fill(intro(d).tryIt[0])), /intro\.tryIt \(手元で試すコマンド\) は 1〜2 個/],
+      ['try-no-expect', (d) => delete intro(d).tryIt[0].expect, /intro\.tryIt\[0\] は command と expect/],
+      ['no-sources', (d) => (intro(d).sources = []), /intro\.sources \(出典の URL の配列\) がありません/],
+      ['http-source', (d) => (intro(d).sources[1] = 'http://curl.se/docs/manpage.html'), /intro\.sources\[1\] が https の URL ではありません/],
+      ['rfc-no-section', (d) => (intro(d).sources[0] = 'https://www.rfc-editor.org/rfc/rfc9110'), /intro\.sources\[0\] の RFC は節まで指します/],
+      ['unknown-field', (d) => (intro(d).goal = []), /知らない欄 \(intro\.goal\) です/],
+      // 答えの漏れ: 穴埋めの正解 (別解も)。ヘッダー名は大文字と小文字を区別しないので小文字でも漏れ
+      ['leak-command', (d) => (intro(d).tryIt[0].command = 'curl --head https://example.com/'), /intro に main-w1-l1-q1 の答え \(--head\) が書いてあります/],
+      ['leak-header', (d) => intro(d).body.push('本文の形式は content-type で伝えます。'), /intro に main-w1-l1-q2 の答え \(Content-Type\) が書いてあります/],
+      ['leak-figure', (d) => (intro(d).figure.items[0].note = 'application/json'), /intro に main-w1-l1-q2 の答え \(application\/json\) が書いてあります/],
+    ];
+    for (const [name, fn, re] of cases) {
+      const r = checkFiles([mutate(name, fn)], opts);
+      expect(r.ok, name).toBe(false);
+      expect(r.lines.join('\n'), name).toMatch(re);
+    }
+    // 語の一部 (-I が -i や -Iv の中に、など) は漏れに数えない。別の語の一部だけが同じでも NG にしない
+    const ok = checkFiles([mutate('word-edge', (d) => (intro(d).tryIt[0].command = 'curl -sIv https://example.com/'))], opts);
+    expect(ok.lines.join('\n')).not.toMatch(/答え/);
+  });
+
+  it('穴埋めのよくある誤答 (blanks[].wrong) の決まりを 1 つずつ NG にする (数・形・正解と同じ・重なり・文の数)', async () => {
+    const { checkFiles, readStages, readIds } = await import(pathToFileURL(SCRIPT).href);
+    const opts = { stages: readStages(), courseIds: readIds('src/lib/route.ts', 'COURSES') };
+    const w = (d: any, qi: number, bi = 0) => q(d, qi).blanks[bi].wrong;
+    const cases: [string, (d: any) => void, RegExp][] = [
+      ['no-wrong', (d) => delete q(d, 0).blanks[0].wrong, /main-w1-l1-q1: よくある誤答 \(blanks\[\]\.wrong\) を合わせて 2〜4 個書きます \(0 個\)/],
+      ['one-wrong', (d) => w(d, 0).pop(), /main-w1-l1-q1: よくある誤答 .* \(1 個\)/],
+      ['five-wrong', (d) => w(d, 1, 0).push(...['A', 'B', 'C', 'D'].map((x) => ({ answer: x, why: 'ちがう。' }))), /main-w1-l1-q2: よくある誤答 .* \(6 個\)/],
+      ['not-array', (d) => (q(d, 0).blanks[0].wrong = { answer: '-i', why: 'x' }), /main-w1-l1-q1: blanks\[0\]\.wrong は誤答の配列にします/],
+      ['no-why', (d) => delete w(d, 0)[0].why, /main-w1-l1-q1: blanks\[0\]\.wrong\[0\] は answer \(誤答\) と why/],
+      ['same-as-right', (d) => (w(d, 0)[0].answer = '--head'), /main-w1-l1-q1: blanks\[0\]\.wrong\[0\] の誤答 \(--head\) が正解と同じです/],
+      // ヘッダー名は大文字と小文字を区別しないので、小文字にしただけの正解は誤答にならない
+      ['same-header-case', (d) => (w(d, 1, 0)[0].answer = 'content-type'), /main-w1-l1-q2: blanks\[0\]\.wrong\[0\] の誤答 \(content-type\) が正解と同じです/],
+      ['dup-wrong', (d) => (w(d, 0)[1].answer = w(d, 0)[0].answer), /main-w1-l1-q1: blanks\[0\]\.wrong\[1\] の誤答 \(-i\) が重なっています/],
+      ['why-three', (d) => (w(d, 0)[0].why = '一つ目。二つ目。三つ目。'), /main-w1-l1-q1: blanks\[0\]\.wrong\[0\]\.why は 2 文までにします/],
+      ['unknown-field', (d) => (w(d, 0)[0].reason = 'x'), /知らない欄 \(blanks\[0\]\.wrong\[0\]\.reason\) です/],
+    ];
+    for (const [name, fn, re] of cases) {
+      const r = checkFiles([mutate(name, fn)], opts);
+      expect(r.ok, name).toBe(false);
+      expect(r.lines.join('\n'), name).toMatch(re);
+    }
+  });
+
   it('検査が読む段とコースの id は、stages.ts と route.ts の正本と同じ', async () => {
     const mod = await import(pathToFileURL(SCRIPT).href);
     expect(mod.readStages()).toEqual(STAGES.map((s) => ({ id: s.id, week: s.week })));

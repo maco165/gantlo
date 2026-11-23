@@ -11,12 +11,18 @@
     <meta property="og:description" content="API と HTTP の基礎を、curl のコマンドや HTTP の穴埋め・並べ替えの問題で学ぶ学習サイト。" />
     <meta property="og:url" content="https://maco165.github.io/gantlo/" />
     <meta property="og:locale" content="ja_JP" />
-    <!-- 共有したときのカードの画像。全ページで同じ 1 枚 (scripts/readme-images.mjs が public/og.png を作る) -->
+    <!-- 共有したときのカードの画像。既定はサイト共通の 1 枚 (scripts/readme-images.mjs が public/og.png を作る)。
+         検索に載るページ (ホームを除く) は、build でそのページの題を入れた画像 (<道>/og.png) に置き換える (src/prerender/og.ts) -->
     <meta property="og:image" content="https://maco165.github.io/gantlo/og.png" />
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="gantlo: API と HTTP の基礎を、問題を解いて学ぶ。計画はガントチャートで" />
     <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://maco165.github.io/gantlo/og.png" />
+    <!-- 最初の画面で使う書体 (本文・コード・題字の latin) を CSS を読む前から取りに行く。@font-face は src/fonts.css -->
+    <link rel="preload" href="/gantlo/fonts/fustat-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/gantlo/fonts/jetbrains-mono-latin.woff2" as="font" type="font/woff2" crossorigin />
+    <link rel="preload" href="/gantlo/fonts/manufacturing-consent-latin.woff2" as="font" type="font/woff2" crossorigin />
     <link rel="icon" href="/gantlo/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/gantlo/apple-touch-icon.png" />
     <meta name="theme-color" content="#101314" />
@@ -38,7 +44,7 @@
           <li>追加のコース: Spring Boot の流れ、技術の歴史、管理の歴史、セキュリティ</li>
         </ul>
         <p>進み具合はブラウザの localStorage にだけ残り、サーバーには送りません。表示には JavaScript を使います。</p>
-        <p><a href="https://github.com/maco165/gantlo" style="color: #a3b5d6">GitHub のリポジトリ</a></p>
+        <p><a href="https://github.com/maco165/gantlo" target="_blank" rel="noopener noreferrer" style="color: #a3b5d6">GitHub のリポジトリ</a></p>
       </main>
     </div>
     <script type="module" src="/src/main.tsx"></script>

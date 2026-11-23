@@ -23,6 +23,9 @@
 // メニューの下端の「このサイト」の 2 つ・上の帯の GitHub のボタン・このサイトについての画面 (B-023) は scripts/e2e-about.mjs が確かめる。
 // コースの画面 (B-024) は scripts/e2e-course.mjs が確かめる。
 // 模擬試験の画面 (B-027) は scripts/e2e-exam.mjs が確かめる。
+// 休みの札・週の目標・.ics・カレンダー・到達・まとめのカード (#55) は scripts/e2e-habits.mjs が確かめる。
+// ページごとの共有の画像と、結果の共有のボタン (#55) は scripts/e2e-share.mjs が確かめる。
+// 試す画面 (#55) は scripts/e2e-try.mjs が確かめる (外のサービスへの要求は page.route で差し替える)。
 // 390 幅の崩れ (出典の外部リンクの印・用語集の区切り。B-025) は scripts/e2e-narrow.mjs が確かめる。
 // テーマが Gothic であることと、文字と地のコントラスト (4.5:1 以上) は scripts/e2e-contrast.mjs が確かめる。
 import { spawn } from 'node:child_process';
@@ -33,6 +36,7 @@ import { runContrast } from './e2e-contrast.mjs';
 import { runCourse } from './e2e-course.mjs';
 import { runExam } from './e2e-exam.mjs';
 import { runHandbook } from './e2e-handbook.mjs';
+import { runHabits } from './e2e-habits.mjs';
 import { runHomeAndPlan } from './e2e-home-plan.mjs';
 import {
   XP_PER_CORRECT,
@@ -52,12 +56,16 @@ import {
   orderText,
   pickWalkLesson,
   rightInputs,
+  startLesson,
   unsortedTarget,
 } from './e2e-lessons.mjs';
+import { checkIntroGate, runIntro } from './e2e-intro.mjs';
 import { runNarrow } from './e2e-narrow.mjs';
 import { runProgressAndGlossary } from './e2e-progress-glossary.mjs';
 import { runReviewAndSettings } from './e2e-review-settings.mjs';
 import { runSchedule } from './e2e-schedule.mjs';
+import { runShare } from './e2e-share.mjs';
+import { runTry } from './e2e-try.mjs';
 
 const require = createRequire(import.meta.url);
 const { chromium } = require('playwright');
@@ -178,7 +186,7 @@ async function aiQuery(page) {
 /** 答えの手がかりになる文 (正解・解説・実行結果の例・見えること・誤りの理由) */
 function secretsOf(q) {
   const out = [q.explanation];
-  if (q.kind === 'command' || q.kind === 'http') for (const b of q.blanks) out.push(...b.answers);
+  if (q.kind === 'command' || q.kind === 'http') for (const b of q.blanks) out.push(...b.answers, ...(b.wrong ?? []).map((w) => w.why));
   if (q.kind === 'command' && q.output) out.push(q.output);
   if (q.kind === 'choice') {
     // 正解の選択肢の文は選択肢として必ず出るので、「正解は「…」」の形で入っていないかを見る
@@ -298,12 +306,10 @@ async function run(browser, name, width, height) {
   const errors = [];
   const outside = [];
   page.on('pageerror', (e) => errors.push(e.message));
-  // Gothic テーマの fonts.css が読む Google Fonts の GET だけは許す (字を取りに行くだけで、こちらから何も送らない)
-  const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
+  // サイトの外へは何も取りに行かない (書体も自前で配る。src/fonts.css)
   page.on('request', (req) => {
     const url = new URL(req.url());
     if (url.origin === ORIGIN || url.protocol === 'data:') return;
-    if (req.method() === 'GET' && FONT_HOSTS.includes(url.hostname)) return;
     outside.push(`${req.method()} ${req.url()}`);
   });
   const tag = `[${name}]`;
@@ -316,6 +322,7 @@ async function run(browser, name, width, height) {
   // 1 問目: ページの題・何問目か・AI に聞くリンク・押せる範囲
   const q0 = lesson.questions[0];
   await page.goto(LESSON_URL);
+  await checkIntroGate(page, lesson, tag, width, { check, noHorizontalOverflow });
   await page.getByRole('heading', { name: q0.prompt }).waitFor();
   check((await page.title()).startsWith(lesson.title), `${tag} ページの題がレッスン名で始まる (${lesson.id})`);
   check(await page.getByText(`1 / ${n} 問`).first().isVisible(), `${tag} 何問目かが出る`);
@@ -405,6 +412,20 @@ async function run(browser, name, width, height) {
         check(await sourcesShown(r, q.sources), `${tag} 不正解のとき出典 (X-Source) がリンクで出る`);
         const after = await aiQuery(page);
         check(after.text.includes('不正解') && q.blanks.every((b) => after.text.includes(b.answers[0])), `${tag} 答えたあとの AI のリンクには自分の答えと正解が入る`);
+        // 誤りを報告: GitHub の新しい Issue。題と本文に問題の id・レッスン・ページの URL が入り、自分の答えは入らない
+        const report = page.getByRole('link', { name: /誤りを報告/ });
+        check((await report.count()) === 1, `${tag} 答えたあとに「誤りを報告」のリンクが 1 つある`);
+        const reportUrl = new URL(await report.getAttribute('href'));
+        const reportText = `${reportUrl.searchParams.get('title')}\n${reportUrl.searchParams.get('body')}`;
+        check(
+          reportUrl.origin + reportUrl.pathname === 'https://github.com/maco165/gantlo/issues/new' &&
+            reportText.includes(q.id) &&
+            reportText.includes(lesson.title) &&
+            reportText.includes(`https://maco165.github.io/gantlo/lesson/${lesson.id}/`),
+          `${tag} 誤りを報告は GitHub の新しい Issue で、題と本文に問題の id・レッスン・ページの URL が入る`,
+        );
+        check(!reportText.includes('zz-wrong-answer') && (await report.getAttribute('target')) === '_blank', `${tag} 誤りを報告には自分の答えを入れず、別のタブで開く`);
+        if (phone) await checkTarget(report, `${tag} 誤りを報告のリンク`);
         await noHorizontalOverflow(page, width, `${tag} 応答 400`);
         if (phone && i < n - 1) await checkTarget(page.getByRole('button', { name: '次の問題へ' }), `${tag} 次へのボタン`);
       } else if ((q.kind === 'command' || q.kind === 'http') && once('fill-200')) {
@@ -511,6 +532,7 @@ async function run(browser, name, width, height) {
   // ほかのレッスン: 1 周目は全部正しく (大文字と小文字を変えた空欄・実習)、2 周目でメディアタイプを誤る (415)
   for (const extra of extraLessons) {
     await page.goto(`${BASE}lesson/${extra.id}/`);
+    await startLesson(page);
     const e1 = await walk(page, extra, () => 'right', {
       before: async (q) => (q.kind === 'lab' && once('lab-ui') ? await finishLabChecked(page, q, tag, width, phone) : false),
       after: async (q) => {
@@ -670,8 +692,14 @@ try {
   await runCourse(browser, { base: BASE, check, noHorizontalOverflow });
   // 模擬試験 (B-027)
   await runExam(browser, { base: BASE, check, noHorizontalOverflow });
+  await runHabits(browser, { base: BASE, check, noHorizontalOverflow });
+  // ページごとの共有の画像と、結果の共有のボタン (#55)
+  await runShare(browser, { base: BASE, check, noHorizontalOverflow });
+  // 試す画面 (#55)
+  await runTry(browser, { base: BASE, check, noHorizontalOverflow });
   // 390 幅の崩れ (B-025)
   await runNarrow(browser, { base: BASE, check, noHorizontalOverflow });
+  await runIntro(browser, { base: BASE, check, noHorizontalOverflow });
   // テーマと文字のコントラスト (R-16)
   await runContrast(browser, { base: BASE, check });
 } catch (e) {

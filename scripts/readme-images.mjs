@@ -128,11 +128,17 @@ function seedProgress() {
   const key = (x) => `${x.getFullYear()}-${String(x.getMonth() + 1).padStart(2, '0')}-${String(x.getDate()).padStart(2, '0')}`;
   const today = key(d);
   const ago = (n) => key(new Date(d.getFullYear(), d.getMonth(), d.getDate() - n));
+  // カレンダーの見本: この 4 か月ほどの、日ごとに答えた問題の数 (ばらつきを持たせる)
+  const answered = Array.from({ length: 120 }, (_, i) => [ago(i), [0, 4, 0, 12, 7, 0, 25, 3, 0, 40, 9, 0, 0, 18][i % 14]]).filter(([, n]) => n > 0);
   const progress = {
     v: 1,
     plan: { courses: ['main', 'spring', 'tech-history'], start: ago(1) },
     streak: { count: 3, lastDay: today },
-    xp: { total: 60, byDay: { [ago(4)]: 12, [ago(2)]: 9, [ago(1)]: 18, [today]: 21 } },
+    // 学んだ日: 直近 4 日と、カレンダーの見本の日 (5 日より前は答えた数の 3 倍の XP)
+    xp: { total: 60, byDay: { ...Object.fromEntries(answered.filter(([day]) => day < ago(4)).map(([day, n]) => [day, n * 3])), [ago(4)]: 12, [ago(2)]: 9, [ago(1)]: 18, [today]: 21 } },
+    answered: Object.fromEntries(answered),
+    freeze: { count: 1, toward: 3, used: [ago(3)] },
+    profile: { dailyGoalXp: 30, weeklyGoalDays: 4 },
     lessons: {
       'main-w1-l1': { done: true, best: 0.86, at: d.toISOString() },
       'main-w1-l2': { done: true, best: 1, at: d.toISOString() },
@@ -268,6 +274,13 @@ try {
   await shoot('course-phone', phone, 'course/main/', (page) => page.locator('.net__row').first().waitFor());
   await shoot('review-phone', phone, 'review/');
   await shoot('progress-phone', phone, 'progress/', (page) => page.locator('.prog__table tbody tr').first().waitFor());
+  // 学び続ける仕組み: 休みの札と週の目標の行から、26 週のマス・14 日の復習まで
+  await shoot('habits-phone', phone, 'progress/', async (page) => {
+    await page.locator('[data-testid="habits"]').evaluate((el) => {
+      el.scrollIntoView({ block: 'start' });
+      document.getElementById('astryx-app-shell-main')?.scrollBy(0, -(document.querySelector('.mobile-bar')?.getBoundingClientRect().height ?? 0) - 16);
+    });
+  });
   await shoot('glossary-phone', phone, 'glossary/', (page) => page.locator('article.gloss').first().waitFor());
   await shoot('about-phone', phone, 'about/');
   await shoot('handbook-phone', phone, 'handbook/', (page) => page.locator('.hb-card').first().waitFor());
@@ -279,6 +292,8 @@ try {
       document.getElementById('astryx-app-shell-main')?.scrollBy(0, -(document.querySelector('.mobile-bar')?.getBoundingClientRect().height ?? 0) - 16);
     });
   });
+  // 試す画面: 外へ送ることの断りと、選ぶ所 (README の画像では外へ送らない。応答の形は e2e が差し替えで見る)
+  await shoot('try-phone', phone, 'try/', (page) => page.getByTestId('try-notice').waitFor());
   await shoot('menu-phone', phone, '', async (page) => {
     await page.getByRole('button', { name: 'メニューを開く' }).click();
     await page.waitForTimeout(500);

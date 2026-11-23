@@ -9,11 +9,18 @@
 //   6. 途中でやめると記録しない
 //   7. 時計を進めて 60 分を過ぎると、408 Request Timeout・答えていない問題の数 (X-Unanswered) が出て、時間切れの回として残る
 //   8. 並べ替えを出した直後 (0.4 秒の間) の送るは受け付けない (2 度押しの 2 回目で次の問題を送らない)
+//  11. 続きの案内を出したまま期限を過ぎる・期限を過ぎてから新しく始めると、時間切れとして 1 回だけ記録する
+//  12. 2 つのタブで同じ回を解いても記録は 1 回で、採点した回の保存は戻らない (PC の幅)
+//  10. 途中で読み直すと「続きから解く / やめて最初から」が出て (206)、続きから解くと答えた次の問題から同じ回を解ける。
+//      やめて最初からを選ぶと、記録せずに新しい回を始める。やめる・終えると途中の回 (gantlo.exam.v2) は消える
+//  13. 「あとで見直す」の印を付け外しでき、前の問題へ戻れ、答えずに次へ進める。印と位置は途中の保存 (gantlo.exam.v2) に残る。
+//      最後の問題のあとは採点の前の確かめ (100 Continue・未回答と印の数) に移り、問題番号の一覧から好きな問題へ戻れ、採点するで結果へ
 //   9. 横にはみ出さず、文が切れない。390 幅では始める・答えを送る・やめるのボタンの押せる範囲が 44px 以上。外へ何も送らず、ページのエラーが無い
 import { EXAM_SEED, arrangeOrder, choiceRadio, fill, loadLessons, orderIds, rightInputs, unsortedTarget } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 const KEY = 'gantlo.v1';
+const SAVE_KEY = 'gantlo.exam.v2';
 const SUBMIT = 'POST 答えを送って次へ';
 const PER_WEEK = 10;
 const TOTAL = 40;
@@ -56,14 +63,13 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     const errors = [];
     const outside = [];
     page.on('pageerror', (e) => errors.push(e.message));
-    const FONT_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com'];
     page.on('request', (req) => {
       const url = new URL(req.url());
       if (url.origin === origin || url.protocol === 'data:' || url.protocol === 'blob:') return;
-      if (req.method() === 'GET' && FONT_HOSTS.includes(url.hostname)) return;
       outside.push(`${req.method()} ${req.url()}`);
     });
     const stored = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? 'null'), KEY);
+    const savedRun = () => page.evaluate((k) => JSON.parse(localStorage.getItem(k) ?? 'null'), SAVE_KEY);
     const target = async (locator, label) => {
       if (!phone) return;
       const box = await locator.boundingBox();
@@ -78,6 +84,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     check((await statusCode()) === '200', `${tag} 始める前は 200 OK`);
     const intro = await page.locator('#astryx-app-shell-main').innerText();
     check(intro.includes('40 問') && intro.includes('60 分') && intro.includes('75% 以上'), `${tag} 問題の数・制限時間・合格の線が出る`);
+    check(intro.includes('合格の目安') && intro.includes('このサイトが決めた目安'), `${tag} 合格の線は目安と書き、公式の基準ではないと断る`);
     check([1, 2, 3, 4].every((w) => intro.includes(`第 ${w} 週`)), `${tag} 出題の範囲に第 1〜4 週が出る`);
     check(intro.includes('まだ受けていません'), `${tag} 空の記録では「まだ受けていません」`);
     let menu = page.locator('nav.astryx-side-nav');
@@ -106,6 +113,45 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     await page.getByRole('button', { name: '模擬試験をやめる (記録しません)' }).click();
     await page.getByRole('button', { name: '模擬試験を始める' }).waitFor();
     check(((await stored())?.exams ?? []).length === 0, `${tag} 途中でやめると回の記録は残らない`);
+    check((await savedRun()) === null, `${tag} やめると途中の回 (${SAVE_KEY}) も消える`);
+
+    // 10. 途中で読み直しても、続きから解ける
+    await page.getByRole('button', { name: '模擬試験を始める' }).click();
+    const before = [];
+    for (let i = 0; i < 2; i++) {
+      await page.locator('[data-testid="exam-run"]').waitFor();
+      const id = await currentId(page);
+      before.push(id);
+      await answerExam(page, byId.get(id).q, true);
+      await page.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, id);
+    }
+    const third = await currentId(page);
+    const kept = await savedRun();
+    check(kept?.answers?.length === 2 && kept.items?.length === TOTAL && kept.items[2]?.id === third, `${tag} 答えるたびに出題・答え・期限が ${SAVE_KEY} に残る (${kept?.answers?.length} 問の答え)`);
+    await page.reload();
+    await page.getByTestId('exam-resume').waitFor();
+    check((await statusCode()) === '206', `${tag} 読み直すと途中の回を 206 で出す`);
+    const resumeText = await page.locator('#astryx-app-shell-main').innerText();
+    check(resumeText.includes('40 問のうち 2 問に答え'), `${tag} 途中の回の答えた数が出る`);
+    await target(page.getByRole('button', { name: '続きから解く' }), '続きから解くボタン');
+    await target(page.getByRole('button', { name: 'やめて最初から' }), 'やめて最初からボタン');
+    await noHorizontalOverflow(page, width, `${tag} 続きの画面`);
+    await page.getByRole('button', { name: '続きから解く' }).click();
+    await page.locator('[data-testid="exam-run"]').waitFor();
+    check((await currentId(page)) === third, `${tag} 続きから解くと 3 問目 (読み直す前に出ていた問題) から始まる`);
+    check((await page.locator('.lesson-bar__progress').innerText()).includes('3 / 40 問'), `${tag} 続きは 3 / 40 問から`);
+    await answerExam(page, byId.get(third).q, true);
+    await page.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, third);
+    check((await savedRun())?.answers?.length === 3, `${tag} 続きで答えた問題も残る`);
+    // 閉じて開き直したとき (新しいページ) も同じ。やめて最初からは記録せずに新しい回を始める
+    await page.goto(`${base}exam/?seed=${EXAM_SEED}`);
+    await page.getByTestId('exam-resume').waitFor();
+    await page.getByRole('button', { name: 'やめて最初から' }).click();
+    await page.locator('[data-testid="exam-run"]').waitFor();
+    check((await page.locator('.lesson-bar__progress').innerText()).includes('1 / 40 問'), `${tag} やめて最初からは 1 問目から始める`);
+    check((await savedRun())?.answers?.length === 0 && ((await stored())?.exams ?? []).length === 0, `${tag} やめて最初からでは前の回を記録せず、新しい回を残す`);
+    await page.getByRole('button', { name: '模擬試験をやめる (記録しません)' }).click();
+    await page.getByRole('button', { name: '模擬試験を始める' }).waitFor();
 
     // 2〜4. 40 問を解く。週ごとに先頭の数問を正解にし、合わせて 30 問正解にする (第 1 週 10・第 2 週 9・第 3 週 7・第 4 週 4)
     const plan = { 1: 10, 2: 9, 3: 7, 4: 4 };
@@ -142,13 +188,48 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
       used[ref.week]++;
       const right = used[ref.week] <= plan[ref.week];
       if (!right) wrongIds.push(id);
+      // 13. 2 問目で印を付け、前の問題へ戻って答え済みの案内を見て、答えずに次へで 2 問目に戻る
+      if (i === 1) {
+        const mark = page.getByRole('button', { name: 'あとで見直す' });
+        await mark.click();
+        await page.waitForFunction(() => document.querySelector('button[aria-pressed="true"]') !== null);
+        await page.waitForTimeout(50);
+        const sv = await savedRun();
+        check(JSON.stringify(sv?.marks) === '[1]' && sv?.index === 1, `${tag} 印と今の位置が ${SAVE_KEY} に残る (marks ${JSON.stringify(sv?.marks)}・index ${sv?.index})`);
+        await target(mark, 'あとで見直すボタン');
+        await target(page.getByRole('button', { name: '前の問題' }), '前の問題ボタン');
+        await page.getByRole('button', { name: '前の問題' }).click();
+        await page.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, id);
+        check((await currentId(page)) === seen[0].q.id, `${tag} 前の問題で 1 問目に戻る`);
+        check((await page.locator('.exam-again').count()) === 1, `${tag} 答えた問題へ戻ると「答えています。送り直すと置き換えます」が出る`);
+        await page.getByRole('button', { name: '次の問題 (答えずに)' }).click();
+        await page.waitForFunction((want) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') === want, id);
+        check((await page.locator('button[aria-pressed="true"]', { hasText: 'あとで見直す' }).count()) === 1, `${tag} 2 問目に戻ると印が付いたまま`);
+        const slot = page.locator('[data-slot="1"]');
+        check((await slot.getAttribute('aria-label')) === '2 問目 未回答・見直しの印', `${tag} 問題番号の一覧に未回答・印を字でも出す (${await slot.getAttribute('aria-label')})`);
+      }
       await answerExam(page, ref.q, right);
-      // 正誤の枠は出さない (最後の問題のあとは結果の画面に移る)
+      // 正誤の枠は出さない (最後の問題のあとは採点の前の確かめに移る)
       if (i < TOTAL - 1) {
         await page.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, id);
         if ((await page.locator('[data-testid="exam-run"] section.response').count()) > 0) leaked++;
       }
     }
+    // 13. 採点の前の確かめ: 100 Continue・未回答 0・印 1。一覧から 2 問目へ戻り、一覧と採点へで確かめに戻ってから採点する
+    await page.getByTestId('exam-review').waitFor();
+    check((await statusCode()) === '100', `${tag} 最後の問題のあとは採点の前の確かめ (100 Continue)`);
+    const reviewHeader = async (k) => (await page.locator('.headers__row', { hasText: k }).locator('dd').innerText()).trim();
+    check((await reviewHeader('X-Unanswered')).startsWith('0') && (await reviewHeader('X-Marked')).startsWith('1'), `${tag} 確かめに未回答 0・印 1 が出る`);
+    check(((await stored())?.exams ?? []).length === 0, `${tag} 確かめの画面ではまだ記録しない`);
+    await target(page.locator('[data-slot="0"]'), '問題番号のボタン');
+    await target(page.getByRole('button', { name: 'POST 採点する' }), '採点するボタン');
+    await noHorizontalOverflow(page, width, `${tag} 採点の前の確かめ`);
+    await page.locator('[data-slot="1"]').click();
+    await page.locator('[data-testid="exam-run"]').waitFor();
+    check((await currentId(page)) === seen[1].q.id, `${tag} 一覧の 2 番で 2 問目へ移る`);
+    await page.getByRole('button', { name: '一覧と採点へ' }).click();
+    await page.getByTestId('exam-review').waitFor();
+    await page.getByRole('button', { name: 'POST 採点する' }).click();
     check(unknown === 0 && seen.length === TOTAL, `${tag} 40 問すべてが本編の問題 (${seen.length} 問)`);
     check([1, 2, 3, 4].every((w) => seen.filter((s) => s.week === w).length === PER_WEEK), `${tag} 各週 10 問ずつ (${[1, 2, 3, 4].map((w) => seen.filter((s) => s.week === w).length).join('・')})`);
     check(seen.every((s) => s.q.kind !== 'lab'), `${tag} 実習は出ない`);
@@ -185,6 +266,7 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     const p = await stored();
     const rec = p?.exams?.[0];
     check(p?.exams?.length === 1 && rec.correct === 30 && rec.total === 40 && rec.timeUp === false, `${tag} 回の記録が残る (${JSON.stringify(rec)})`);
+    check((await savedRun()) === null, `${tag} 終えると途中の回 (${SAVE_KEY}) は消える`);
     check(wrongIds.every((id) => typeof p.answers[id]?.nextReview === 'string'), `${tag} 間違えた 10 問が復習に入る`);
     check(p.xp.total === 30 * 3, `${tag} XP は正解 1 問 3 XP で 90 (${p.xp.total})`);
 
@@ -217,6 +299,63 @@ export async function runExam(browser, { base, check, noHorizontalOverflow }) {
     check(unanswered.startsWith('38'), `${tag} 答えていない 38 問を X-Unanswered に出す (${unanswered.split('\n')[0]})`);
     const p2 = await stored();
     check(p2?.exams?.length === 2 && p2.exams[0].timeUp === true && p2.exams[0].correct === 2, `${tag} 時間切れの回が新しい順の先頭に残る (${JSON.stringify(p2?.exams?.[0])})`);
+
+    // 11. 続きの案内を出したまま期限を過ぎると、時間切れとして 1 回だけ記録する (案内の間の時計と、案内から新しく始めるとき)
+    const answerOne = async (pg) => {
+      await pg.locator('[data-testid="exam-run"]').waitFor();
+      const id = await currentId(pg);
+      await answerExam(pg, byId.get(id).q, true);
+      await pg.waitForFunction((prev) => document.querySelector('[data-testid="exam-run"]')?.getAttribute('data-question') !== prev, id);
+    };
+    await page.goto(`${base}exam/?seed=${EXAM_SEED}`);
+    await page.getByRole('button', { name: '模擬試験を始める' }).click();
+    await answerOne(page);
+    await page.reload();
+    await page.getByTestId('exam-resume').waitFor();
+    await context.clock.fastForward('01:01:00');
+    await page.getByRole('heading', { level: 1, name: /模擬試験の結果/ }).waitFor();
+    const p3 = await stored();
+    check((await statusCode()) === '408' && p3?.exams?.length === 3 && p3.exams[0].timeUp === true && p3.exams[0].correct === 1, `${tag} 続きの案内を出したまま期限が来ると、時間切れ (408) として記録する (${p3?.exams?.length} 回)`);
+    check((await savedRun()) === null, `${tag} 期限で採点した回の保存は消える`);
+    await page.goto(`${base}exam/?seed=${EXAM_SEED}`);
+    await page.getByRole('button', { name: '模擬試験を始める' }).click();
+    await answerOne(page);
+    await page.reload();
+    await page.getByTestId('exam-resume').waitFor();
+    // 時刻だけを進める (案内の時計はまだ鳴らない) → 案内から新しく始める
+    await context.clock.setSystemTime((await page.evaluate(() => Date.now())) + 61 * 60_000);
+    await page.getByRole('button', { name: 'やめて最初から' }).click();
+    await page.locator('[data-testid="exam-run"]').waitFor();
+    const p4 = await stored();
+    check(p4?.exams?.length === 4 && p4.exams[0].timeUp === true && p4.exams[0].correct === 1, `${tag} 期限を過ぎた回は、案内から新しく始める前に時間切れとして 1 回だけ記録する (${p4?.exams?.length} 回)`);
+    check((await page.locator('.lesson-bar__progress').innerText()).includes('1 / 40 問'), `${tag} 期限を過ぎた回のあとも、新しい回は 1 問目から`);
+    await page.getByRole('button', { name: '模擬試験をやめる (記録しません)' }).click();
+    await page.getByRole('button', { name: '模擬試験を始める' }).waitFor();
+
+    // 12. 2 つのタブで同じ回を解いても、記録は 1 回だけで、採点した回の保存は戻らない (PC の幅だけで見る。39 問を解くため)
+    if (!phone) {
+      await page.getByRole('button', { name: '模擬試験を始める' }).click();
+      await answerOne(page);
+      const tabB = await context.newPage();
+      tabB.on('pageerror', (e) => errors.push(e.message));
+      await tabB.goto(`${base}exam/?seed=${EXAM_SEED}`);
+      await tabB.getByTestId('exam-resume').waitFor();
+      await tabB.getByRole('button', { name: '続きから解く' }).click();
+      for (let i = 1; i < TOTAL; i++) await answerOne(tabB);
+      await tabB.getByRole('button', { name: 'POST 採点する' }).click();
+      await tabB.getByRole('heading', { level: 1, name: /模擬試験の結果/ }).waitFor();
+      const before = (await stored())?.exams?.length;
+      check(before === 5 && (await savedRun()) === null, `${tag} もう 1 つのタブで続きを終えると 1 回記録し、保存は消える (${before} 回)`);
+      // 元のタブでもう 1 問答えても、採点された回の保存は戻らない
+      await answerOne(page);
+      check((await savedRun()) === null, `${tag} 元のタブで答えても、採点された回の保存は戻らない`);
+      const tabC = await context.newPage();
+      await tabC.goto(`${base}exam/?seed=${EXAM_SEED}`);
+      await tabC.getByRole('button', { name: '模擬試験を始める' }).waitFor();
+      check((await tabC.getByTestId('exam-resume').count()) === 0 && (await stored())?.exams?.length === 5, `${tag} 新しいタブでは続きの案内を出さず、記録は 1 回のまま`);
+      await tabC.close();
+      await tabB.close();
+    }
 
     check(outside.length === 0, `${tag} サイトの外へ何も送らない ${outside.join(' ')}`);
     check(errors.length === 0, `${tag} ページのエラーが無い ${errors.join(' / ')}`);

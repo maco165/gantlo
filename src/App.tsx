@@ -15,10 +15,12 @@ import { useRoute } from './lib/route';
 import { NOT_FOUND, NOT_IMPLEMENTED } from './lib/status';
 import { useMobileNav } from './lib/useMobileNav';
 import { useProgress } from './lib/useProgress';
-import Home from './screens/Home';
 import StatusPage from './screens/StatusPage';
 
-// ホーム以外の画面は、開いたときに読む (最初の JS を軽くするため。用語集はそのデータ content/glossary.json も)
+// 画面は開いたときに読む (最初の JS を軽くするため。用語集はそのデータ content/glossary.json も)。
+// ホームも lazy にして、上の帯と「読み込んでいます」を先に描き、画面の描画は Suspense の読み直し (React が手を離しながら描く) に回す
+// (ホームを 1 つの長い描画にしない)。書き出した HTML は画面の JS を modulepreload する (src/prerender/preload.ts)
+const Home = lazy(() => import('./screens/Home'));
 const About = lazy(() => import('./screens/About'));
 const CourseScreen = lazy(() => import('./screens/CourseScreen'));
 const Exam = lazy(() => import('./screens/Exam'));
@@ -29,6 +31,7 @@ const Plan = lazy(() => import('./screens/Plan'));
 const ProgressScreen = lazy(() => import('./screens/ProgressScreen'));
 const Review = lazy(() => import('./screens/Review'));
 const Settings = lazy(() => import('./screens/Settings'));
+const Try = lazy(() => import('./screens/Try'));
 
 export default function App() {
   const { route, nav, close } = useRoute();
@@ -48,6 +51,7 @@ export default function App() {
   else if (route.name === 'page' && route.page === 'glossary') screen = <Glossary key={nav} />;
   else if (route.name === 'page' && route.page === 'settings') screen = <Settings key={nav} progress={progress} updateProgress={updateProgress} />;
   else if (route.name === 'page' && route.page === 'about') screen = <About />;
+  else if (route.name === 'page' && route.page === 'try') screen = <Try key={nav} />;
   else if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
   else if (route.name === 'handbook') screen = <Handbook topic={route.topic} />;
   else if (route.name === 'course') screen = <CourseScreen key={route.course} course={route.course} progress={progress} />;

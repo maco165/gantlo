@@ -7,11 +7,13 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { LESSONS } from '../src/content/index';
 import type { Lesson } from '../src/content/types';
+import { PASS_MARK_NOTE } from '../src/lib/exam';
 import { documentTitle, PAGE_TITLES, TITLE_MAX, titleOf } from '../src/lib/pageMeta';
 import { BASE, COURSES, lessonHref, parseRoute } from '../src/lib/route';
 import { LESSON_LIST_HEADING } from '../src/lib/courses';
 import { SITE_NAME, SITE_TAGLINE } from '../src/lib/site';
 import { renderPage, sitemapXml } from '../src/prerender/html';
+import { hasOwnOgImage, ogCard, ogCards } from '../src/prerender/og';
 import { SORTED } from '../src/content/glossary';
 import { HANDBOOK } from '../src/content/handbook-all';
 import { NOT_FOUND_PAGE, ORIGIN, sitePages, type SitePage } from '../src/prerender/pages';
@@ -53,20 +55,56 @@ const expectUnique = (values: string[], label: string) => {
 
 describe('共有したときのカードの画像 (og:image)', () => {
   const OG_URL = `${SITE_URL}og.png`;
-  it('全ページの head に、公開の URL の og:image (1200×630・代替文) と summary_large_image がある', () => {
-    for (const p of pages) {
+  it('全ページの head に、公開の URL の og:image (1200×630・代替文)・twitter:image と summary_large_image がある', () => {
+    for (const p of [...pages, NOT_FOUND_PAGE]) {
       const doc = new DOMParser().parseFromString(renderPage(template, p), 'text/html');
       const og = (k: string) => doc.querySelector(`meta[property="og:${k}"]`)?.getAttribute('content');
-      expect([og('image'), og('image:width'), og('image:height')], p.path).toEqual([OG_URL, '1200', '630']);
+      // 検索に載るページ (ホームを除く) はそのページの画像、ホーム・記録の画面・404 はサイト共通の画像
+      const want = hasOwnOgImage(p) ? `${SITE_URL}${p.path}og.png` : OG_URL;
+      expect([og('image'), og('image:width'), og('image:height')], p.path).toEqual([want, '1200', '630']);
+      expect(doc.querySelector('meta[name="twitter:image"]')?.getAttribute('content'), p.path).toBe(want);
       expect(og('image:alt'), p.path).toBeTruthy();
       expect(doc.querySelector('meta[name="twitter:card"]')?.getAttribute('content'), p.path).toBe('summary_large_image');
     }
   });
 
-  it('画像は public/og.png にあり、PNG で 1200×630 (head に書いた大きさと同じ)', () => {
+  it('自分の画像を持つのは、検索に載るページのうちホームを除く全部。代替文にページの題', () => {
+    const own = pages.filter(hasOwnOgImage);
+    expect(own.map((p) => p.path).sort()).toEqual(pages.filter((p) => !p.noindex && p.path !== '').map((p) => p.path).sort());
+    expect(hasOwnOgImage(NOT_FOUND_PAGE)).toBe(false);
+    const lesson = own.find((p) => p.path.startsWith('lesson/'))!;
+    const doc = new DOMParser().parseFromString(renderPage(template, lesson), 'text/html');
+    expect(doc.querySelector('meta[property="og:image:alt"]')?.getAttribute('content')).toBe(`gantlo: ${ogCard(lesson).title} (レッスン)`);
+  });
+
+  it('カードの中身は題・種類・要求の行・URL (<title> からサイト名を外した題)', () => {
+    const course = pages.find((p) => p.path === 'course/main/')!;
+    expect(ogCard(course)).toEqual({ path: 'course/main/', title: '本編 4 週', kind: 'コース', request: 'GET /course/main', url: 'maco165.github.io/gantlo/course/main/' });
+    expect(ogCards(pages).length).toBe(pages.filter(hasOwnOgImage).length);
+  });
+
+  it('サイト共通の画像は public/og.png にあり、PNG で 1200×630 (head に書いた大きさと同じ)', () => {
     const png = readFileSync(join(__dirname, '../public/og.png'));
     expect(png.subarray(1, 4).toString('ascii')).toBe('PNG');
     expect([png.readUInt32BE(16), png.readUInt32BE(20)]).toEqual([1200, 630]);
+  });
+
+  it.skipIf(!existsSync(join(__dirname, '../dist/index.html')))('組み立てた dist では、自分の画像を持つページごとに <道>/og.png が 1200×630 の PNG である (npm run build のあと)', () => {
+    const missing: string[] = [];
+    for (const p of pages.filter(hasOwnOgImage)) {
+      const file = join(__dirname, '../dist', p.path, 'og.png');
+      if (!existsSync(file)) {
+        missing.push(p.path);
+        continue;
+      }
+      const png = readFileSync(file);
+      expect(png.subarray(1, 4).toString('ascii'), p.path).toBe('PNG');
+      expect([png.readUInt32BE(16), png.readUInt32BE(20)], p.path).toEqual([1200, 630]);
+    }
+    expect(missing).toEqual([]);
+    // 書き出した HTML も、そのページの画像を指す
+    const html = readFileSync(join(__dirname, '../dist/glossary/index.html'), 'utf8');
+    expect(html).toContain(`<meta property="og:image" content="${SITE_URL}glossary/og.png"`);
   });
 });
 
@@ -156,6 +194,26 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
     }
   });
 
+  it('レッスンのページは、問題の前に要点 (分かるようになること・説明・図・試すコマンド・出典) を持ち、誤答の説明は持たない', () => {
+    for (const l of LESSONS) {
+      const doc = new DOMParser().parseFromString(renderPage(template, pages.find((p) => p.path === `lesson/${l.id}/`)!), 'text/html');
+      const section = doc.querySelector('#root main > section#intro');
+      expect(section, l.id).not.toBeNull();
+      const text = section!.textContent ?? '';
+      const intro = l.intro!;
+      for (const g of intro.goals) expect(text, l.id).toContain(g);
+      for (const p of intro.body) expect(text, l.id).toContain(p);
+      if (intro.figure) expect(text, l.id).toContain(intro.figure.caption);
+      for (const t of intro.tryIt ?? []) expect(text, l.id).toContain(t.command);
+      expect([...section!.querySelectorAll('a')].map((a) => a.getAttribute('href')), l.id).toEqual(intro.sources);
+      // 要点は問題の一覧 (h2 問題) より前
+      const h2s = [...doc.querySelectorAll('#root main h2')].map((h) => h.textContent);
+      expect(h2s.indexOf('要点'), l.id).toBeLessThan(h2s.indexOf('問題'));
+      const root = doc.querySelector('#root')!.textContent ?? '';
+      for (const q of l.questions) if (q.kind === 'command' || q.kind === 'http') for (const b of q.blanks) for (const w of b.wrong ?? []) expect(root, q.id).not.toContain(w.why);
+    }
+  });
+
   it('穴埋めのコードは空欄を伏せ字 (____) にして空欄の数だけ持ち、{{blank}} も実行結果の例 (output) も書かない', () => {
     let fills = 0;
     for (const l of LESSONS) {
@@ -203,10 +261,16 @@ describe('ページごとの HTML (手元で組み立てる)', () => {
     }
   });
 
-  it('模擬試験のページは形式 (40 問・60 分・合格 75%・各週 10 問) と、範囲の本編のレッスンへのリンクを持つ', () => {
+  it('模擬試験のページは形式 (40 問・60 分・合格の目安 75%・各週 10 問) と、範囲の本編のレッスンへのリンクを持つ', () => {
     const html = renderPage(template, pages.find((p) => p.path === 'exam/')!);
     const { rootText } = readHead(html);
     for (const s of ['40 問', '60 分', '75%', '各週 10 問']) expect(rootText).toContain(s);
+    // 合格の線は一次情報の無いこのサイトの目安なので、目安と書き、断り書きを添える (出典の無い断定をしない)
+    expect(rootText).toContain('合格の目安');
+    expect(rootText).toContain(PASS_MARK_NOTE);
+    expect(rootText).not.toMatch(/合格: 正答率/);
+    const exam = pages.find((p) => p.path === 'exam/')!;
+    expect(exam.description).toContain('目安');
     const links = [...new DOMParser().parseFromString(html, 'text/html').querySelectorAll('#root main > ul a')].map((x) => x.getAttribute('href'));
     expect(links).toEqual(LESSONS.filter((l) => l.course === 'main').map((l) => lessonHref(l.id)));
   });
@@ -416,6 +480,16 @@ describe.skipIf(!existsSync(join(DIST, 'sitemap.xml')))('npm run build のあと
       expect(want.length, c.id).toBeGreaterThan(0);
       expect(courseLessonLinks(read(`course/${c.id}/index.html`)), c.id).toEqual(want);
     }
+  });
+
+  it('入口の JS (index.html の script。ほかの JS より先に読み終えて動かす) は gzip -9 で 172 KB 以下', () => {
+    // 新しい画面が共有の部品の一部だけを読むと、rolldown が共有のチャンクを切り直し、progress.ts や status.ts を入口へ移す。
+    // 合計は変わらなくても入口が重くなり、レッスンのページの LCP が落ちた (#60 で 169 KB → 174 KB、Lighthouse で 81 → 79)
+    const top = read('index.html');
+    const entry = /<script type="module"[^>]*src="\/gantlo\/(assets\/[^"]+\.js)"/.exec(top)?.[1];
+    expect(entry).toBeDefined();
+    const size = gzipSync(readFileSync(join(DIST, entry!)), { level: 9 }).length;
+    expect(size, `${entry} が ${size} bytes`).toBeLessThanOrEqual(172_000);
   });
 
   it('トップが最初に読む JS (script と modulepreload を gzip -9 した合計) が 300 KB 以下で、問題の本文を含まない', () => {

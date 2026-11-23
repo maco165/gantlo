@@ -5,11 +5,15 @@ import { exportFileName, type Progress } from './progress';
  * ブラウザの外には何も送らない
  */
 export function downloadProgress(p: Progress, now: Date): void {
-  const blob = new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' });
+  downloadBlob(new Blob([JSON.stringify(p, null, 2)], { type: 'application/json' }), exportFileName(now));
+}
+
+/** 画面の中で作ったものをファイルとして保存させる (.ics・まとめのカードの PNG も同じ形)。ブラウザの外には何も送らない */
+export function downloadBlob(blob: Blob, name: string): void {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = exportFileName(now);
+  a.download = name;
   document.body.appendChild(a);
   a.click();
   a.remove();

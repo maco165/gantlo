@@ -39,7 +39,7 @@
     min-height: var(--size-element-lg);
     min-width: var(--size-element-lg);
   }
-  /* 文の中に並ぶリンク (用語集の出典とレッスン・進捗の下のリンク)。並べる箱に tap-links を付ける */
+  /* 文の中に並ぶリンク (用語集の出典とレッスン・進捗の下のリンク・誤りを報告)。並べる箱に tap-links を付ける */
   .tap-links a {
     display: inline-flex;
     align-items: center;
@@ -158,6 +158,9 @@ code {
 }
 .crumbs a {
   color: var(--color-text-secondary);
+  /* 周りの字 (今のページは主の色) と色だけでは 3:1 に届かないので、下線でリンクと分かるようにする (Lighthouse の link-in-text-block) */
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
 }
 .crumbs [aria-current='page'] {
   color: var(--color-text-primary);
@@ -366,6 +369,19 @@ code {
   padding: 0;
   width: var(--size-element-lg);
 }
+/* レッスンを始めるボタン。何をするかの日本語を先に、HTTP の形 (GET /lesson/<id>) をその後ろに添える。狭いと 2 行に折り返す */
+.btn--start {
+  flex-wrap: wrap;
+  column-gap: var(--spacing-2);
+  row-gap: 0;
+  text-align: center;
+}
+.btn__label {
+  font-weight: 600;
+}
+.btn__request {
+  font-size: 0.8125rem;
+}
 
 .home__next {
   margin: 0;
@@ -570,6 +586,35 @@ code {
 }
 .plan__days input {
   width: 5.5rem;
+}
+
+/* 設定: 学ぶ予定 (.ics) の曜日。押せる高さはボタンと同じ (狭い画面では 44px) */
+.settings__days {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-3);
+}
+.settings__days legend {
+  padding: 0;
+  margin-bottom: var(--spacing-1);
+  color: var(--color-text-secondary);
+}
+.settings__day {
+  min-height: var(--size-element-lg);
+  min-width: var(--size-element-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  cursor: pointer;
+}
+.settings__day input {
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--color-accent);
 }
 
 /* 計画のガントチャート (横の軸はレッスンの数) */
@@ -1035,7 +1080,8 @@ code {
   gap: var(--spacing-2);
   border-bottom: 1px solid var(--color-border);
 }
-.xp7__col {
+.xp7__col,
+.due__col {
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1062,7 +1108,8 @@ code {
   border-radius: var(--radius-inner) var(--radius-inner) 0 0;
   background: var(--color-border-emphasized);
 }
-.xp7__col--today .xp7__bar {
+.xp7__col--today .xp7__bar,
+.due__col--today .xp7__bar {
   background: var(--color-text-info);
 }
 .xp7__label {
@@ -1071,34 +1118,42 @@ code {
   color: var(--color-text-secondary);
 }
 .xp7__col--today .xp7__label,
-.xp7__col--today .xp7__value {
+.xp7__col--today .xp7__value,
+.due__col--today .xp7__label,
+.due__col--today .xp7__value {
   color: var(--color-text-primary);
   font-weight: 600;
 }
-.prog__table {
+.prog__table,
+.mastery {
   width: 100%;
   table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--text-supporting-size);
 }
 .prog__table th,
-.prog__table td {
+.prog__table td,
+.mastery th,
+.mastery td {
   padding: var(--spacing-1-5) var(--spacing-2);
   border-bottom: 1px solid var(--color-border);
   text-align: left;
   vertical-align: middle;
   overflow-wrap: anywhere;
 }
-.prog__table thead th {
+.prog__table thead th,
+.mastery thead th {
   font-weight: 600;
   color: var(--color-text-secondary);
   border-top: 1px solid var(--color-border);
 }
-.prog__table tbody th {
+.prog__table tbody th,
+.mastery tbody th {
   font-weight: 400;
   color: var(--color-text-primary);
 }
-.prog__table th:first-child {
+.prog__table th:first-child,
+.mastery th:first-child {
   padding-left: 0;
 }
 .prog__table th:nth-child(2),
@@ -1162,6 +1217,10 @@ code {
   border: 1px solid var(--color-border);
   border-radius: var(--radius-element);
   scroll-margin-top: 4rem;
+  /* 語は 100 を超えるので、画面の外の語は描かない (配置と描画を後回しにし、最初の画面の Style & Layout を減らす)。
+     描くまでの高さは語 1 つの目安で取り、スクロールの長さが大きく変わらないようにする。#term-<id> へ飛ぶと、その語は描かれる */
+  content-visibility: auto;
+  contain-intrinsic-size: auto 14rem;
 }
 .gloss__term {
   margin: 0;
@@ -1172,6 +1231,11 @@ code {
 }
 .gloss__desc,
 .gloss__meta {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+/* 答えたあとの「誤りを報告」(ReportIssue) */
+.report-issue {
   margin: 0;
   overflow-wrap: anywhere;
 }
@@ -1222,6 +1286,423 @@ code {
 .exam-reread {
   margin: 0;
   padding-left: 1.25rem;
+}
+
+/* 進捗: 札と週の目標のヘッダーの行 (ホームのヘッダーと同じ形) */
+.prog__habits {
+  margin: 0;
+}
+
+/* 進捗: 過去 26 週の学んだ日のマス。行が曜日・列が週、色の濃さは日ごとに答えた問題の数 (色だけに頼らず、選んだ日を字で出し、マスごとに aria-label と title を持つ) */
+.cal {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-width: 40rem;
+}
+.cal__row {
+  display: grid;
+  grid-template-columns: repeat(26, minmax(0, 1fr));
+  gap: 2px;
+}
+.cal__keys {
+  margin: 0;
+}
+/* 触る端末でも日を選べるよう、44px のボタン (.btn) を並べる */
+.cal__nav {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+}
+.cal__cell {
+  display: inline-block;
+  aspect-ratio: 1;
+  min-width: 0.5rem;
+  border-radius: 2px;
+  background: var(--color-background-muted);
+}
+.cal:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 4px;
+}
+.cal .cal__cell {
+  cursor: pointer;
+}
+/* 選んだ日は枠で示す (字は下の「選んだ日」に出す) */
+.cal .cal__cell[aria-selected='true'] {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 0;
+}
+.cal__readout {
+  margin: 0;
+  font-family: var(--font-family-code);
+}
+.cal__legend .cal__cell {
+  width: 0.875rem;
+}
+.cal__cell--future {
+  background: transparent;
+}
+.cal__cell--l1 {
+  background: color-mix(in srgb, var(--color-text-success) 30%, var(--color-background-muted));
+}
+.cal__cell--l2 {
+  background: color-mix(in srgb, var(--color-text-success) 55%, var(--color-background-muted));
+}
+.cal__cell--l3 {
+  background: color-mix(in srgb, var(--color-text-success) 80%, var(--color-background-muted));
+}
+.cal__cell--l4 {
+  background: var(--color-text-success);
+}
+.cal__legend {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+/* 進捗: この先 14 日の復習 (7 日の XP と同じ棒。14 本なので間を詰める) */
+.xp7--wide {
+  grid-template-columns: repeat(14, minmax(0, 1fr));
+  gap: var(--spacing-0-5, 2px);
+}
+.xp7--wide .xp7__label {
+  font-size: 0.6875rem;
+  writing-mode: vertical-rl;
+}
+
+/* 進捗: 問題ごとの到達の表。数の下に割合 */
+.mastery th:nth-child(n + 2),
+.mastery td {
+  text-align: right;
+}
+.mastery__share {
+  display: block;
+  color: var(--color-text-secondary);
+}
+
+/* 進捗: まとめのカード */
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+}
+.summary-card p {
+  margin: 0;
+}
+@media (max-width: 767.98px) {
+  .summary-card .btn {
+    width: 100%;
+  }
+}
+.summary-card__preview {
+  width: 100%;
+  max-width: 24rem;
+  height: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+}
+
+/* 模擬試験: 問題の移動・見直しの印・問題番号の一覧 */
+.exam-nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-3);
+  border-top: 1px solid var(--color-border);
+}
+.exam-again {
+  margin: 0 0 var(--spacing-2);
+}
+.exam-slots__box summary {
+  min-height: var(--size-element-lg);
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+.exam-slots {
+  list-style: none;
+  margin: var(--spacing-2) 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(3.25rem, 1fr));
+  gap: var(--spacing-1);
+}
+.exam-slot {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 2.75rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2px;
+  border: 1px solid var(--color-border-emphasized);
+  border-radius: var(--radius-element);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-family: var(--font-family-code);
+  cursor: pointer;
+}
+.exam-slot:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.exam-slot--answered {
+  background: var(--color-background-muted);
+}
+.exam-slot--marked {
+  border: 2px solid var(--color-text-info);
+}
+.exam-slot[aria-current='step'] {
+  outline: 2px solid var(--color-text-primary);
+  outline-offset: 1px;
+}
+.exam-slot__state {
+  font-size: 0.6875rem;
+  color: var(--color-text-primary);
+}
+.exam-review {
+  padding: 0;
+}
+
+/* レッスンの要点 (問題の前に読む。済みのレッスンと解いている間は畳む) */
+.intro__sub {
+  margin: 0 0 var(--spacing-2);
+  font-size: var(--text-heading-5-size, 1rem);
+  font-weight: 600;
+}
+.intro__p {
+  margin: 0;
+  line-height: 1.8;
+}
+.intro-goals,
+.intro-sources {
+  margin: 0;
+  padding-left: 1.25em;
+  list-style: disc;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+}
+.intro-sources {
+  overflow-wrap: anywhere;
+}
+.intro-figure {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.intro-flow {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-5);
+}
+.intro-flow__item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-0-5, 2px);
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  background: var(--color-background-muted);
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.intro-flow__item + .intro-flow__item::before {
+  content: '↓';
+  position: absolute;
+  left: 50%;
+  top: calc(-1 * var(--spacing-5));
+  transform: translateX(-50%);
+  line-height: var(--spacing-5);
+  color: var(--color-text-secondary);
+}
+.intro-flow__label {
+  font-weight: 600;
+}
+.intro-table {
+  margin: 0;
+  display: grid;
+  grid-template-columns: minmax(0, max-content) minmax(0, 1fr);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+  overflow: hidden;
+}
+.intro-table__row {
+  display: contents;
+}
+.intro-table dt,
+.intro-table dd {
+  margin: 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  border-top: 1px solid var(--color-border);
+  overflow-wrap: anywhere;
+}
+.intro-table__row:first-child dt,
+.intro-table__row:first-child dd {
+  border-top: 0;
+}
+.intro-table dt {
+  font-weight: 600;
+  background: var(--color-background-muted);
+}
+.intro-folded {
+  margin-bottom: var(--spacing-5);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-container);
+}
+.intro-folded > summary {
+  cursor: pointer;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  padding: 0 var(--spacing-3);
+  font-weight: 600;
+}
+.intro-folded__body {
+  padding: 0 var(--spacing-3) var(--spacing-3);
+}
+.wrong-note {
+  margin: 0;
+}
+
+/* 試す画面: 外へ送ることの断り・選ぶ所・本物の応答 */
+.try__notice {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  padding: var(--spacing-3);
+  border: 1px solid var(--color-border-emphasized);
+  border-left: 4px solid var(--color-text-info);
+  border-radius: var(--radius-element);
+  background: var(--color-background-surface);
+}
+.try__notice p {
+  margin: 0;
+}
+.try__form,
+.try__result {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3);
+  min-width: 0;
+}
+.try__group {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+.try__group legend {
+  padding: 0;
+  margin-bottom: var(--spacing-1);
+  color: var(--color-text-secondary);
+}
+.try__group--row {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--spacing-1) var(--spacing-3);
+}
+.try__opt {
+  min-height: var(--size-element-lg);
+  min-width: var(--size-element-lg);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  cursor: pointer;
+}
+.try__opt--wide {
+  display: flex;
+  overflow-wrap: anywhere;
+}
+.try__opt input {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--color-accent);
+}
+.try__select {
+  box-sizing: border-box;
+  min-height: var(--size-element-lg);
+  padding: var(--spacing-1) var(--spacing-2);
+  border: 1px solid var(--color-border-emphasized);
+  border-radius: var(--radius-element);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  font: inherit;
+  font-family: var(--font-family-code);
+}
+.try__select:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+.try__code {
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  min-width: 0;
+}
+.try__code figcaption {
+  color: var(--color-text-secondary);
+  font-size: var(--text-supporting-size);
+}
+.try__code pre {
+  margin: 0;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-element);
+  background: var(--color-background-surface);
+  color: var(--color-text-primary);
+  font-family: var(--font-family-code);
+  font-size: var(--text-supporting-size);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 24rem;
+  overflow: auto;
+}
+@media (max-width: 767.98px) {
+  .try__send {
+    width: 100%;
+  }
+}
+.try__summary {
+  margin: 0;
+}
+.try__sub {
+  margin: 0;
+  font-size: var(--text-heading-4-size);
+  font-weight: var(--text-heading-4-weight);
+}
+
+/* 結果の共有 (レッスン完了・模擬試験の結果) */
+.share {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.share__row {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
 }
 
 /* ハンドブック (screens/Handbook.tsx)。本文は読みやすい幅に収め、コードの枠は横にはみ出さず折り返す */

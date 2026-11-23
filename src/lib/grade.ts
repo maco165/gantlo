@@ -1,4 +1,4 @@
-import type { Blank, ChoiceQuestion } from '../content/types';
+import type { Blank, ChoiceQuestion, WrongAnswer } from '../content/types';
 
 /** 前後の空白を除き、間の空白の並びを 1 つにする。大文字と小文字はそのまま (curl のオプションも JSON のキーも区別する) */
 export function normalizeAnswer(input: string): string {
@@ -68,6 +68,16 @@ export function gradeBlank(blank: Blank, input: string): boolean {
   if (normalizeAnswer(input) === '') return false;
   const value = normalizeFor(blank, input);
   return blank.answers.some((a) => normalizeFor(blank, a) === value);
+}
+
+/**
+ * 空欄の答えが、よくある誤答 (blank.wrong) のどれかに当たれば、その誤答を返す。比べ方は採点と同じ (match ごと)。
+ * 正解の答えと空の答えには何も返さない
+ */
+export function findWrong(blank: Blank, input: string): WrongAnswer | undefined {
+  if (normalizeAnswer(input) === '' || gradeBlank(blank, input)) return undefined;
+  const value = normalizeFor(blank, input);
+  return blank.wrong?.find((w) => normalizeFor(blank, w.answer) === value);
 }
 
 /** 穴埋め (command・http) を採点する。空欄ごとの正誤と、全部合ったかを返す */

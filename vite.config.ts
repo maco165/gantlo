@@ -1,8 +1,10 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { defineConfig, type Plugin } from 'vite';
 import react from '@vitejs/plugin-react';
 import { CATALOG_FIELDS } from './src/content/catalog-fields.ts';
+import { purgeAtomicCssPlugin } from './scripts/purge-atomic-css.ts';
 
 // GitHub Pages では https://maco165.github.io/gantlo/ に置かれる。
 const BASE = '/gantlo/';
@@ -23,7 +25,8 @@ function lessonCatalog(): Plugin {
       const data = JSON.parse(readFileSync(file, 'utf8')) as { lessons: Record<string, unknown>[] };
       const lessons = data.lessons.map((l) => ({
         ...Object.fromEntries(CATALOG_FIELDS.filter((k) => l[k] !== undefined).map((k) => [k, l[k]])),
-        questions: (l.questions as { id: string }[]).map((q) => ({ id: q.id })),
+        // 実習 (採点しない) には lab を付ける (進捗の画面が、問題の本文を読まずに採点する問題を数えるため)
+        questions: (l.questions as { id: string; kind: string }[]).map((q) => (q.kind === 'lab' ? { id: q.id, lab: true } : { id: q.id })),
       }));
       return `export default ${JSON.stringify({ lessons })};`;
     },
@@ -32,7 +35,10 @@ function lessonCatalog(): Plugin {
 
 export default defineConfig({
   base: BASE,
-  plugins: [lessonCatalog(), react()],
+  // purgeAtomicCssPlugin: 使われない StyleX の原子クラスを CSS から落とす (scripts/purge-atomic-css.ts)
+  plugins: [lessonCatalog(), react(), purgeAtomicCssPlugin(fileURLToPath(new URL('./src', import.meta.url)))],
+  // 書き出す HTML に、ページの画面の JS を先に取りに行く modulepreload を入れるため (scripts/prerender.mjs が読む)
+  build: { manifest: true },
   test: {
     environment: 'jsdom',
     include: ['tests/**/*.test.ts'],

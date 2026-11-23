@@ -4,7 +4,7 @@ import { AdjustmentsHorizontalIcon, ArrowPathIcon, BookOpenIcon, ChartBarIcon, C
 import { useLayoutEffect, useRef } from 'react';
 import { COURSES, courseHref, handbookHref, homeHref, pageHref, type Route } from '../lib/route';
 import { REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
-import { GitHubMark } from './RepoLink';
+import { ExternalAnchor, GitHubMark } from './RepoLink';
 
 const Logo = () => <img src={`${import.meta.env.BASE_URL}favicon.svg`} width={24} height={24} alt="" aria-hidden="true" />;
 const heading = <SideNavHeading heading={SITE_NAME} subheading={SITE_TAGLINE} icon={<Logo />} headingHref={homeHref} />;
@@ -38,7 +38,7 @@ function SiteItems({ route }: { route: Route }) {
   return (
     <SideNavSection title="このサイト" isHeaderHidden>
       <SideNavItem label="このサイトについて" icon={InformationCircleIcon} href={pageHref('about')} isSelected={route.name === 'page' && route.page === 'about'} />
-      <SideNavItem label="GitHub のリポジトリ" icon={() => <GitHubMark size={20} />} href={REPO_URL} />
+      <SideNavItem label="GitHub のリポジトリ" icon={() => <GitHubMark size={20} />} href={REPO_URL} as={ExternalAnchor} />
     </SideNavSection>
   );
 }

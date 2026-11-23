@@ -9,7 +9,7 @@ import { SITE_NAME, SITE_TAGLINE } from './site';
 /** ハンドブックの一覧の題 (メニュー・パンくず・<title> で同じもの) */
 export const HANDBOOK_TITLE = 'ハンドブック';
 
-export const PAGE_TITLES: Record<PageName, string> = { plan: '計画 (Gantt)', review: '復習', exam: '模擬試験', progress: '進捗', glossary: '用語集', settings: '設定', about: 'このサイトについて' };
+export const PAGE_TITLES: Record<PageName, string> = { plan: '計画 (Gantt)', review: '復習', exam: '模擬試験', progress: '進捗', glossary: '用語集', settings: '設定', about: 'このサイトについて', try: '試す (本物の API)' };
 
 /** 画面の題 (ブラウザのタブと検索結果に出る)。ホームは null */
 export function titleOf(route: Route): string | null {

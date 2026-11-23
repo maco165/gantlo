@@ -4,6 +4,37 @@
       "id": "tech-history-l15",
       "title": "プログラミング言語の思想",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "C が何のために考えられたかを説明できる",
+          "公式の文書から言語の設計の狙いを読む",
+          "言語ごとの設計の要点を見分ける"
+        ],
+        "body": [
+          "C は、生まれたばかりの Unix を作るための言語として考えられました。型の無い BCPL を祖先に持ち、型の仕組みを育てました。",
+          "Go の FAQ は、マルチコアの CPU が当たり前になると見て、並行処理を言語が支えるべきだと考えたと書いています。大きな並行のプログラムで資源を扱うため、GC か安全な自動のメモリ管理も要るとしました。",
+          "Java の仮想マシン (JVM) は、Java の言語を知らず、class ファイルという形式だけを知っています。そのため、正しい class ファイルにできる言語なら、ほかの言語も JVM の上で動かせます。",
+          "Rust 1.0 は、それまで変わり続けた言語の揺れを終え、安定を約束する節目でした。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "言語の設計の要点 (各言語の公式の文書・論文)",
+          "items": [
+            { "label": "C", "note": "Unix を作るための言語。型の無い BCPL から型の仕組みを育てた (Ritchie)" },
+            { "label": "Python", "note": "インタプリタで動き、対話的に使える、オブジェクト指向の言語 (Python の FAQ)" },
+            { "label": "Go", "note": "並行処理を言語で支え、GC か安全な自動のメモリ管理を持つ (Go の FAQ)" },
+            { "label": "Java (JVM)", "note": "仮想マシンは class ファイルの形式だけを知る (JVMS 1.2)" },
+            { "label": "Rust", "note": "1.0 から安定を約束し、6 週ごとに定期の版を出す (Rust の公式ブログ)" }
+          ]
+        },
+        "sources": [
+          "https://www.nokia.com/bell-labs/about/dennis-m-ritchie/chist.html",
+          "https://docs.python.org/3/faq/general.html",
+          "https://go.dev/doc/faq",
+          "https://docs.oracle.com/javase/specs/jvms/se8/html/jvms-1.html",
+          "https://blog.rust-lang.org/2015/05/15/Rust-1.0/"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l15-q1",
@@ -154,6 +185,31 @@
       "id": "tech-history-l16",
       "title": "RDB・SQL・ORM",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "ORM がオブジェクトと表を対応づける技法だと説明できる",
+          "データを取る時期の eager と lazy を見分ける",
+          "取り方の決め方の静的と動的を読む"
+        ],
+        "body": [
+          "ORM は、オブジェクトのモデルのデータを、表のデータモデルに対応づける技法です。Hibernate は、Java のクラスを表に、Java の型を SQL の型に対応づけます。",
+          "Hibernate は、SQL と JDBC を手で書く仕事を減らすことを目指しています。それでも SQL の力は隠さない、と手引きは書いています。",
+          "データを取る (fetching) の考え方は、いつ取るかと、どう取るかの 2 つの問いに分かれます。すぐ取るのを eager、必要になるまで遅らせるのを lazy と呼びます。取り方が多すぎても少なすぎても、性能に響きます。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "データの取り方の言葉 (Hibernate ORM User Guide 12・12.1)",
+          "items": [
+            { "label": "eager", "note": "すぐ取る (immediate とも)" },
+            { "label": "lazy", "note": "データが要るときまで遅らせて取る (delayed とも)" },
+            { "label": "静的 (static)", "note": "取り方を対応づけの定義に書く。動的な指定が無いときに使われる" },
+            { "label": "動的 (dynamic)", "note": "使い方ごとに、問い合わせや entity graph などで取り方を決める" }
+          ]
+        },
+        "sources": [
+          "https://docs.jboss.org/hibernate/orm/current/userguide/html_single/Hibernate_User_Guide.html"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l16-q1",
@@ -255,6 +311,32 @@
       "id": "tech-history-l17",
       "title": "JVM と GC",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "GC の止まる時間と処理量の引き換えを説明できる",
+          "Parallel GC・G1・ZGC の性格を見分ける",
+          "ZGC の止まる時間がヒープの大きさで延びない理由を読む"
+        ],
+        "body": [
+          "GC (garbage collection) は、もう使われていないメモリを自動で回収する仕組みです。GC には、止まる時間を短くする向きと、処理量 (throughput) を大きくする向きがあります。",
+          "JEP 248 によると、それが書かれた当時の既定は、処理量を重んじる Parallel GC でした。G1 は、止まる時間の短い GC の例として挙げられています。",
+          "ZGC は、並行して動き、ヒープを領域に分けて扱い、物を詰め直す GC です。アプリを止める段階は根の走査だけに限られます。そのため、止まる時間はヒープや生きている物の量が増えても延びません。",
+          "ZGC は、色付きのポインタと読み込みの壁 (load barrier) を組み合わせ、アプリが動く間に物の移動を行います。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "JDK の GC の性格 (JEP 248 Motivation・JEP 333 Description)",
+          "items": [
+            { "label": "Parallel GC", "note": "処理量を重んじる GC。JEP 248 が書かれた当時の既定" },
+            { "label": "G1", "note": "止まる時間の短い GC。JDK 8u40 で並行のクラスの解放が入り、機能がそろった" },
+            { "label": "ZGC", "note": "並行・領域ごと・詰め直しの GC。止める段階は根の走査だけ" }
+          ]
+        },
+        "sources": [
+          "https://openjdk.org/jeps/248",
+          "https://openjdk.org/jeps/333"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l17-q1",
@@ -356,6 +438,31 @@
       "id": "tech-history-l18",
       "title": "UNIX と Linux",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "最初の UNIX が何から作られたかを説明できる",
+          "パイプでコマンドをつなぐ考え方を読む",
+          "シェル・パイプ・フィルタの役割を見分ける"
+        ],
+        "body": [
+          "Ritchie によると、Thompson はあまり使われていない PDP-7 を見つけました。そこに、先に設計していたファイルシステムを実装しました。動かすためにプロセスの考え方も足しました。",
+          "次に、ファイルを写す・出す・消す・編集する小さな道具と、簡単なコマンドの解釈役 (シェル) が加わりました。最初の PDP-7 の UNIX のプログラムは、すべてアセンブリ言語で書かれていました。",
+          "UNIX のパイプは、コマンドをつないだパイプラインとして使います。考え方そのものは新しくなく、コルーチンの一つの形だと Ritchie は書いています。パイプラインの値打ちは、ふだん単独で使うのと同じコマンドで組めるところにあります。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "UNIX の道具の言葉 (Ritchie「The Evolution of the Unix Time-sharing System」Pipes ほか)",
+          "items": [
+            { "label": "シェル", "note": "簡単なコマンドの解釈役。最初の小さな道具と一緒に加わった" },
+            { "label": "パイプ", "note": "コマンドをつないでパイプラインを作る仕組み。コルーチンの一つの形" },
+            { "label": "フィルタ", "note": "パイプが入ってすぐに生まれた呼び名。多くのコマンドがパイプラインで使えるように直された" },
+            { "label": "アセンブリ言語", "note": "最初の PDP-7 の UNIX のプログラムを書いた言語。マクロも無かった" }
+          ]
+        },
+        "sources": [
+          "https://www.nokia.com/bell-labs/about/dennis-m-ritchie/hist.html"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l18-q1",
@@ -452,6 +559,34 @@
       "id": "tech-history-l19",
       "title": "仮想化・コンテナ・Kubernetes",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "chroot がプロセスの見るファイルの根を変えることを説明できる",
+          "コンテナを資源の使用量を数える単位として読む",
+          "コンテナを束ねて管理する仕組みの役割を見分ける"
+        ],
+        "body": [
+          "chroot() は、プロセスの根のディレクトリを、指定したディレクトリに変えるシステムコールです。/ で始まるパスは、その場所から探されます。ただし、今いるディレクトリは変わりません。",
+          "2000 年代の初め、ハードウェアは速く安くなり、アプリは複雑になりました。ソフトをハードウェアから一段離して扱う求めが強まりました。",
+          "Google の Rohit Seth は、メールでコンテナを説明しました。メモリやタスクなどの資源の使用量を、仕事ごとに数えて課すための構造、という説明です。",
+          "多くのコンテナを大きな規模で動かすには、まとめて管理する仕組み (オーケストレーション) が要ります。Kubernetes は、その仕組みを開かれた形で作る計画として始まりました。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "閉じ込めと束ねる仕組みの言葉 (FreeBSD chroot(2)・jail(8)、Kubernetes 公式ブログ「10 Years of Kubernetes」)",
+          "items": [
+            { "label": "chroot()", "note": "プロセスの根のディレクトリを変える。今いるディレクトリは変えない" },
+            { "label": "jail", "note": "FreeBSD で、システムを閉じ込める jail を作り、変え、消す道具。jail は prison とも呼ぶ" },
+            { "label": "コンテナ", "note": "資源の使用量を仕事ごとに数えて課すための構造 (Seth の説明)" },
+            { "label": "オーケストレーション", "note": "多くのコンテナを大きな規模でまとめて管理すること" }
+          ]
+        },
+        "sources": [
+          "https://man.freebsd.org/cgi/man.cgi?query=chroot&sektion=2",
+          "https://man.freebsd.org/cgi/man.cgi?query=jail&sektion=8",
+          "https://kubernetes.io/blog/2024/06/06/10-years-of-kubernetes/"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l19-q1",
@@ -514,8 +649,8 @@
             { "id": "d", "text": "コンテナは物理のサーバーを 1 台ずつ使う", "why": "それではコンテナの軽さが生まれません。" }
           ],
           "answer": "a",
-          "explanation": "Docker の公式文書「What is Docker?」は、イメージはコンテナを作るための指示を持つ読み取り専用のひな形で、Docker は名前空間という技術で隔てた作業場 (コンテナ) を作る、と書いています。Docker は Go で書かれ、Linux カーネルの機能を使うとも書いています。",
-          "sources": ["https://docs.docker.com/get-started/docker-overview/"]
+          "explanation": "Docker の公式文書「Docker Engine security」は、docker run でコンテナを始めると、裏で名前空間 (namespaces) と control groups を作り、名前空間がいちばん基本の隔てになると書いています。「What is a container?」は、イメージをコンテナを始めるのに要るものをまとめた読み取り専用の層の重なりとして描き、コンテナはその上に自分の書き込める層を足すと説明しています。コンテナはホストの Linux カーネルを分け合って使います。",
+          "sources": ["https://docs.docker.com/engine/security/", "https://docs.docker.com/learn/content/what-is-a-container/"]
         },
         {
           "id": "tech-history-l19-q5",
@@ -537,6 +672,33 @@
       "id": "tech-history-l20",
       "title": "バージョン管理 (SCCS から Git へ)",
       "course": "tech-history",
+      "intro": {
+        "goals": [
+          "ローカル・集中型・分散型の版の管理を見分ける",
+          "集中型の弱みと分散型の強みを説明できる",
+          "Git がデータを写しの流れとして持つことを読む"
+        ],
+        "body": [
+          "版の管理の道具は、手元のデータベースにファイルの変更を記録する形から始まりました。差分の組を保存し、足し合わせて過去の形を作り直します。",
+          "集中型では、1 台のサーバーが全部の版を持ち、各自がそこから取り出します。そのサーバーが止まると、その間は誰も版を残せません。",
+          "分散型では、手元の写しが、全部の履歴を含むリポジトリの完全な写しです。どの写しも全部のデータの控えになり、多くの操作は手元だけで済みます。",
+          "Git は、ファイルごとの差分ではなく、その時のファイル全体の写し (スナップショット) の流れとしてデータを考えます。保存する前に全部にチェックサムを付け、その値で指します。"
+        ],
+        "figure": {
+          "kind": "table",
+          "caption": "版の管理の形 (Pro Git 1.1 About Version Control・1.3 What is Git?)",
+          "items": [
+            { "label": "ローカル", "note": "手元の簡単なデータベースに、ファイルの変更を記録する" },
+            { "label": "集中型", "note": "1 台のサーバーが全部の版を持つ。そのサーバーが 1 つの弱点になる" },
+            { "label": "分散型", "note": "各自が履歴ごとリポジトリを丸ごと写す。どの写しも控えになる" },
+            { "label": "スナップショット", "note": "その時のファイル全体の写し。変わらないファイルは前の写しへの参照で済ませる" }
+          ]
+        },
+        "sources": [
+          "https://git-scm.com/book/en/v2/Getting-Started-About-Version-Control",
+          "https://git-scm.com/book/en/v2/Getting-Started-What-is-Git%3F"
+        ]
+      },
       "questions": [
         {
           "id": "tech-history-l20-q1",

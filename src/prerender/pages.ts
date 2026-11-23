@@ -11,15 +11,17 @@ import { documentTitle, HANDBOOK_TITLE, lessonDocumentTitle, PAGE_TITLES } from 
 import { BASE, COURSES, courseHref, handbookHref, homeHref, lessonHref, pageHref, parseRoute, type PageName } from '../lib/route';
 import { COURSE_EMPTY, COURSE_LEADS, LESSON_LIST_HEADING } from '../lib/courses';
 import { ABOUT_ISSUE, ABOUT_LEAD, ABOUT_NOTES, ABOUT_SOURCE, LICENSE_NAME } from '../lib/about';
-import { NEW_ISSUE_URL, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
+import { NEW_ISSUE_URL, ORIGIN, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
 import { breadcrumbs, type Crumb } from '../lib/breadcrumbs';
-import { EXAM_MINUTES, EXAM_PER_WEEK, EXAM_TOTAL, EXAM_WEEKS, PASS_MARK, examBank, weekOf } from '../lib/exam';
+import { EXAM_MINUTES, EXAM_PER_WEEK, EXAM_TOTAL, EXAM_WEEKS, PASS_MARK, PASS_MARK_NOTE, examBank, weekOf } from '../lib/exam';
 import { kindLabel } from '../lib/questionKind';
+import { ENDPOINTS, HOSTS, STATUS_CODES } from '../lib/tryApi';
 import { STAGES } from '../content/stages';
 import type { Question } from '../content/types';
+import { introHtml } from './intro';
 
-/** 公開の場所 (canonical・og:url・sitemap の URL の頭) */
-export const ORIGIN = 'https://maco165.github.io';
+// 公開の場所の正本は lib/site.ts (誤りの報告のリンクも同じ URL を使う)
+export { ORIGIN };
 
 export type SitePage = {
   /** 道 (BASE からの相対。ホームは ''、ほかは末尾 /) */
@@ -48,10 +50,11 @@ export const PERSONAL_PAGES: readonly PageName[] = ['plan', 'review', 'progress'
 const PAGE_DESCRIPTIONS: Record<PageName, string> = {
   plan: '学ぶコースを選んで学ぶ順に並べると、レッスンの数を帯の長さにしたガントチャートで計画を引く gantlo の画面。期限は持たず、済んだ記録は組み直しても残ります。',
   review: '間違えた問題を、日をおいて解き直す gantlo の復習の画面。答えの記録はブラウザの localStorage にだけ残り、サーバーには送りません。',
-  exam: 'HTTP・DNS・TLS・REST・OAuth 2.0・JWT を学ぶ本編 4 週の総まとめの模擬試験。各週 10 問ずつ 40 問を 60 分で解き、75% 以上で合格。週ごとの正答率と読み直すレッスンを出します。',
+  exam: 'HTTP・DNS・TLS・REST・OAuth 2.0・JWT を学ぶ本編 4 週の総まとめの模擬試験。各週 10 問ずつ 40 問を 60 分で解き、合格の目安は 75% 以上。週ごとの正答率と読み直すレッスンを出します。',
   progress: '正答率・この 7 日の XP・コースごとの進み具合・旅の 8 段の学習状況を見る gantlo の進捗の画面。記録はブラウザの localStorage にだけ残り、サーバーには送りません。',
   glossary: 'HTTP・URI・JSON・DNS・TLS・REST・OAuth など API の基礎の 11 の規格と、gantlo の問題に出る用語を、RFC などの一次情報の出典付きで短くまとめた用語集。',
   settings: 'gantlo の学び方の設定の画面。設定はブラウザの localStorage にだけ残り、サーバーには送りません。',
+  try: 'HTTP のメソッド・ステータスコード・ヘッダーと CORS を、ブラウザから公開の API (httpbin.org・api.github.com) に本物の要求を送って確かめる gantlo の画面。Cookie は送りません。',
   about: 'gantlo がどんなサイトかと、ソースコードの置き場所・問題の誤りの知らせ方・記録の置き場所・AI に聞くリンク・問題の出典・ライセンスをまとめたページ。',
 };
 
@@ -63,6 +66,7 @@ export const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;')
 export const clip = (s: string, n = 120) => (s.length > n ? `${s.slice(0, n - 1)}…` : s);
 // href も escape する (用語集の出典の URL などデータから来る値が属性を閉じないように)
 const a = (href: string, text: string) => `<a href="${esc(href)}">${esc(text)}</a>`;
+const aExternal = (href: string, text: string) => `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(text)}</a>`;
 const back = `<p>${a(homeHref, `${SITE_NAME} のホーム`)}</p>`;
 /** BASE からの相対の道 (ディレクトリの名前に使う) */
 const rel = (href: string) => href.slice(BASE.length);
@@ -111,13 +115,26 @@ export function examBody(lessons: readonly Lesson[] = LESSONS): string[] {
   const bank = examBank(lessons);
   return [
     '<h2>形式</h2>',
-    `<ul><li>問題の数: ${EXAM_TOTAL} 問 (本編の ${EXAM_WEEKS.length} 週から各週 ${EXAM_PER_WEEK} 問ずつ、重ならずに選ぶ)</li><li>時間: ${EXAM_MINUTES} 分。時間が切れたら、答えていない問題は不正解として採点する</li><li>合格: 正答率 ${Math.round(PASS_MARK * 100)}% 以上 (${Math.ceil(EXAM_TOTAL * PASS_MARK)} 問以上)</li><li>解いている間は正誤を見せず、最後にまとめて採点し、週ごとの正答率と読み直すレッスンを出す</li><li>問題の種類は穴埋め・4 択・並べ替え。採点しない実習は出さない。選択肢と項目の並びは毎回混ぜる</li></ul>`,
+    `<ul><li>問題の数: ${EXAM_TOTAL} 問 (本編の ${EXAM_WEEKS.length} 週から各週 ${EXAM_PER_WEEK} 問ずつ、重ならずに選ぶ)</li><li>時間: ${EXAM_MINUTES} 分。時間が切れたら、答えていない問題は不正解として採点する</li><li>合格の目安: 正答率 ${Math.round(PASS_MARK * 100)}% 以上 (${Math.ceil(EXAM_TOTAL * PASS_MARK)} 問以上)。${PASS_MARK_NOTE}</li><li>解いている間は正誤を見せず、最後にまとめて採点し、週ごとの正答率と読み直すレッスンを出す</li><li>問題の種類は穴埋め・4 択・並べ替え。採点しない実習は出さない。選択肢と項目の並びは毎回混ぜる</li></ul>`,
     '<h2>範囲</h2>',
     ...EXAM_WEEKS.map(({ week, title }) => {
       const own = lessons.filter((l) => weekOf(l) === week);
       const n = bank.filter((b) => b.week === week).length;
       return `<h3>第 ${week} 週: ${esc(title)} (出題の元 ${n} 問)</h3><ul>${own.map((l) => `<li>${a(lessonHref(l.id), l.title)}</li>`).join('')}</ul>`;
     }),
+  ];
+}
+
+/** 試す画面の本文 (何を送れるか・何が見えるか・送らないもの)。送り先の一覧は src/lib/tryApi.ts の正本から書く */
+export function tryBody(): string[] {
+  return [
+    '<h2>送れる要求</h2>',
+    `<ul>${ENDPOINTS.map((e) => `<li><code>${esc(`${e.methods.join('・')} ${HOSTS[e.host].origin}${e.hasCode ? `${e.path}{コード}` : e.path}`)}</code>: ${esc(e.note)}</li>`).join('')}</ul>`,
+    `<p>ステータスコードは ${STATUS_CODES.join('・')} から選べます。リクエストヘッダーは Accept (CORS の safelist にある) と X-Gantlo-Try (safelist に無いので、ブラウザが先に OPTIONS の preflight を送る) を付け外しできます。</p>`,
+    '<h2>見えるもの</h2>',
+    '<p>本物のステータスコード、ブラウザが JS から読める応答ヘッダー (CORS の safelist の 7 つと、相手が Access-Control-Expose-Headers で公開した名前) と、本文です。読めないヘッダー (Date・Server など) は、届いていても読めないことを説明します。CORS で弾かれた・相手が止まっている・オフラインのときは、何が起きたかを説明します。</p>',
+    '<h2>送らないもの</h2>',
+    '<p>要求はあなたのブラウザから外のサービスに直に送られ、送るのはボタンを押したときだけです。Cookie や HTTP 認証 (credentials: omit) と Referer は送りません。学んだ記録も送りません。送り先には、あなたの IP アドレスと Origin ヘッダーが見えます。</p>',
   ];
 }
 
@@ -215,7 +232,7 @@ export function aboutBody(): string[] {
   return [
     ...ABOUT_LEAD.map((p) => `<p>${esc(p)}</p>`),
     '<h2>ソースコード</h2>',
-    `<p>${esc(ABOUT_SOURCE)} ${a(REPO_URL, 'GitHub のリポジトリ')}</p>`,
+    `<p>${esc(ABOUT_SOURCE)} ${aExternal(REPO_URL, 'GitHub のリポジトリ')}</p>`,
     '<h2>問題の誤りを見つけたら</h2>',
     `<p>${esc(ABOUT_ISSUE)} ${a(NEW_ISSUE_URL, 'Issue を書く')}</p>`,
     '<h2>知っておくこと</h2>',
@@ -259,7 +276,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
       '<h2>画面</h2>',
       `<ul><li>${a(handbookHref(), HANDBOOK_TITLE)}</li>${(Object.keys(PAGE_TITLES) as PageName[]).map((p) => `<li>${a(pageHref(p), PAGE_TITLES[p])}</li>`).join('')}</ul>`,
       '<p>進み具合はブラウザの localStorage にだけ残り、サーバーには送りません。表示には JavaScript を使います。</p>',
-      `<p><a href="${REPO_URL}">GitHub のリポジトリ</a></p>`,
+      `<p>${aExternal(REPO_URL, 'GitHub のリポジトリ')}</p>`,
     ].join('\n'),
   });
 
@@ -286,7 +303,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
             ]
           : []),
       ],
-      body: [crumbsHtml(crumbs), `<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), ...(p === 'exam' ? examBody(lessons) : []), back].join('\n'),
+      body: [crumbsHtml(crumbs), `<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), ...(p === 'exam' ? examBody(lessons) : []), ...(p === 'try' ? tryBody() : []), back].join('\n'),
       noindex: PERSONAL_PAGES.includes(p),
     });
   }
@@ -391,6 +408,8 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
         // 見出しはレッスンの題 (画面の h1 は 1 問目の問題文だが、ページの見出しとしては題のほうが合う)
         `<h1>${esc(l.title)}</h1>`,
         `<p>${esc(lessonLead(l, courseTitle))}</p>`,
+        // 問題の前に読む要点 (画面でも 1 問目の前に出す)
+        ...introHtml(l.intro),
         // 答える前に見えるものまでを書き、答えと解説は書かない (画面でも答えるまで出さないため)
         '<h2>問題</h2>',
         `<ol>${l.questions.map(questionHtml).join('')}</ol>`,

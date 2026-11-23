@@ -1,6 +1,7 @@
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import LessonNetwork from '../components/LessonNetwork';
+import LessonStartLink from '../components/LessonStartLink';
 import StatusLine from '../components/StatusLine';
 import Waterfall from '../components/Waterfall';
 import { CATALOG, dueReviewCount, type LessonMeta } from '../content/catalog';
@@ -8,7 +9,8 @@ import { STAGES } from '../content/stages';
 import { stageStates } from '../lib/journey';
 import { currentLesson, planLessons, planOrder } from '../lib/plan';
 import { currentStreak, goalXp, todayXp, type Progress } from '../lib/progress';
-import { COURSES, lessonHref, pageHref } from '../lib/route';
+import { COURSES, pageHref } from '../lib/route';
+import { freezeText, weeklyTargetText } from '../lib/habits';
 import { scheduleHeader } from '../lib/schedule';
 import { SITE_NAME, SITE_TAGLINE } from '../lib/site';
 import { progressStatus } from '../lib/status';
@@ -28,6 +30,9 @@ export default function Home({ progress, now = new Date(), lessons = CATALOG }: 
   const headers: [string, string][] = [
     ['X-Today-XP', `${todayXp(progress, now)} / ${goalXp(progress)}`],
     ['X-Streak', `${currentStreak(progress, now)} 日連続`],
+    // 休みの札 (1 日休んでも連続を切らない札) と、今週 (月曜から) 学んだ日と週の目標
+    ['X-Streak-Freeze', freezeText(progress, now)],
+    ['X-Weekly-Target', weeklyTargetText(progress, now)],
     // 計画の予定と比べた巻き・遅れ (計画の画面と同じ数え方)。計画を保存する前は「204 計画なし」。取り戻し方は出さず、一言だけ
     ['X-Schedule', scheduleHeader(progress, now, lessons)],
     ['Retry-After', `今日の復習 ${dueReviewCount(progress, now)} 問`],
@@ -42,9 +47,7 @@ export default function Home({ progress, now = new Date(), lessons = CATALOG }: 
       {here ? (
         <p className="home__next">
           <Text type="supporting">次のレッスン「{here.lesson.title}」</Text>
-          <a className="btn btn--primary" href={lessonHref(here.lesson.id)}>
-            <code>GET /lesson/{here.lesson.id}</code>
-          </a>
+          <LessonStartLink lessonId={here.lesson.id} isFirst={Object.values(progress.lessons).every((l) => !l.done)} />
         </p>
       ) : hasLessons ? (
         <Text type="supporting">学ぶ順のレッスンを全部済ませました。</Text>

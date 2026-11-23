@@ -10,7 +10,7 @@
 //   4. メニューのコースには「準備中」が付かない (コースの画面がある)
 //   5. 横にはみ出さず、文が切れない。ページのエラーが無い
 //   6. 390x500 (メニューがスクロールする高さ) で、メニューを Tab で進むと、手元の行が下端に留めた 2 つの下に隠れない
-import { loadLessons } from './e2e-lessons.mjs';
+import { loadLessons, startLesson } from './e2e-lessons.mjs';
 
 const MIN_TARGET = 44;
 /** レッスンの画面を見るのに使う、問題データの最初のレッスン */
@@ -57,7 +57,10 @@ export async function runAbout(browser, { base, check, noHorizontalOverflow }) {
     const screens = [
       ['ホーム', '', () => page.locator('.net__row').first().waitFor()],
       ['計画', 'plan/', () => page.locator('h1', { hasText: '計画' }).waitFor()],
-      ['レッスン', `lesson/${LESSON.id}/`, () => page.getByRole('heading', { name: LESSON.questions[0].prompt }).waitFor()],
+      ['レッスン', `lesson/${LESSON.id}/`, async () => {
+        await startLesson(page);
+        await page.getByRole('heading', { name: LESSON.questions[0].prompt }).waitFor();
+      }],
       ['用語集', 'glossary/', () => page.locator('article.gloss').first().waitFor()],
       ['404', 'no-such-page/', () => page.getByText('Not Found', { exact: true }).waitFor()],
       ['このサイトについて', 'about/', () => page.locator('h1', { hasText: 'このサイトについて' }).waitFor()],
@@ -89,6 +92,7 @@ export async function runAbout(browser, { base, check, noHorizontalOverflow }) {
         `${where}: メニューの下端に「このサイトについて」と「GitHub のリポジトリ」が出る (このサイト ${size(ab)}@${ab ? Math.round(ab.y) : '-'}・GitHub 下端 ${gb ? Math.round(gb.y + gb.height) : '-'}/${height}・最後のコース ${cb ? Math.round(cb.y) : '-'})`,
       );
       check((await gh.getAttribute('href')) === REPO_URL, `${where}: メニューの GitHub のリポジトリの行はリポジトリを指す`);
+      check((await gh.getAttribute('target')) === '_blank' && /noopener/.test((await gh.getAttribute('rel')) ?? ''), `${where}: メニューの GitHub のリポジトリの行は新しいタブで開く`);
       await target(about, `${label} のメニューの「このサイトについて」`);
       await target(gh, `${label} のメニューの「GitHub のリポジトリ」`);
       if (label === 'ホーム') {

@@ -21,18 +21,36 @@ const ID_PATTERN = /^[a-z0-9]+(-[a-z0-9]+)*$/;
 const LESSON_TAB_TITLE_MAX = 35 - ' | gantlo'.length;
 /** 4 択の選択肢の数 */
 const CHOICE_COUNT = 4;
+/** 要点: 分かるようになることの行数・説明の字数 (空白を除く)・1 文の字数の上限 (目安は 40 字)・図の項目の数・試すコマンドの数 */
+export const INTRO_GOALS = 3;
+export const INTRO_BODY_MIN = 200;
+export const INTRO_BODY_MAX = 400;
+export const INTRO_SENTENCE_MAX = 60;
+const FIGURE_KINDS = ['flow', 'table'];
+const FIGURE_ITEMS = [2, 8];
+const TRY_MAX = 2;
+/** 穴埋め 1 問のよくある誤答の数 (空欄を合わせて) と、説明の文の数の上限 */
+export const WRONG_RANGE = [2, 4];
+const WRONG_SENTENCES_MAX = 2;
+/** 動詞の終わり (う段の仮名)。分かるようになることは「〜できる」「〜を読み分ける」のように動詞で終える */
+const VERB_END = /[うくぐすつぬぶむる]$/;
 
 /** 使ってよい欄。ほかの欄は打ち間違いとして NG にする (任意の欄の打ち間違いで採点や表示が黙って変わらないように) */
 const FIELDS = {
   file: ['lessons'],
-  lesson: ['id', 'title', 'shortTitle', 'course', 'stage', 'questions'],
+  lesson: ['id', 'title', 'shortTitle', 'course', 'stage', 'intro', 'questions'],
   question: ['id', 'kind', 'prompt', 'explanation', 'sources'],
   command: ['tool', 'code', 'blanks', 'output'],
   http: ['format', 'code', 'blanks'],
   order: ['items', 'answer'],
   choice: ['code', 'choices', 'answer', 'fixedOrder'],
   lab: ['steps', 'expected'],
-  blank: ['answers', 'match'],
+  blank: ['answers', 'match', 'wrong'],
+  wrong: ['answer', 'why'],
+  intro: ['goals', 'body', 'figure', 'figureOmitted', 'tryIt', 'sources'],
+  figure: ['kind', 'caption', 'items'],
+  figureItem: ['label', 'note'],
+  tryIt: ['command', 'expect'],
   item: ['id', 'text'],
   option: ['id', 'text', 'why'],
   step: ['text', 'command'],
@@ -75,6 +93,47 @@ function isHttpsUrl(v) {
     return false;
   }
 }
+
+/** 字数 (空白を除く) */
+const charCount = (s) => [...s.replace(/\s+/g, '')].length;
+
+/** 文に分ける (。！？で区切る) */
+const sentences = (s) => s.split(/(?<=[。！？])/).map((x) => x.trim()).filter(Boolean);
+
+/** 採点と同じくらいに揃えた形 (空白を詰め、ヘッダー名とメディアタイプは小文字)。正解と誤答の重なりを見る。本当の採点で見るのは tests/check-content.test.ts */
+const roughNormalize = (b, v) => {
+  const t = String(v).trim().replace(/\s+/g, ' ');
+  return b?.match === 'header-name' || b?.match === 'media-type' ? t.toLowerCase().replace(/\s*;\s*/g, '; ') : t;
+};
+
+/** text の中に word が「語として」出るか (英数字の答えは前後が英数字・-・_ でないときだけ数える) */
+export function containsWord(text, word, caseInsensitive) {
+  const t = caseInsensitive ? text.toLowerCase() : text;
+  const w = caseInsensitive ? word.toLowerCase() : word;
+  if (w.trim() === '') return false;
+  let from = 0;
+  for (;;) {
+    const i = t.indexOf(w, from);
+    if (i < 0) return false;
+    const before = t[i - 1] ?? '';
+    const after = t[i + w.length] ?? '';
+    const edge = (c, inner) => c === '' || !/[A-Za-z0-9_-]/.test(c) || !/[A-Za-z0-9_-]/.test(inner);
+    if (edge(before, w[0]) && edge(after, w[w.length - 1])) return true;
+    from = i + 1;
+  }
+}
+
+/** 要点の文 (目標・説明・図・試すコマンドと出力) を 1 つの文字列にする。答えの漏れを見るため */
+export const introText = (intro) =>
+  [
+    ...(intro?.goals ?? []),
+    ...(intro?.body ?? []),
+    intro?.figure?.caption ?? '',
+    ...(intro?.figure?.items ?? []).flatMap((it) => [it?.label ?? '', it?.note ?? '']),
+    ...(intro?.tryIt ?? []).flatMap((t) => [t?.command ?? '', t?.expect ?? '']),
+  ].join('\n');
+
+const isRfc = (u) => /^https:\/\/www\.rfc-editor\.org\/rfc\/rfc\d+/.test(u);
 
 const countBlanks = (code) => (isNonEmptyString(code) ? code.split(BLANK).length - 1 : 0);
 
@@ -146,6 +205,7 @@ export function checkFiles(files, { stages, courseIds }) {
         ng(lid, 'questions がありません');
         continue;
       }
+      checkIntro(lesson, lid, ng, onlyFields);
 
       for (const [qi, q] of lesson.questions.entries()) {
         const qid = isNonEmptyString(q?.id) ? q.id : `${lid}.questions[${qi}]`;
@@ -174,6 +234,7 @@ export function checkFiles(files, { stages, courseIds }) {
               if (!Array.isArray(b?.answers) || b.answers.length === 0 || !b.answers.every(isNonEmptyString)) ng(qid, `blanks[${bi}].answers (正解の配列) がありません`);
               if (b?.match !== undefined && !MATCHES.includes(b.match)) ng(qid, `blanks[${bi}].match は ${MATCHES.join(' / ')} のどれかにします`);
             }
+            checkWrong(q, qid, ng, onlyFields);
             if (q.output !== undefined && !isNonEmptyString(q.output)) ng(qid, 'output は空でない文字列にします');
             break;
           }
@@ -235,6 +296,88 @@ export function checkFiles(files, { stages, courseIds }) {
     }
   }
   return { ok: !failed, lines };
+}
+
+/** レッスンの要点 (intro)。全レッスンが持つ。答えの文字列 (同じレッスンの穴埋めの正解) を書かない */
+function checkIntro(lesson, lid, ng, onlyFields) {
+  const intro = lesson.intro;
+  if (typeof intro !== 'object' || intro === null || Array.isArray(intro)) return ng(lid, 'intro (問題の前に読む要点) がありません');
+  onlyFields(intro, FIELDS.intro, lid, 'intro.');
+  const goals = intro.goals;
+  if (!Array.isArray(goals) || goals.length !== INTRO_GOALS || !goals.every(isNonEmptyString)) ng(lid, `intro.goals (分かるようになること) はちょうど ${INTRO_GOALS} 行の文字にします`);
+  else goals.forEach((g, gi) => VERB_END.test(g.trim()) || ng(lid, `intro.goals[${gi}] は動詞で終えます (「〜できる」「〜を読み分ける」など): ${g}`));
+  if (!Array.isArray(intro.body) || intro.body.length === 0 || !intro.body.every(isNonEmptyString)) ng(lid, 'intro.body (短い説明の段落の配列) がありません');
+  else {
+    const n = charCount(intro.body.join(''));
+    if (n < INTRO_BODY_MIN || n > INTRO_BODY_MAX) ng(lid, `intro.body は合わせて ${INTRO_BODY_MIN}〜${INTRO_BODY_MAX} 字にします (${n} 字)`);
+    for (const st of intro.body.flatMap(sentences)) if (charCount(st) > INTRO_SENTENCE_MAX) ng(lid, `intro.body の 1 文は ${INTRO_SENTENCE_MAX} 字までにします (目安は 40 字): ${st}`);
+  }
+  if ((intro.figure === undefined) === (intro.figureOmitted === undefined)) ng(lid, 'intro は figure (図) か figureOmitted (図を省く理由) のどちらか一方を持ちます');
+  if (intro.figureOmitted !== undefined && !isNonEmptyString(intro.figureOmitted)) ng(lid, 'intro.figureOmitted は空でない文字列にします');
+  if (intro.figure !== undefined) {
+    const f = intro.figure;
+    onlyFields(f, FIELDS.figure, lid, 'intro.figure.');
+    if (!FIGURE_KINDS.includes(f?.kind)) ng(lid, `intro.figure.kind は ${FIGURE_KINDS.join(' / ')} のどれかにします`);
+    if (!isNonEmptyString(f?.caption)) ng(lid, 'intro.figure.caption (図の説明) がありません');
+    const items = Array.isArray(f?.items) ? f.items : [];
+    if (items.length < FIGURE_ITEMS[0] || items.length > FIGURE_ITEMS[1]) ng(lid, `intro.figure.items は ${FIGURE_ITEMS[0]}〜${FIGURE_ITEMS[1]} 個にします (${items.length} 個)`);
+    for (const [ii, it] of items.entries()) {
+      onlyFields(it, FIELDS.figureItem, lid, `intro.figure.items[${ii}].`);
+      if (!isNonEmptyString(it?.label)) ng(lid, `intro.figure.items[${ii}].label がありません`);
+      if (it?.note !== undefined && !isNonEmptyString(it.note)) ng(lid, `intro.figure.items[${ii}].note は空でない文字列にします`);
+      if (f?.kind === 'table' && !isNonEmptyString(it?.note)) ng(lid, `intro.figure.items[${ii}].note がありません (表は名前と意味の 2 列)`);
+    }
+  }
+  if (intro.tryIt !== undefined) {
+    if (!Array.isArray(intro.tryIt) || intro.tryIt.length === 0 || intro.tryIt.length > TRY_MAX) ng(lid, `intro.tryIt (手元で試すコマンド) は 1〜${TRY_MAX} 個にします`);
+    for (const [ti, t] of (Array.isArray(intro.tryIt) ? intro.tryIt : []).entries()) {
+      onlyFields(t, FIELDS.tryIt, lid, `intro.tryIt[${ti}].`);
+      if (!isNonEmptyString(t?.command) || !isNonEmptyString(t?.expect)) ng(lid, `intro.tryIt[${ti}] は command と expect (期待する出力の要点) を持ちます`);
+    }
+  }
+  if (!Array.isArray(intro.sources) || intro.sources.length === 0) ng(lid, 'intro.sources (出典の URL の配列) がありません');
+  else
+    intro.sources.forEach((u, si) => {
+      if (!isHttpsUrl(u)) ng(lid, `intro.sources[${si}] が https の URL ではありません (${u})`);
+      else if (isRfc(u) && !/#section-[\d.]+$/.test(u)) ng(lid, `intro.sources[${si}] の RFC は節まで指します (#section-…): ${u}`);
+    });
+  // 答えを要点に書かない: 同じレッスンの穴埋めの正解 (別解も) が要点の文に出たら NG
+  const text = introText(intro);
+  for (const q of lesson.questions) {
+    if (q?.kind !== 'command' && q?.kind !== 'http') continue;
+    for (const b of Array.isArray(q.blanks) ? q.blanks : [])
+      for (const a of Array.isArray(b?.answers) ? b.answers : [])
+        if (isNonEmptyString(a) && containsWord(text, a.trim(), b.match === 'header-name' || b.match === 'media-type')) ng(lid, `intro に ${q.id} の答え (${a}) が書いてあります。答えの文字列は書かず、考え方を書きます`);
+  }
+}
+
+/** 穴埋めのよくある誤答 (blanks[].wrong)。問題ごとに合わせて 2〜4 個。正解と同じものや重なりは NG */
+function checkWrong(q, qid, ng, onlyFields) {
+  const blanks = Array.isArray(q.blanks) ? q.blanks : [];
+  let total = 0;
+  for (const [bi, b] of blanks.entries()) {
+    if (b?.wrong === undefined) continue;
+    if (!Array.isArray(b.wrong)) {
+      ng(qid, `blanks[${bi}].wrong は誤答の配列にします`);
+      continue;
+    }
+    total += b.wrong.length;
+    const seen = new Set();
+    const rights = new Set((Array.isArray(b.answers) ? b.answers : []).map((a) => roughNormalize(b, a)));
+    for (const [wi, w] of b.wrong.entries()) {
+      onlyFields(w, FIELDS.wrong, qid, `blanks[${bi}].wrong[${wi}].`);
+      if (!isNonEmptyString(w?.answer) || !isNonEmptyString(w?.why)) {
+        ng(qid, `blanks[${bi}].wrong[${wi}] は answer (誤答) と why (なぜ違うか) を持ちます`);
+        continue;
+      }
+      const key = roughNormalize(b, w.answer);
+      if (rights.has(key)) ng(qid, `blanks[${bi}].wrong[${wi}] の誤答 (${w.answer}) が正解と同じです`);
+      if (seen.has(key)) ng(qid, `blanks[${bi}].wrong[${wi}] の誤答 (${w.answer}) が重なっています`);
+      seen.add(key);
+      if (sentences(w.why).length > WRONG_SENTENCES_MAX) ng(qid, `blanks[${bi}].wrong[${wi}].why は ${WRONG_SENTENCES_MAX} 文までにします`);
+    }
+  }
+  if (total < WRONG_RANGE[0] || total > WRONG_RANGE[1]) ng(qid, `よくある誤答 (blanks[].wrong) を合わせて ${WRONG_RANGE[0]}〜${WRONG_RANGE[1]} 個書きます (${total} 個)`);
 }
 
 /**
