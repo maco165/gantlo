@@ -126,8 +126,10 @@ export async function runTry(browser, { base, check, noHorizontalOverflow }) {
     mode = 'cors';
 
     // 6. 用語集から開く
+    // 語を選ぶ (PC は一覧の項目、スマホは行を開く) と、説明の「試す」の札が出る
     await page.goto(`${base}glossary/`);
-    const link = page.locator('#term-404-not-found').getByRole('link', { name: /^試す/ });
+    await page.locator('li.gloss-item[data-term="404-not-found"] button').click();
+    const link = page.locator('article.gloss[data-term="404-not-found"] .gloss-detail__block', { hasText: '試す' }).getByRole('link');
     await link.waitFor();
     await target(link, '用語集の「試す」のリンク');
     await link.click();

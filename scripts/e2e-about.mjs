@@ -61,7 +61,7 @@ export async function runAbout(browser, { base, check, noHorizontalOverflow }) {
         await startLesson(page);
         await page.getByRole('heading', { name: LESSON.questions[0].prompt }).waitFor();
       }],
-      ['用語集', 'glossary/', () => page.locator('article.gloss').first().waitFor()],
+      ['用語集', 'glossary/', () => page.locator('li.gloss-item').first().waitFor()],
       ['404', 'no-such-page/', () => page.getByText('Not Found', { exact: true }).waitFor()],
       ['このサイトについて', 'about/', () => page.locator('h1', { hasText: 'このサイトについて' }).waitFor()],
     ];

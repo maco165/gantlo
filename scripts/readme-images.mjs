@@ -281,7 +281,13 @@ try {
       document.getElementById('astryx-app-shell-main')?.scrollBy(0, -(document.querySelector('.mobile-bar')?.getBoundingClientRect().height ?? 0) - 16);
     });
   });
-  await shoot('glossary-phone', phone, 'glossary/', (page) => page.locator('article.gloss').first().waitFor());
+  await shoot('glossary-phone', phone, 'glossary/', async (page) => {
+    // 最初の語 (HTTP) を開いた形を撮る
+    await page.locator('li.gloss-item').first().waitFor();
+    await page.locator('li.gloss-item button').first().click();
+    await page.locator('article.gloss').waitFor();
+  });
+  await shoot('glossary-pc', { width: 1280, height: 800 }, 'glossary/', (page) => page.locator('#gloss-pane article.gloss').waitFor());
   await shoot('about-phone', phone, 'about/');
   await shoot('handbook-phone', phone, 'handbook/', (page) => page.locator('.hb-card').first().waitFor());
   await shoot('handbook-http-phone', phone, 'handbook/http/', async (page) => {

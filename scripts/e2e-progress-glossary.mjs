@@ -4,7 +4,8 @@
 //   2. 記録を入れた進捗: 正答率 (答えた 4 回のうち正解 3 回で 75%)・7 日の XP (今日と 3 日前の合計、8 日前は入れない)・
 //      コースごとの済みがデータのレッスンの数どおり・本編の正答率・旅の段は選んだレッスンの段だけが学習済み・206
 //      (記録に入れるレッスンは scripts/e2e-lessons.mjs の loadLessons で問題データから選ぶ。中身を決め打ちしない)
-//   3. 用語集: 全部の語が説明・出典 (https・新しいタブ)・出てくるレッスンへのリンク付きで出る。11 の規格が学ぶ順に先に並ぶ
+//   3. 用語集: 一覧に全部の語が出て、11 の規格が学ぶ順に先に並ぶ。語を選ぶと説明・出典 (https・新しいタブ)・出てくるレッスンが出る
+//      (PC は一覧の右の枠、スマホは行が開き、もう一度押すと閉じる)。分類の札 (すべて・規格・問題に出る語) で一覧が絞られる
 //   4. 全角で探せる: 「ＨＴＴＰ」で HTTP、半角カナの「ﾘｿｰｽ」でリソースが先頭。当たらなければ 204 で語が出ない。消すと全部に戻る
 //   5. 語の「出てくるレッスン」のリンクで、そのレッスンが開く
 //   6. メニューの進捗と用語集に「準備中」が付かない。ページの題が「進捗」「用語集」で始まる
@@ -135,24 +136,62 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
     await noHorizontalOverflow(page, width, `${tag} 進捗 (記録あり)`);
     await target(page.locator('.prog__note a'), '進捗の下の復習と設定のリンク');
 
-    // 3. 用語集
+    // 3. 用語集 (B-029: PC は左の一覧と右の説明の枠、スマホは行を押すと開く。分類の札で絞る)
     await page.goto(`${base}glossary/`);
     await page.getByRole('heading', { name: '用語集', exact: true }).waitFor();
     // 用語集の画面とデータは開いたときに読む (App.tsx の lazy)。読み終えて語が出るまで待つ
-    await waitUntil(() => document.querySelectorAll('article.gloss').length > 0, undefined, '用語集の画面を読み込んで語が出る');
+    await waitUntil(() => document.querySelectorAll('li.gloss-item').length > 0, undefined, '用語集の画面を読み込んで語が出る');
     check((await page.title()).startsWith('用語集'), `${tag} ページの題が「用語集」で始まる`);
-    const all = page.locator('article.gloss');
-    check((await all.count()) === TERM_COUNT, `${tag} 全部の語 (${TERM_COUNT}) が出る (${await all.count()})`);
-    const standards = await page.locator('section[aria-labelledby="gloss-standards"] article.gloss').evaluateAll((els) => els.map((e) => e.getAttribute('data-term')));
+    const all = page.locator('li.gloss-item');
+    check((await all.count()) === TERM_COUNT, `${tag} 一覧に全部の語 (${TERM_COUNT}) が出る (${await all.count()})`);
+    const standards = await page.locator('section[aria-labelledby="gloss-standards"] li.gloss-item').evaluateAll((els) => els.map((e) => e.getAttribute('data-term')));
     check(JSON.stringify(standards) === JSON.stringify(STANDARDS), `${tag} 11 の規格が学ぶ順に先に並ぶ (${standards.join(',')})`);
-    const head = page.locator('article.gloss[data-term="head"]');
+    /** 語を選ぶ (PC は一覧の項目、スマホは行を開く)。説明の箱を返す */
+    const pick = async (id) => {
+      await page.locator(`li.gloss-item[data-term="${id}"] button`).click();
+      const box = page.locator(`article.gloss[data-term="${id}"]`);
+      await box.waitFor();
+      return box;
+    };
     const headTerm = glossary.terms.find((t) => t.id === 'head');
-    // 語の箱は content-visibility: auto で、画面の外の語は描くまで innerText が空になる。DOM の文字 (検索・読み上げが読むもの) で見る
-    check((await head.textContent()).includes(headTerm.description), `${tag} 語に短い説明が出る`);
-    const srcLinks = await page.locator('article.gloss .gloss__meta a[target="_blank"]').evaluateAll((as) => as.map((a) => a.href));
-    const sourceCount = glossary.terms.reduce((s, t) => s + t.sources.length, 0);
-    check(srcLinks.length === sourceCount && srcLinks.every((h) => h.startsWith('https://')), `${tag} 出典 ${sourceCount} 本がすべて https で新しいタブに開く (${srcLinks.length})`);
+    const head = await pick('head');
+    check((await head.innerText()).includes(headTerm.description), `${tag} 語を選ぶと短い説明が出る`);
+    {
+      const src = await head.locator('a[target="_blank"]').evaluateAll((as) => as.map((a) => a.href));
+      check(src.length === headTerm.sources.length && src.every((h) => h.startsWith('https://')), `${tag} 選んだ語の出典 ${headTerm.sources.length} 本が https で新しいタブに開く (${src.length})`);
+      const ls = await head.locator('a[href*="/lesson/"]').count();
+      check(ls === headTerm.lessons.length, `${tag} 選んだ語の出てくるレッスン ${headTerm.lessons.length} 本 (${ls})`);
+    }
+    check((await page.locator('article.gloss').count()) === 1, `${tag} 説明は選んだ 1 語だけに出る`);
+    if (phone) {
+      check((await page.locator('li.gloss-item[data-term="head"] button').getAttribute('aria-expanded')) === 'true', `${tag} スマホ: 押した行が開く (aria-expanded)`);
+      await page.locator('li.gloss-item[data-term="head"] button').click();
+      await waitUntil(() => document.querySelectorAll('article.gloss').length === 0, undefined, 'もう一度押すと閉じる');
+      check((await page.locator('article.gloss').count()) === 0, `${tag} スマホ: もう一度押すと閉じる`);
+      await target(page.locator('li.gloss-item[data-term="head"] button'), '用語の行');
+      await pick('head');
+    } else {
+      const pane = await page.locator('#gloss-pane').boundingBox();
+      const list = await page.locator('nav.gloss-index').boundingBox();
+      check(pane && list && pane.x > list.x + list.width - 1, `${tag} PC: 説明の枠が一覧の右に出る (一覧 ${Math.round(list?.x ?? -1)}+${Math.round(list?.width ?? -1)}・枠 ${Math.round(pane?.x ?? -1)})`);
+      check((await page.locator('li.gloss-item[data-term="head"] button').getAttribute('aria-current')) === 'true', `${tag} PC: 選んだ語が一覧で選ばれた印になる`);
+    }
+    await target(page.locator('article.gloss .gloss-chips a'), '出典と出てくるレッスンの札');
     await noHorizontalOverflow(page, width, `${tag} 用語集`);
+
+    // 分類の札で一覧が絞られる
+    const filterBtn = (label) => page.locator('.gloss-filter', { hasText: label });
+    const standardCount = STANDARDS.length;
+    await filterBtn('の規格').click();
+    await waitUntil((n) => document.querySelectorAll('li.gloss-item').length === n, standardCount, '規格の札で規格だけになる');
+    check((await all.count()) === standardCount && (await filterBtn('の規格').getAttribute('aria-pressed')) === 'true', `${tag} 「規格」の札で一覧が規格の ${standardCount} 語に絞られる (${await all.count()})`);
+    await filterBtn('問題に出る語').click();
+    await waitUntil((n) => document.querySelectorAll('li.gloss-item').length === n, TERM_COUNT - standardCount, '問題の語の札で残りだけになる');
+    check((await page.locator('section[aria-labelledby="gloss-standards"]').count()) === 0, `${tag} 「問題に出る語」の札で規格のまとまりが消える (${await all.count()} 語)`);
+    await target(filterBtn('すべて'), '分類の札');
+    await filterBtn('すべて').click();
+    await waitUntil((n) => document.querySelectorAll('li.gloss-item').length === n, TERM_COUNT, 'すべての札で全部に戻る');
+
     const search = page.getByRole('searchbox', { name: '用語を探す' });
     // 押せる所は欄の枠 (Astryx の .astryx-text-input) で、枠のどこを押しても入力欄に手元が移る
     const field = page.locator('[role="search"] .astryx-text-input');
@@ -179,35 +218,30 @@ export async function runProgressAndGlossary(browser, { base, check, noHorizonta
       await page.mouse.click(box.x + box.width - 8, box.y + 4);
       check(await search.evaluate((el) => el === document.activeElement), `${tag} 探す欄の枠の端を押しても入力欄に手元が移る`);
     }
-    await target(page.locator('article.gloss .gloss__meta a'), '出典と出てくるレッスンのリンク');
 
     // 4. 全角で探せる
+    const firstTerm = () => page.evaluate(() => document.querySelector('li.gloss-item')?.getAttribute('data-term') ?? null);
     await search.fill('ＨＴＴＰ');
-    await waitUntil(() => document.querySelector('article.gloss')?.getAttribute('data-term') === 'http', undefined, '全角の「ＨＴＴＰ」で先頭が http になる');
-    {
-      const first = await page.evaluate(() => document.querySelector('article.gloss')?.getAttribute('data-term') ?? null);
-      check(first === 'http', `${tag} 全角の「ＨＴＴＰ」で HTTP が先頭に見つかる (先頭 ${first})`);
-    }
+    await waitUntil(() => document.querySelector('li.gloss-item')?.getAttribute('data-term') === 'http', undefined, '全角の「ＨＴＴＰ」で先頭が http になる');
+    check((await firstTerm()) === 'http', `${tag} 全角の「ＨＴＴＰ」で HTTP が先頭に見つかる (先頭 ${await firstTerm()})`);
     check((await code()) === '200' && (await page.getByText(/語が見つかりました$/).isVisible()), `${tag} 見つかったら 200 と語の数`);
     await target(page.getByRole('button', { name: '用語を探す をクリア' }), '探す欄を消すボタン');
     await search.fill('ﾘｿｰｽ');
-    await waitUntil(() => document.querySelector('article.gloss')?.getAttribute('data-term') === 'resource', undefined, '半角カナの「ﾘｿｰｽ」で先頭が resource になる');
-    {
-      const first = await page.evaluate(() => document.querySelector('article.gloss')?.getAttribute('data-term') ?? null);
-      check(first === 'resource', `${tag} 半角カナの「ﾘｿｰｽ」でリソースが先頭に見つかる (先頭 ${first})`);
-    }
+    await waitUntil(() => document.querySelector('li.gloss-item')?.getAttribute('data-term') === 'resource', undefined, '半角カナの「ﾘｿｰｽ」で先頭が resource になる');
+    check((await firstTerm()) === 'resource', `${tag} 半角カナの「ﾘｿｰｽ」でリソースが先頭に見つかる (先頭 ${await firstTerm()})`);
     await search.fill('ｚｚｚ存在しない語');
     await waitUntil(() => document.querySelector('.status__code')?.textContent === '204', undefined, '当たらない語で 204 になる');
     check((await all.count()) === 0, `${tag} 当たらなければ 204 で、語は出ない`);
     await noHorizontalOverflow(page, width, `${tag} 用語集 (当たらない)`);
     await search.fill('');
-    await waitUntil((n) => document.querySelectorAll('article.gloss').length === n, TERM_COUNT, '探す語を消すと全部の語に戻る');
+    await waitUntil((n) => document.querySelectorAll('li.gloss-item').length === n, TERM_COUNT, '探す語を消すと全部の語に戻る');
     check((await all.count()) === TERM_COUNT, `${tag} 探す語を消すと全部に戻る`);
 
     // 5. 出てくるレッスンのリンクで、そのレッスンが開く
     check(linkLesson !== undefined, `${tag} 出てくるレッスンを持つ語があり、そのレッスンが問題データにある (${linkTerm?.id} → ${linkTerm?.lessons[0]})`);
     if (linkLesson) {
-      await page.locator(`article.gloss[data-term="${linkTerm.id}"] a[href="/gantlo/lesson/${linkLesson.id}/"]`).click();
+      const box = await pick(linkTerm.id);
+      await box.locator(`a[href="/gantlo/lesson/${linkLesson.id}/"]`).click();
       await startLesson(page);
       await page.getByRole('heading', { name: linkLesson.questions[0].prompt }).waitFor();
       check(new URL(page.url()).pathname === `/gantlo/lesson/${linkLesson.id}/`, `${tag} 「出てくるレッスン」のリンクでレッスンが開く (${new URL(page.url()).pathname})`);
