@@ -91,9 +91,36 @@ export function scrollToHash(hash: string, deadline = Date.now() + 3000) {
     return scrollToTop();
   }
   const el = document.getElementById(id);
-  if (el) el.scrollIntoView();
+  if (el) settleScroll(el);
   else if (Date.now() < deadline) requestAnimationFrame(() => scrollToHash(hash, deadline));
   else scrollToTop();
+}
+
+/**
+ * 要素の位置へ送り、上の箱の高さが確定して位置がずれたら送り直す (用語集の語の箱は content-visibility: auto で、
+ * 描くまでは仮の高さなので、一度では届かない)。位置が 2 フレーム続けて動かなくなるか、0.6 秒で止める。
+ * 読む人がスクロールしたら (wheel・touch・キー) すぐやめる
+ */
+function settleScroll(el: HTMLElement, until = Date.now() + 600) {
+  let last = Number.NaN;
+  let still = 0;
+  let stopped = false;
+  const stop = () => {
+    stopped = true;
+  };
+  const opts = { once: true, passive: true } as const;
+  window.addEventListener('wheel', stop, opts);
+  window.addEventListener('touchstart', stop, opts);
+  window.addEventListener('keydown', stop, opts);
+  const step = () => {
+    if (stopped || !el.isConnected) return;
+    el.scrollIntoView();
+    const top = el.getBoundingClientRect().top;
+    still = Math.abs(top - last) < 1 ? still + 1 : 0;
+    last = top;
+    if (still < 2 && Date.now() < until) requestAnimationFrame(step);
+  };
+  step();
 }
 
 /**

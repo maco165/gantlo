@@ -1,5 +1,4 @@
 import { Card } from '@astryxdesign/core/Card';
-import { CodeBlock } from '@astryxdesign/core/CodeBlock';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { use } from 'react';
@@ -42,6 +41,21 @@ function Index() {
   );
 }
 
+/**
+ * コマンドと出力の枠。Astryx の CodeBlock は使わない (この画面で使うと、Rolldown がテーマの処理を入口の JS に引き上げ、
+ * 入口が 172 KB の予算を超えるため。色付けとコピーのボタンは無くし、折り返す <pre> にする)
+ */
+function Code({ title, text }: { title: string; text: string }) {
+  return (
+    <figure className="hb-code">
+      <figcaption className="hb-code__title">{title}</figcaption>
+      <pre className="hb-code__body">
+        <code>{text}</code>
+      </pre>
+    </figure>
+  );
+}
+
 /** 節 1 つ。見出し・段落・試すコマンドと出力の例・添え書き・出典 */
 function Section({ s, index }: { s: HandbookSection; index: number }) {
   const id = `s${index + 1}`;
@@ -55,8 +69,8 @@ function Section({ s, index }: { s: HandbookSection; index: number }) {
           {p}
         </p>
       ))}
-      {s.code && <CodeBlock code={s.code.text} language={s.code.language} title="試すコマンド" width="100%" size="sm" isWrapped />}
-      {s.output && <CodeBlock code={s.output} title="出力の例" width="100%" size="sm" hasCopyButton={false} isWrapped />}
+      {s.code && <Code title={`試すコマンド (${s.code.language})`} text={s.code.text} />}
+      {s.output && <Code title="出力の例" text={s.output} />}
       {s.note && <Text type="supporting">{s.note}</Text>}
       <p className="hb-section__sources tap-links">
         <Text type="supporting">出典: </Text>
