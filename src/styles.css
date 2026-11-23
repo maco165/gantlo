@@ -1577,3 +1577,17 @@ code {
 .wrong-note {
   margin: 0;
 }
+
+/* 結果の共有 (レッスン完了・模擬試験の結果) */
+.share {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+.share__row {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-3);
+}
