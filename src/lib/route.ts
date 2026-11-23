@@ -97,8 +97,8 @@ export function scrollToHash(hash: string, deadline = Date.now() + 3000) {
 }
 
 /**
- * 要素の位置へ送り、上の箱の高さが確定して位置がずれたら送り直す (用語集の語の箱は content-visibility: auto で、
- * 描くまでは仮の高さなので、一度では届かない)。位置が 2 フレーム続けて動かなくなるか、0.6 秒で止める。
+ * 要素の位置へ送り、上の箱の高さが確定して位置がずれたら送り直す (画面の JS・本文・書体があとから届くと、
+ * 上の箱の高さが変わって一度では届かないことがある)。位置が 2 フレーム続けて動かなくなるか、0.6 秒で止める。
  * 読む人がスクロールしたら (wheel・touch・キー) すぐやめる
  */
 function settleScroll(el: HTMLElement, until = Date.now() + 600) {
@@ -114,7 +114,7 @@ function settleScroll(el: HTMLElement, until = Date.now() + 600) {
   window.addEventListener('keydown', stop, opts);
   const step = () => {
     if (stopped || !el.isConnected) return;
-    el.scrollIntoView();
+    el.scrollIntoView?.();
     const top = el.getBoundingClientRect().top;
     still = Math.abs(top - last) < 1 ? still + 1 : 0;
     last = top;

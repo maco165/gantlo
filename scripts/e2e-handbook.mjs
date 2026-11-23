@@ -67,6 +67,11 @@ export async function runHandbook(browser, { base, check, noHorizontalOverflow }
       await page.waitForTimeout(300);
       const top = (await page.locator(`#term-${term}`).boundingBox())?.y ?? -1;
       check(top >= 0 && top < height / 2, `${tag} ${t.id}: 用語集の ${term} が画面の上半分に見える (y=${Math.round(top)})`);
+      // その語が選ばれる (PC は右の枠にその語の説明、スマホはその行が開く)
+      const chosen = phone
+        ? (await page.locator(`#term-${term} button`).getAttribute('aria-expanded')) === 'true'
+        : (await page.locator(`#gloss-pane article.gloss[data-term="${term}"]`).count()) === 1;
+      check(chosen, `${tag} ${t.id}: 用語集で ${term} が選ばれる (${phone ? '行が開く' : '右の枠に説明'})`);
 
       // 戻って進んでも、語の位置へ送る
       await page.goBack();

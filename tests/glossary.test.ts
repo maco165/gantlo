@@ -192,16 +192,57 @@ describe('用語集の画面と書き出し', () => {
     host.remove();
   });
 
-  it('全部の語を、説明・出典・出てくるレッスンへのリンク付きで出す', async () => {
+  it('全部の語を一覧に出し、行を開くと説明・出典・出てくるレッスンへのリンクが出る (jsdom は狭い画面の形)', async () => {
     await act(async () => root.render(createElement(Glossary)));
-    const entries = [...host.querySelectorAll('article.gloss')];
-    expect(entries).toHaveLength(TERMS.length);
+    expect(host.querySelectorAll('li.gloss-item')).toHaveLength(TERMS.length);
+    // 開く前は説明を出さない (開くのは 1 つだけ)
+    expect(host.querySelectorAll('article.gloss')).toHaveLength(0);
+    const open = async (id: string) => act(async () => (host.querySelector(`li[data-term="${id}"] button`) as HTMLButtonElement).click());
+    await open('head');
+    expect(host.querySelectorAll('article.gloss')).toHaveLength(1);
     const head = host.querySelector('article[data-term="head"]')!;
     expect(head.textContent).toContain(TERMS.find((t) => t.id === 'head')!.description);
     expect(head.querySelector('a[href="https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2"]')).not.toBeNull();
     for (const id of TERMS.find((t) => t.id === 'head')!.lessons) expect(head.querySelector(`a[href="/gantlo/lesson/${id}/"]`), id).not.toBeNull();
     // 出てくるレッスンが無い語は、レッスンの行を出さない
+    await open('202-accepted');
+    expect(host.querySelector('article[data-term="head"]')).toBeNull();
     expect(host.querySelector('article[data-term="202-accepted"]')!.textContent).not.toContain('出てくるレッスン');
+    // もう一度押すと閉じる
+    await open('202-accepted');
+    expect(host.querySelectorAll('article.gloss')).toHaveLength(0);
+  });
+
+  it('札で隠れた語の #term-<id> へ移ると、札を「すべて」に戻してその語を開く。札で選んだ語が消えたら、戻しても開き直さない', async () => {
+    await act(async () => root.render(createElement(Glossary)));
+    const click = async (el: Element | null) => act(async () => (el as HTMLButtonElement).click());
+    const filter = (label: string) => [...host.querySelectorAll('.gloss-filter')].find((b) => b.textContent!.startsWith(label))!;
+    // head を開いて「11 の規格」に絞ると head は消え、「すべて」に戻しても開き直さない
+    await click(host.querySelector('li[data-term="head"] button'));
+    await click(filter('11 の規格'));
+    expect(host.querySelector('li[data-term="head"]')).toBeNull();
+    await click(filter('すべて'));
+    expect(host.querySelectorAll('article.gloss')).toHaveLength(0);
+    // 「11 の規格」に絞った状態で、隠れた get の # へ移る
+    await click(filter('11 の規格'));
+    expect(host.querySelector('li[data-term="get"]')).toBeNull();
+    // 隠れていた語は描き直すまで位置が無いので、出てからその位置へ送る (scrollIntoView が #term-get で呼ばれる)
+    const scrolled: string[] = [];
+    const orig = Element.prototype.scrollIntoView;
+    Element.prototype.scrollIntoView = function (this: Element) {
+      scrolled.push(this.id);
+    };
+    await act(async () => {
+      window.location.hash = '#term-get';
+      window.dispatchEvent(new HashChangeEvent('hashchange'));
+    });
+    expect(filter('すべて').getAttribute('aria-pressed')).toBe('true');
+    expect(host.querySelector('li[data-term="get"] button')!.getAttribute('aria-expanded')).toBe('true');
+    expect(host.querySelector('article.gloss[data-term="get"]')).not.toBeNull();
+    await act(async () => new Promise((r) => setTimeout(r, 100)));
+    Element.prototype.scrollIntoView = orig;
+    expect(scrolled).toContain('term-get');
+    window.location.hash = '';
   });
 
   it('書き出す用語集の本文は、出典の URL を属性の中で escape する (G-002)', () => {

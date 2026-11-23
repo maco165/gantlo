@@ -1,9 +1,11 @@
 // 390 幅の崩れの検査 (B-025)。scripts/e2e.mjs (npm run e2e) から呼ぶ。スマホ (390 幅) と PC (1280 幅) のそれぞれで次を確かめる:
 //   1. レッスンの応答の出典 (X-Source) の外部リンクは、長い URL でも箱と外部リンクの印 (svg) の右端が応答の枠と画面の内にある。
 //      どのレッスンのどの問題で見るかは問題データから選ぶ (いちばん長い出典を持つ問題)
-//   2. 用語集の「出てくるレッスン」と「出典」の区切り (・) が 1 行を占めず、前か後ろのリンクと同じ行に出る。
-//      区切りの字の縦の中心が、前か後ろのリンクの箱の上端と下端の間にあることで見る (区切りの作りに依らない)
+//   2. 用語集で札 (出てくるレッスンと出典) がいちばん多い語を開き、どの札も説明の箱と画面の右端の内に収まる
+import { readFileSync } from 'node:fs';
 import { answer, loadLessons, startLesson } from './e2e-lessons.mjs';
+
+const glossary = JSON.parse(readFileSync(new URL('../src/content/glossary.json', import.meta.url), 'utf8'));
 
 /** いちばん長い出典を持つ問題と、その前の問題の数 */
 function longestSource(lessons) {
@@ -58,38 +60,19 @@ export async function runNarrow(browser, { base, check, noHorizontalOverflow }) 
     );
     await noHorizontalOverflow(page, width, `${tag} 長い出典の応答`);
 
-    // 2. 用語集の区切り
+    // 2. 用語集の札 (出てくるレッスンと出典)。札がいちばん多い語を開き、どの札も説明の箱と画面の内に収まる
     await page.goto(`${base}glossary/`);
-    await page.locator('article.gloss').first().waitFor();
-    const seps = await page.evaluate(() => {
-      const out = [];
-      for (const p of document.querySelectorAll('article.gloss .gloss__meta')) {
-        const links = [...p.querySelectorAll('a')];
-        const walker = document.createTreeWalker(p, NodeFilter.SHOW_TEXT);
-        for (let n = walker.nextNode(); n; n = walker.nextNode()) {
-          if (n.parentElement.closest('a')) continue;
-          const at = n.textContent.indexOf('・');
-          if (at < 0) continue;
-          const range = document.createRange();
-          range.setStart(n, at);
-          range.setEnd(n, at + 1);
-          const r = range.getBoundingClientRect();
-          const mid = (r.top + r.bottom) / 2;
-          // 区切りの前と後ろのリンク (文書の順で)
-          const before = links.filter((a) => a.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_FOLLOWING).pop();
-          const after = links.find((a) => a.compareDocumentPosition(n) & Node.DOCUMENT_POSITION_PRECEDING);
-          const within = (a) => {
-            if (!a) return false;
-            const b = a.getBoundingClientRect();
-            return mid >= b.top && mid <= b.bottom;
-          };
-          out.push({ term: p.closest('article').dataset.term, ok: within(before) || within(after), mid: Math.round(mid) });
-        }
-      }
-      return out;
-    });
-    const alone = seps.filter((s) => !s.ok);
-    check(seps.length > 0 && alone.length === 0, `${tag} 用語集の区切り ${seps.length} 個が 1 行を占めず、前か後ろのリンクと同じ行に出る ${alone.map((s) => `${s.term}@${s.mid}`).join(' / ')}`);
+    await page.locator('li.gloss-item').first().waitFor();
+    const busiest = glossary.terms.reduce((x, t) => (t.lessons.length + t.sources.length > x.lessons.length + x.sources.length ? t : x));
+    await page.locator(`li.gloss-item[data-term="${busiest.id}"] button`).click();
+    await page.locator(`article.gloss[data-term="${busiest.id}"]`).waitFor();
+    const chips = await page.evaluate((id) => {
+      const box = document.querySelector(`article.gloss[data-term="${id}"]`);
+      const right = Math.min(box.getBoundingClientRect().right, document.documentElement.clientWidth);
+      return [...box.querySelectorAll('.gloss-chips a')].map((a) => ({ text: a.textContent, r: a.getBoundingClientRect().right, right }));
+    }, busiest.id);
+    const out = chips.filter((c) => c.r > c.right + 0.5);
+    check(chips.length > 0 && out.length === 0, `${tag} 用語集の札 ${chips.length} 個 (${busiest.id}) が説明の箱と画面の内に収まる ${out.map((c) => `${c.text.slice(0, 20)} ${Math.round(c.r)} > ${Math.round(c.right)}`).join(' / ')}`);
     await noHorizontalOverflow(page, width, `${tag} 用語集`);
 
     check(errors.length === 0, `${tag} ページのエラーが無い ${errors.join(' / ')}`);
