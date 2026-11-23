@@ -6,12 +6,37 @@ import { safeLocalStorage, type KeyValueStorage } from './progress';
  * 解いている途中の回を残す localStorage のキー。進捗 (gantlo.v1) とは別のキーにして、進捗の様式・書き出し・読み込みには入れない
  * (途中の回は記録ではなく、終えるかやめると消す)
  */
-export const EXAM_SAVE_KEY = 'gantlo.exam.v1';
+export const EXAM_SAVE_KEY = 'gantlo.exam.v2';
+/**
+ * 前の版の置き場所。前の版の JS は、位置ごとの答え (null を含む) や全部に答えた回を「壊れた中身」として消すので、
+ * 新しい形はこの鍵に書かない。ここに残っている古い回は、読むときに新しい鍵へ移して消す (migrateExamSave)
+ */
+export const LEGACY_EXAM_SAVE_KEY = 'gantlo.exam.v1';
+
+/**
+ * 古い鍵 (gantlo.exam.v1) の回を新しい鍵へ移す。新しい鍵に回が無ければ写し、どちらにしても古い鍵は消す
+ * (新しい鍵に回があれば、そちらが新しい版の回なので古いものは捨てる)。中身の形 (詰めた答え・index なし) は fromSavedExam が読める
+ */
+export function migrateExamSave(storage: ExamStorage | undefined = safeLocalStorage()): void {
+  try {
+    const old = storage?.getItem(LEGACY_EXAM_SAVE_KEY);
+    if (old === null || old === undefined) return;
+    if (storage!.getItem(EXAM_SAVE_KEY) === null) storage!.setItem(EXAM_SAVE_KEY, old);
+    storage!.removeItem(LEGACY_EXAM_SAVE_KEY);
+  } catch {
+    // 移せない環境では読めずに最初の画面になる
+  }
+}
 
 /** 途中の回の中身。出題 (問題の id と、混ぜた 4 択の選択肢・並べ替えの項目の並び)・答え・期限 (時刻のミリ秒) */
 export type SavedExamItem = { id: string; order?: string[] };
-/** runId は回ごとの id。採点した回は記録 (exams の runId) に残し、同じ回の保存を読み直さない・2 回記録しない */
-export type SavedExam = { v: 1; runId: string; items: SavedExamItem[]; answers: { correct: boolean; code: number }[]; deadline: number };
+/**
+ * runId は回ごとの id。採点した回は記録 (exams の runId) に残し、同じ回の保存を読み直さない・2 回記録しない。
+ * answers は問題の位置ごとの答えで、答えていない位置は null (前の問題へ戻る・一覧から飛ぶので、前から順には埋まらない)。
+ * index は今出している問題の位置、marks は「あとで見直す」の印を付けた位置。
+ * index と marks の無い古い保存 (答えは前から詰めて並ぶ) は、答えた数を今の位置として読む (lib/exam.ts の fromSavedExam)
+ */
+export type SavedExam = { v: 1 | 2; runId: string; items: SavedExamItem[]; answers: ({ correct: boolean; code: number } | null)[]; deadline: number; index?: number; marks?: number[] };
 
 export type ExamStorage = KeyValueStorage & Pick<Storage, 'removeItem'>;
 
@@ -22,6 +47,7 @@ export function newRunId(): string {
 
 /** 残している途中の回の id。無い・読めないときは null */
 export function savedRunId(storage: ExamStorage | undefined = safeLocalStorage()): string | null {
+  migrateExamSave(storage);
   try {
     const raw = JSON.parse(storage?.getItem(EXAM_SAVE_KEY) ?? 'null') as { runId?: unknown } | null;
     return typeof raw?.runId === 'string' ? raw.runId : null;
@@ -50,6 +76,7 @@ export function saveExamRun(saved: SavedExam, storage: ExamStorage | undefined =
 export function clearExamRun(storage: ExamStorage | undefined = safeLocalStorage()): void {
   try {
     storage?.removeItem(EXAM_SAVE_KEY);
+    storage?.removeItem(LEGACY_EXAM_SAVE_KEY);
   } catch {
     // 消せない環境では残っていない
   }

@@ -1,4 +1,5 @@
 // 組み立てた index.html (dist/index.html) を型にして、1 ページ分の HTML と sitemap.xml を作る。
+import { ogImageAlt, ogImageUrl } from './og';
 import { esc, pageUrl, type SitePage } from './pages';
 
 /**
@@ -12,6 +13,9 @@ const SLOTS = {
   ogUrl: /(<meta property="og:url" content=")[^"]*(")/,
   ogTitle: /(<meta property="og:title" content=")[^"]*(")/,
   ogDescription: /(<meta property="og:description" content=")[^"]*(")/,
+  ogImage: /(<meta property="og:image" content=")[^"]*(")/,
+  ogImageAlt: /(<meta property="og:image:alt" content=")[^"]*(")/,
+  twitterImage: /(<meta name="twitter:image" content=")[^"]*(")/,
   root: /<div id="root">[\s\S]*?<\/div>(?=\s*(?:<script|<\/body>))/,
 } as const;
 
@@ -29,6 +33,13 @@ export function renderPage(template: string, page: SitePage): string {
     ogUrl: attr(url),
     ogTitle: attr(esc(page.title)),
     ogDescription: attr(esc(page.description)),
+    // 検索に載るページ (ホームを除く) は、そのページの題を入れた画像 (dist/<道>/og.png)。ほかはサイト共通の画像のまま (src/prerender/og.ts)
+    ogImage: attr(ogImageUrl(page)),
+    ogImageAlt: (m: string, head: string, tail: string) => {
+      const alt = ogImageAlt(page);
+      return alt === null ? m : `${head}${esc(alt)}${tail}`;
+    },
+    twitterImage: attr(ogImageUrl(page)),
     root: () => `<div id="root">\n      ${MAIN_OPEN}\n${page.body}\n      </main>\n    </div>`,
   };
   let html = template;

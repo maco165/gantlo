@@ -25,12 +25,13 @@ jobs:
 
       - run: npm ci
       - run: npm run check:content
+      # build の最後の段 (scripts/og-images.mjs) がページごとの共有の画像を Chromium で撮るので、build の前に入れる
+      - run: npx playwright install --with-deps chromium
       # tests/meta.test.ts の後半は dist (書き出したページ) を見るので、build のあとに走らせる
       - run: npm run build
       - run: npm test
 
       # 通しの検査 (npm run e2e と同じ中身)。dist は上で組み立てたものを使う
-      - run: npx playwright install --with-deps chromium
       - run: node scripts/e2e.mjs
 
       - if: github.event_name == 'push'

@@ -94,6 +94,17 @@ export function goalSaved(xp: number): Status {
   return { code: 200, reason: 'OK', ja: `1 日の目標を ${xp} XP にしました` };
 }
 
+/** 週の目標を変えた (PATCH /me/profile)。null は目標を外した */
+export function weeklyGoalSaved(days: number | null): Status {
+  return { code: 200, reason: 'OK', ja: days === null ? '週の目標を外しました' : `週の目標を ${days} 日にしました` };
+}
+
+/** 学ぶ予定の .ics を作った (GET /me/calendar.ics) */
+export const ICS_DONE: Status = { code: 200, reason: 'OK', ja: '学ぶ予定のファイル (.ics) を作りました。カレンダーのアプリで開くと予定に入ります' };
+
+/** .ics の曜日が 1 つも選ばれていない・時刻の形が違う。作らない */
+export const ICS_INVALID: Status = { code: 422, reason: 'Unprocessable Content', ja: '曜日を 1 つ以上選び、時刻を入れてください' };
+
 /** 記録を読み込んで置き換えた (PUT /me) */
 export const IMPORT_DONE: Status = { code: 200, reason: 'OK', ja: '読み込んだ記録に置き換えました' };
 
@@ -126,6 +137,14 @@ export function examIntroStatus(total: number, minutes: number): Status {
 /** 途中の回が残っている (GET /me/exams/current)。答えたのは一部なので、ホームの途中と同じ 206 */
 export function examResumeStatus(answered: number, total: number): Status {
   return { code: 206, reason: 'Partial Content', ja: `途中の回があります。${total} 問のうち ${answered} 問に答えました` };
+}
+
+/**
+ * 採点の前の確かめ。本文 (採点の答え) を送る前に確かめる Expect: 100-continue になぞらえて 100 Continue。
+ * 未回答と見直しの印の数を説明に入れる
+ */
+export function examReviewStatus(unanswered: number, marked: number): Status {
+  return { code: 100, reason: 'Continue', ja: `採点の前の確かめです。未回答 ${unanswered} 問・見直しの印 ${marked} 問` };
 }
 
 /**

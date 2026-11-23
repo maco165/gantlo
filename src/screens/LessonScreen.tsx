@@ -13,11 +13,13 @@ import FillQuestionView from '../components/FillQuestionView';
 import LabQuestionView from '../components/LabQuestionView';
 import { IntroFolded, IntroGate } from '../components/LessonIntro';
 import OrderQuestionView from '../components/OrderQuestionView';
+import ShareButtons from '../components/ShareButtons';
 import type { Lesson, Question } from '../content/types';
 import { answerRequest, finishLesson, lessonScore, resultCode, resultBody, resultLocation, reviewResultBody, type Outcome } from '../lib/lessonRun';
 import { completeReview, currentStreak, goalXp, recordAnswer, todayXp, type Progress } from '../lib/progress';
 import { homeHref, scrollToTop } from '../lib/route';
 import { shuffleItems } from '../lib/order';
+import { lessonShare } from '../lib/share';
 import { shuffleChoices } from '../lib/shuffle';
 import { lessonCreated, reviewDone, type Status } from '../lib/status';
 import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
@@ -248,6 +250,8 @@ function ResultView({
           })}
         </List>
       </section>
+
+      {!review && <ShareButtons data={lessonShare(lesson.id, score.correct, score.total)} />}
 
       <HStack gap={2} justify={isWide ? 'end' : 'start'} wrap="wrap">
         {!review && <Button label="もう一度解く" onClick={onRetry} width={isWide ? undefined : '100%'} size={isWide ? 'md' : 'lg'} />}
