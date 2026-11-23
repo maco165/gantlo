@@ -312,6 +312,9 @@ export async function runContrast(browser, { base, check }) {
     await page.goto(`${base}about/`);
     await page.locator('h1', { hasText: 'このサイトについて' }).waitFor();
     await measure('このサイトについて', ['このサイトについて', 'GitHub のリポジトリを開く', 'Issue を書く', '記録の置き場所']);
+    // パンくずのリンクは、周りの字と色だけで分けず下線を持つ (Lighthouse の link-in-text-block。3:1 か下線が要る)
+    const crumbLinks = await page.locator('nav.crumbs a').evaluateAll((as) => as.map((a) => getComputedStyle(a).textDecorationLine));
+    check(crumbLinks.length > 0 && crumbLinks.every((d) => d.includes('underline')), `${tag} パンくずのリンクに下線がある (${crumbLinks.join(',')})`);
     await context.close();
 
     // 模擬試験: 始める前・残り 5 分を切った途中 (残り時間が誤りの色)・時間切れの結果 (408 と未回答の行)。時計を進めるので別の context で開く

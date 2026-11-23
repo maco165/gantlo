@@ -10,6 +10,7 @@ import { stageStates } from '../lib/journey';
 import { currentLesson, planLessons, planOrder } from '../lib/plan';
 import { currentStreak, goalXp, todayXp, type Progress } from '../lib/progress';
 import { COURSES, pageHref } from '../lib/route';
+import { freezeText, weeklyTargetText } from '../lib/habits';
 import { scheduleHeader } from '../lib/schedule';
 import { SITE_NAME, SITE_TAGLINE } from '../lib/site';
 import { progressStatus } from '../lib/status';
@@ -29,6 +30,9 @@ export default function Home({ progress, now = new Date(), lessons = CATALOG }: 
   const headers: [string, string][] = [
     ['X-Today-XP', `${todayXp(progress, now)} / ${goalXp(progress)}`],
     ['X-Streak', `${currentStreak(progress, now)} 日連続`],
+    // 休みの札 (1 日休んでも連続を切らない札) と、今週 (月曜から) 学んだ日と週の目標
+    ['X-Streak-Freeze', freezeText(progress, now)],
+    ['X-Weekly-Target', weeklyTargetText(progress, now)],
     // 計画の予定と比べた巻き・遅れ (計画の画面と同じ数え方)。計画を保存する前は「204 計画なし」。取り戻し方は出さず、一言だけ
     ['X-Schedule', scheduleHeader(progress, now, lessons)],
     ['Retry-After', `今日の復習 ${dueReviewCount(progress, now)} 問`],

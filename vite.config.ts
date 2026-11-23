@@ -25,7 +25,8 @@ function lessonCatalog(): Plugin {
       const data = JSON.parse(readFileSync(file, 'utf8')) as { lessons: Record<string, unknown>[] };
       const lessons = data.lessons.map((l) => ({
         ...Object.fromEntries(CATALOG_FIELDS.filter((k) => l[k] !== undefined).map((k) => [k, l[k]])),
-        questions: (l.questions as { id: string }[]).map((q) => ({ id: q.id })),
+        // 実習 (採点しない) には lab を付ける (進捗の画面が、問題の本文を読まずに採点する問題を数えるため)
+        questions: (l.questions as { id: string; kind: string }[]).map((q) => (q.kind === 'lab' ? { id: q.id, lab: true } : { id: q.id })),
       }));
       return `export default ${JSON.stringify({ lessons })};`;
     },

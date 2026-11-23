@@ -10,6 +10,13 @@ describe('src/styles.css', () => {
     expect(() => postcss.parse(css, { from: 'src/styles.css' })).not.toThrow();
   });
 
+  it('パンくずのリンクは下線を持つ (周りの字と色だけでは 3:1 に届かないため。link-in-text-block)', () => {
+    const root = postcss.parse(css, { from: 'src/styles.css' });
+    const decl: string[] = [];
+    root.walkRules('.crumbs a', (r) => r.walkDecls('text-decoration', (d) => void decl.push(d.value)));
+    expect(decl.some((v) => v.includes('underline'))).toBe(true);
+  });
+
   it('レッスンの画面の決まりが、@media の中ではなく一番外にある', () => {
     const root = postcss.parse(css, { from: 'src/styles.css' });
     const top = root.nodes.filter((n) => n.type === 'rule').map((n) => (n.type === 'rule' ? n.selector : ''));

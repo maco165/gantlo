@@ -188,7 +188,10 @@ export async function runReviewAndSettings(browser, { base, check, noHorizontalO
     await dialog.waitFor({ state: 'hidden' });
     check(JSON.stringify(await stored()) === JSON.stringify(exported), `${tag} やめると記録は消えない`);
     // 模擬試験の解いている途中の回 (別のキー) も、記録を消すと消える
-    await page.evaluate(() => localStorage.setItem('gantlo.exam.v1', JSON.stringify({ v: 1, runId: 'e2e', items: [], answers: [], deadline: 0 })));
+    await page.evaluate(() => {
+      localStorage.setItem('gantlo.exam.v2', JSON.stringify({ v: 2, runId: 'e2e', items: [], answers: [], deadline: 0 }));
+      localStorage.setItem('gantlo.exam.v1', JSON.stringify({ v: 1, runId: 'e2e-old', items: [], answers: [], deadline: 0 }));
+    });
     await del.click();
     await dialog.waitFor();
     await dialog.getByRole('button', { name: '消す', exact: true }).click();
@@ -198,7 +201,7 @@ export async function runReviewAndSettings(browser, { base, check, noHorizontalO
       Object.keys(cleared?.answers ?? { x: 1 }).length === 0 && cleared?.xp?.total === 0 && cleared?.profile?.dailyGoalXp === 10,
       `${tag} 消すと 204 で、記録は空で目標は残る`,
     );
-    check((await page.evaluate(() => localStorage.getItem('gantlo.exam.v1'))) === null, `${tag} 記録を消すと模擬試験の途中の回 (gantlo.exam.v1) も消える`);
+    check((await page.evaluate(() => [localStorage.getItem('gantlo.exam.v2'), localStorage.getItem('gantlo.exam.v1')])).every((v) => v === null), `${tag} 記録を消すと模擬試験の途中の回 (gantlo.exam.v2 と前の版の v1) も消える`);
     check(dialogs === 0, `${tag} ブラウザの confirm() を使わない`);
 
     // 7. 壊れたファイルと大きすぎるファイルは読み込まない

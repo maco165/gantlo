@@ -9,10 +9,27 @@ export type LessonRecord = { done: boolean; best: number; at: string };
  * 問題ごとの記録。復習の予定 (nextReview、手元の日付) があるものが復習の対象。
  * stage は復習で続けて正解した回数 (0〜2)。予定の計算は recordAnswer
  */
-export type AnswerRecord = { right: number; wrong: number; last: string; stage?: number; nextReview?: string };
+export type AnswerRecord = { right: number; wrong: number; last: string; stage?: number; nextReview?: string; inRow?: number };
+
+/** 続けて正解した回数 (inRow) を残す上限。到達 (lib/mastery.ts) は 2 回で頭打ちなので、それより大きい数は要らない */
+export const MAX_IN_ROW = 9;
+
+/**
+ * 直近で続けて正解した回数。記録に inRow があればそれを、無い古い記録は回数と復習の段階から推す:
+ * 一度も間違えていなければ正解の回数、一度も正解していなければ 0、間違えたあと卒業していれば (予定が無い) 2、
+ * 復習の途中なら段階 (予定の日以降に続けて正解した数)。段階 0 は直近が誤りとみなす (予定の日より前の正解は段階を動かさず、区別できない)
+ */
+export function inRowOf(a: AnswerRecord | undefined): number {
+  if (!a) return 0;
+  if (a.inRow !== undefined) return a.inRow;
+  if (a.wrong === 0) return Math.min(a.right, MAX_IN_ROW);
+  if (a.right === 0) return 0;
+  if (a.nextReview === undefined) return 2;
+  return a.stage ?? 0;
+}
 
 /** 模擬試験の 1 回の記録。at は終えた時刻 (ISO)、timeUp は時間が切れて終わったか */
-/** 模擬試験の回の記録。runId は採点した回の id (同じ回を 2 回記録しないため。途中の回の保存 gantlo.exam.v1 と同じ id) */
+/** 模擬試験の回の記録。runId は採点した回の id (同じ回を 2 回記録しないため。途中の回の保存 gantlo.exam.v2 と同じ id) */
 export type ExamRecord = { at: string; correct: number; total: number; timeUp: boolean; runId?: string };
 
 /** 復習の間隔 (日)。間違えたら翌日、復習で続けて正解するたびに 3 日後・7 日後 */
@@ -40,7 +57,20 @@ export const isCourseDays = (v: unknown): v is number =>
 export type GanttView = { kind: 'all' } | { kind: '2w' } | { kind: '1m' } | { kind: 'range'; from: string; to: string };
 export const GANTT_VIEW_KINDS = ['all', '2w', '1m', 'range'] as const;
 
-export type Profile = { dailyGoalXp: number; ganttView?: GanttView };
+/** weeklyGoalDays は週に学ぶ日の目標 (1〜7)。既定は無く、決めるまで持たない */
+export type Profile = { dailyGoalXp: number; ganttView?: GanttView; weeklyGoalDays?: number };
+
+export const isWeeklyGoal = (v: unknown): v is number => typeof v === 'number' && Number.isInteger(v) && v >= 1 && v <= 7;
+
+/**
+ * 休みの札 (連続日数を 1 日空いても切らない札)。count は持っている数 (0〜MAX_FREEZES)、toward は次の札までに学んだ日の数 (0〜6)、
+ * used は札を使った日 (新しい順に MAX_FREEZE_LOG 日まで)。無い記録 (古い記録) は学んだ日の数から数える (freezeState)
+ */
+export type Freeze = { count: number; toward: number; used: string[] };
+export const MAX_FREEZES = 2;
+/** 札 1 個に要る学んだ日の数 */
+export const FREEZE_EVERY = 7;
+export const MAX_FREEZE_LOG = 10;
 
 /**
  * 指定できる期間の長さの上限 (両端を含む日数)。2 年 (うるう年を含む 731 日)。
@@ -87,6 +117,13 @@ export type Progress = {
   answers: Record<string, AnswerRecord>;
   /** 模擬試験の記録 (新しい順)。一度も受けていなければ無い */
   exams?: ExamRecord[];
+  /** 休みの札。無ければ学んだ日の数から数える (freezeState) */
+  freeze?: Freeze;
+  /**
+   * 日ごとに答えた (採点した) 問題の数 (端末の日付 → 数)。カレンダー (lib/calendar.ts) の濃さに使う。
+   * この欄ができる前の日は数が無く、学んだ日 (xp.byDay) だけが分かる
+   */
+  answered?: Record<string, number>;
 };
 
 export type KeyValueStorage = Pick<Storage, 'getItem' | 'setItem'>;
@@ -126,7 +163,8 @@ function cleanRecords<T>(raw: unknown, clean: (v: Record<string, unknown>) => T 
   const out: Record<string, T> = {};
   if (!isObject(raw)) return out;
   for (const [key, value] of Object.entries(raw)) {
-    if (!isObject(value)) continue;
+    // __proto__ などの鍵に代入すると、記録の prototype を差し替えてしまう (R-015)
+    if (!isObject(value) || UNSAFE_KEYS.has(key)) continue;
     const c = clean(value);
     if (c !== null) out[key] = c;
   }
@@ -137,6 +175,11 @@ function cleanRecords<T>(raw: unknown, clean: (v: Record<string, unknown>) => T 
 export const MAX_EXAM_RECORDS = 20;
 
 const COURSE_IDS: readonly string[] = COURSES.map((c) => c.id);
+
+/** 進捗の一番外の、この版が知っている欄 */
+const KNOWN_FIELDS = new Set(['v', 'streak', 'xp', 'lessons', 'answers', 'exams', 'profile', 'plan', 'freeze', 'answered']);
+/** 写すと Object の中身に触る鍵 */
+const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 /** JSON から読んだものを、欠けや形の違いを埋めた進捗にする。v が 1 でなければ null */
 export function normalizeProgress(raw: unknown): Progress | null {
@@ -167,6 +210,7 @@ export function normalizeProgress(raw: unknown): Progress | null {
         a.nextReview = v.nextReview;
         a.stage = isCount(v.stage) ? Math.min(Math.floor(v.stage), REVIEW_INTERVALS.length - 1) : 0;
       }
+      if (isCount(v.inRow)) a.inRow = Math.min(Math.floor(v.inRow), MAX_IN_ROW);
       return a;
     }),
   };
@@ -186,6 +230,20 @@ export function normalizeProgress(raw: unknown): Progress | null {
     out.profile = { dailyGoalXp: (GOAL_CHOICES as readonly number[]).includes(goal) ? goal : DEFAULT_GOAL_XP };
     const view = normalizeGanttView(raw.profile.ganttView);
     if (view) out.profile.ganttView = view;
+    if (isWeeklyGoal(raw.profile.weeklyGoalDays)) out.profile.weeklyGoalDays = raw.profile.weeklyGoalDays;
+  }
+  if (isObject(raw.answered)) {
+    const answered: Record<string, number> = {};
+    for (const [day, n] of Object.entries(raw.answered)) if (isValidDay(day) && isCount(n)) answered[day] = Math.floor(n);
+    if (Object.keys(answered).length > 0) out.answered = answered;
+  }
+  if (isObject(raw.freeze) && isCount(raw.freeze.count) && isCount(raw.freeze.toward)) {
+    const used = Array.isArray(raw.freeze.used) ? raw.freeze.used.filter(isValidDay) : [];
+    out.freeze = {
+      count: Math.min(Math.floor(raw.freeze.count), MAX_FREEZES),
+      toward: Math.min(Math.floor(raw.freeze.toward), FREEZE_EVERY - 1),
+      used: [...new Set(used)].sort().reverse().slice(0, MAX_FREEZE_LOG),
+    };
   }
   if (isObject(raw.plan) && Array.isArray(raw.plan.courses)) {
     // 知らないコースと重なりを落とし、順は残す
@@ -199,7 +257,14 @@ export function normalizeProgress(raw: unknown): Progress | null {
       if (Object.keys(days).length > 0) out.plan.days = days;
     }
   }
-  return out;
+  // 一番外の欄の並びは、読んだ記録の並びのままにする (欄は記録が作られた順に並ぶので、読み直しても
+  // localStorage の中身・書き出したファイルと同じ文字列になる)。読んだ記録に無い欄は後ろ
+  // 自分の持つ鍵だけを見る (読み込むファイルの __proto__・constructor などで Object の中身を写さない)
+  // 知らない欄 (これから足す欄。新しい版の JS が書いたもの) は捨てずに残す (古い版のタブが保存しても消えないように)。
+  // ただし __proto__・constructor・prototype は写さない。形が違って落とした知っている欄は戻さない
+  const keep = (k: string) => Object.hasOwn(out, k) || (!KNOWN_FIELDS.has(k) && !UNSAFE_KEYS.has(k));
+  const order = [...Object.keys(raw).filter(keep), ...Object.keys(out).filter((k) => !Object.hasOwn(raw, k))];
+  return Object.fromEntries(order.map((k) => [k, Object.hasOwn(out, k) ? out[k as keyof Progress] : raw[k]])) as Progress;
 }
 
 /** 書き出したファイルの中身を読む。読めない・形が違うときは null */
@@ -251,13 +316,15 @@ export function safeLocalStorage(): Storage | undefined {
  * - 復習の対象でない問題を正解しても、予定は付けない
  * 日付は端末の時刻の日付 (dayKey) で数える。時差のある所でも、利用者の手元の「今日」と「明日」になる
  */
-export function recordAnswer(p: Progress, questionId: string, correct: boolean, now: Date): Progress {
+export function recordAnswer(p: Progress, questionId: string, correct: boolean, now: Date, { answered = true }: { answered?: boolean } = {}): Progress {
   const today = dayKey(now);
   const prev = p.answers[questionId] ?? { right: 0, wrong: 0, last: '' };
   const next: AnswerRecord = {
     right: prev.right + (correct ? 1 : 0),
     wrong: prev.wrong + (correct ? 0 : 1),
     last: now.toISOString(),
+    // 続けて正解した数。間違えた (模擬試験で答えなかった) ら 0 に戻す
+    inRow: correct ? Math.min(inRowOf(p.answers[questionId]) + 1, MAX_IN_ROW) : 0,
   };
   if (!correct) {
     next.stage = 0;
@@ -272,7 +339,9 @@ export function recordAnswer(p: Progress, questionId: string, correct: boolean, 
     next.stage = prev.stage ?? 0;
     next.nextReview = prev.nextReview;
   }
-  return { ...p, answers: { ...p.answers, [questionId]: next } };
+  // 日ごとの答えた数 (カレンダー)。模擬試験で答えずに終わった問題 (answered: false) は数えない
+  const counts = answered ? { answered: { ...p.answered, [today]: (p.answered?.[today] ?? 0) + 1 } } : {};
+  return { ...p, ...counts, answers: { ...p.answers, [questionId]: next } };
 }
 
 /** 今日までに予定が来ている復習の問題の id (予定の早い順。同じ日は id の順) */
@@ -296,16 +365,60 @@ export function upcomingReview(p: Progress, now: Date, isKnown: (id: string) => 
   return { day: days[0], count: days.filter((d) => d === days[0]).length };
 }
 
-/** 学んだ日の XP を足し、連続日数を進める (レッスンと復習で共通) */
+/**
+ * 学んだ日の数。学んだ日は、レッスン・復習・模擬試験を終えて連続日数を進めた日 (xp.byDay に日付がある日)。
+ * 休みの札・週の目標・カレンダーで同じものを使う
+ */
+export const studiedDays = (p: Progress): string[] => Object.keys(p.xp.byDay).sort();
+
+/** 休みの札の今の状態。記録に無ければ (古い記録)、学んだ日の数から数える (7 日ごとに 1 個、最大 2 個) */
+export function freezeState(p: Progress): Freeze {
+  if (p.freeze) return p.freeze;
+  const n = studiedDays(p).length;
+  return { count: Math.min(Math.floor(n / FREEZE_EVERY), MAX_FREEZES), toward: n % FREEZE_EVERY, used: [] };
+}
+
+/** 最後に学んだ日と今日の間で、学ばなかった日 (両端を含まない)。最後に学んだ日が無い・今日か未来なら [] */
+export function missedDays(lastDay: string | null, today: string): string[] {
+  if (!lastDay || lastDay >= today) return [];
+  const out: string[] = [];
+  for (let d = addDays(lastDay, 1); d < today; d = addDays(d, 1)) {
+    out.push(d);
+    // 長く空いたときに何万日も数えない (札は最大 2 個なので、3 日を超えれば足りないと分かる)
+    if (out.length > MAX_FREEZES) break;
+  }
+  return out;
+}
+
+/**
+ * 学んだ日の XP を足し、連続日数を進める (レッスンと復習と模擬試験で共通)。
+ * 最後に学んだ日との間に学ばなかった日があれば、その日数分の休みの札を使って連続を保つ (足りなければ札は使わずに 1 に戻す)。
+ * その日はじめて学んだら、札までの日を 1 つ進め、7 日たまれば札を 1 個足す (2 個あるときは足さずに数え直す)
+ */
 function addActivity(p: Progress, xpGained: number, now: Date): Progress {
   const today = dayKey(now);
+  const last = p.streak.lastDay;
+  const f = freezeState(p);
+  let freeze: Freeze = f;
   let count: number;
-  if (p.streak.lastDay === today) count = Math.max(p.streak.count, 1);
-  else if (p.streak.lastDay === addDays(today, -1)) count = p.streak.count + 1;
-  else count = 1;
+  // 最後に学んだ日が今日より後 (時刻帯を西へ移って日付が戻った・時計が戻った) なら、同じ日とみなし、連続も札も動かさない
+  if (last !== null && last >= today) count = Math.max(p.streak.count, 1);
+  else if (last !== null && last < today) {
+    const missed = missedDays(last, today);
+    if (missed.length === 0) count = p.streak.count + 1;
+    else if (missed.length <= f.count) {
+      count = p.streak.count + 1;
+      freeze = { ...f, count: f.count - missed.length, used: [...missed.reverse(), ...f.used].slice(0, MAX_FREEZE_LOG) };
+    } else count = 1;
+  } else count = 1;
+  if (last === null || last < today) {
+    const toward = freeze.toward + 1;
+    freeze = toward >= FREEZE_EVERY ? { ...freeze, count: Math.min(freeze.count + 1, MAX_FREEZES), toward: 0 } : { ...freeze, toward };
+  }
   return {
     ...p,
-    streak: { count, lastDay: today },
+    streak: { count, lastDay: last !== null && last > today ? last : today },
+    freeze,
     xp: { total: p.xp.total + xpGained, byDay: { ...p.xp.byDay, [today]: (p.xp.byDay[today] ?? 0) + xpGained } },
   };
 }
@@ -334,11 +447,25 @@ export function todayXp(p: Progress, now: Date): number {
   return p.xp.byDay[dayKey(now)] ?? 0;
 }
 
-/** 今日か昨日に学んでいれば続いている。2 日以上空いたら 0 */
+/**
+ * 今日か昨日に学んでいれば続いている。2 日以上空いても、空いた日 (今日を除く) を休みの札で埋められれば続いている
+ * (次に学んだときに札を使う。pendingFreezes)。埋められなければ 0
+ */
 export function currentStreak(p: Progress, now: Date): number {
   const today = dayKey(now);
-  if (p.streak.lastDay === today || p.streak.lastDay === addDays(today, -1)) return p.streak.count;
-  return 0;
+  const last = p.streak.lastDay;
+  // 今日より後 (時刻帯を西へ移った) も同じ日とみなす
+  if (last !== null && (last >= today || last === addDays(today, -1))) return p.streak.count;
+  return pendingFreezes(p, now) > 0 ? p.streak.count : 0;
+}
+
+/** 次に学んだときに使う休みの札の数 (昨日までに学ばなかった日で、札で埋められる数)。埋められないか空いていなければ 0 */
+export function pendingFreezes(p: Progress, now: Date): number {
+  const today = dayKey(now);
+  const last = p.streak.lastDay;
+  if (last === null || last >= addDays(today, -1)) return 0;
+  const gap = missedDays(last, today).length;
+  return gap <= freezeState(p).count ? gap : 0;
 }
 
 export function goalXp(p: Progress): number {
