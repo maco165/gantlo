@@ -1652,6 +1652,9 @@ code {
   outline: 2px solid var(--color-accent);
   outline-offset: 2px;
 }
+.try__summary {
+  margin: 0;
+}
 .try__sub {
   margin: 0;
   font-size: var(--text-heading-4-size);

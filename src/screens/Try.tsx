@@ -31,6 +31,21 @@ type Result =
   | { ok: true; request: string; status: Status; headers: ReturnType<typeof readableHeaders>; body: ReturnType<typeof bodyText> | null; ms: number }
   | { ok: false; request: string; failure: Failure };
 
+/** 結果の要約の 1 行 (aria-live で読み上げる) */
+function resultSummary(r: Result): string {
+  return r.ok ? `応答を受け取りました: ${r.status.code} ${r.status.reason}` : `応答を読めませんでした: ${r.failure.title}`;
+}
+
+/**
+ * 本文が空のときの説明。本文を持たないと決まっているのは、HEAD への応答と 1xx・204・304 だけ (RFC 9110 の 6.4.1)。
+ * ほかのコードで空なのは、相手がたまたま本文を返さなかっただけ
+ */
+export function emptyBodyText(method: string, code: number): string {
+  if (method === 'HEAD') return '本文はありません (HEAD への応答は本文を持たない。RFC 9110)。';
+  if (code === 204 || code === 304 || (code >= 100 && code < 200)) return `本文はありません (${code} の応答は本文を持たない。RFC 9110)。`;
+  return '相手は本文を返しませんでした (空の本文)。';
+}
+
 const ABOUT: Status = { code: 200, reason: 'OK', ja: '外のサービスに要求を送り、本物の応答を見る画面です。送るのはボタンを押したときだけです' };
 
 /**
@@ -174,8 +189,11 @@ export default function Try() {
         </p>
       </section>
 
-      <div aria-live="polite" aria-busy={sending}>
-        {sending && <Text type="supporting">送っています。</Text>}
+      {/* 読み上げるのは短い要約の行だけ (本文やヘッダーの一覧を包むと、長い本文を全部読み上げうる) */}
+      <p className="try__summary" aria-live="polite" data-testid="try-summary">
+        {sending ? '送っています。' : result ? resultSummary(result) : ''}
+      </p>
+      <div>
         {result?.ok === true && (
           <section className="try__result" aria-labelledby="try-result-title" data-testid="try-result" data-status={result.status.code}>
             <h2 id="try-result-title" className="settings__title">
@@ -206,7 +224,7 @@ export default function Try() {
                 {result.body.clipped && <Text type="supporting">長いので、頭の 8 KB だけを出しています。</Text>}
               </>
             ) : (
-              <Text type="supporting">本文はありません ({req.method === 'HEAD' ? 'HEAD はヘッダーだけを返す' : `${result.status.code} は本文を持たない`})。</Text>
+              <Text type="supporting">{emptyBodyText(result.request.split(' ')[0], result.status.code)}</Text>
             )}
           </section>
         )}

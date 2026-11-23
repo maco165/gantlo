@@ -15,7 +15,7 @@ import {
   requestText,
   MAX_BODY_CHARS,
 } from '../src/lib/tryApi';
-import Try from '../src/screens/Try';
+import Try, { emptyBodyText } from '../src/screens/Try';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -140,5 +140,34 @@ describe('試す画面', () => {
     expect(f.getAttribute('data-kind')).toBe('blocked');
     expect(f.querySelector('.status__code')?.textContent).toBe('0');
     expect(f.textContent).toContain('CORS で弾かれた');
+  });
+});
+
+describe('空の本文の説明 (R-010) と読み上げの範囲 (R-011)', () => {
+  it('本文を持たないと書くのは HEAD・1xx・204・304 だけ。空の 404 などは「相手は本文を返しませんでした」', () => {
+    expect(emptyBodyText('GET', 204)).toContain('204 の応答は本文を持たない');
+    expect(emptyBodyText('GET', 304)).toContain('304 の応答は本文を持たない');
+    expect(emptyBodyText('HEAD', 200)).toContain('HEAD への応答は本文を持たない');
+    expect(emptyBodyText('GET', 404)).toBe('相手は本文を返しませんでした (空の本文)。');
+    expect(emptyBodyText('POST', 200)).toBe('相手は本文を返しませんでした (空の本文)。');
+  });
+
+  it('aria-live は短い要約の行だけで、本文やヘッダーの一覧を包まない', async () => {
+    const host = document.createElement('div');
+    document.body.appendChild(host);
+    const root = createRoot(host);
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('x'.repeat(5000), { status: 200, headers: { 'content-type': 'text/plain' } })));
+    await act(async () => root.render(createElement(Try)));
+    await act(async () => [...host.querySelectorAll('button')].find((b) => b.textContent === '送る (外のサービスへ)')!.click());
+    expect(host.querySelector('[data-testid="try-summary"]')?.getAttribute('aria-live')).toBe('polite');
+    expect(host.querySelector('[data-testid="try-summary"]')?.textContent).toBe('応答を受け取りました: 200 OK');
+    // どの aria-live の場所も、結果 (本文・ヘッダー) を包まず、長い本文を持たない (CodeBlock の写しの知らせなど部品の中の小さな場所は残る)
+    for (const el of host.querySelectorAll('[aria-live]')) {
+      expect(el.contains(host.querySelector('[data-testid="try-result"]'))).toBe(false);
+      expect((el.textContent ?? '').length).toBeLessThan(200);
+    }
+    await act(async () => root.unmount());
+    host.remove();
+    vi.unstubAllGlobals();
   });
 });
