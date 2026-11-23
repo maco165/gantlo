@@ -31,24 +31,33 @@ try {
   await server.close();
 }
 
+/** 書体の並びの最初の名前 (テーマの書体。並びの後ろの端末の書体は使わない) */
+const firstFamily = (stack) => stack.split(',')[0].trim().replace(/^['"]|['"]$/g, '');
+/**
+ * カードの書体の並び。テーマの書体のすぐ後ろに同梱の Noto Sans JP を置き、端末の書体 (sans-serif など) を並べない
+ * (日本語が機械に入っている書体で描かれ、機械によって見た目が変わったり、日本語の書体の無い機械で豆腐になったりしないように)
+ */
+const stackOf = (theme) => `'${firstFamily(theme)}', 'Noto Sans JP Variable'`;
+
 function cardHtml(t) {
   return `
 <style>
   @import url('${HOST}/__jp/index.css');
   html, body { margin: 0; background: ${t.body}; }
   .og { box-sizing: border-box; width: ${cards.width}px; height: ${cards.height}px; display: flex; flex-direction: column; justify-content: space-between;
-    padding: 64px 72px 56px; background: ${t.body}; color: ${t.text}; font-family: ${t.font}, 'Noto Sans JP Variable', sans-serif; }
-  .og * { box-sizing: border-box; }
+    padding: 64px 72px 56px; background: ${t.body}; color: ${t.text}; font-family: ${stackOf(t.font)}; }
+  /* サイトの CSS の要素ごとの書体 (p など) を受けず、カードの書体の並びを受け継ぐ */
+  .og * { box-sizing: border-box; font-family: inherit; }
   .top { display: flex; align-items: center; justify-content: space-between; }
   .brand { display: flex; align-items: center; gap: 18px; }
   .brand img { width: 56px; height: 56px; }
-  .brand b { font-family: ${t.display}; font-weight: 400; font-size: 64px; line-height: 1; }
+  .brand b { font-family: ${stackOf(t.display)}; font-weight: 400; font-size: 64px; line-height: 1; }
   .kind { font-size: 28px; color: ${t.sub}; }
   .title { margin: 0; font-size: 60px; font-weight: 700; line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .res { display: flex; align-items: baseline; gap: 24px; font-family: ${t.code}; }
+  .res { display: flex; align-items: baseline; gap: 24px; font-family: ${stackOf(t.code)}; }
   .req { font-size: 26px; color: ${t.sub}; }
   .st { font-size: 34px; font-weight: 600; color: ${t.success}; }
-  .url { font-family: ${t.code}; font-size: 22px; color: ${t.accent}; }
+  .url { font-family: ${stackOf(t.code)}; font-size: 22px; color: ${t.accent}; }
 </style>
 <div class="og">
   <div class="top">
@@ -65,8 +74,12 @@ function cardHtml(t) {
 
 const browser = await chromium.launch();
 let bytes = 0;
+const usedFonts = new Set();
 try {
   const page = await browser.newPage({ viewport: { width: cards.width, height: cards.height }, deviceScaleFactor: 1 });
+  const cdp = await page.context().newCDPSession(page);
+  await cdp.send('DOM.enable');
+  await cdp.send('CSS.enable');
   // dist と日本語の書体を、ポートを開かずに返す
   await page.route(`${HOST}/**`, async (route) => {
     const url = new URL(route.request().url());
@@ -104,7 +117,11 @@ try {
     }, card);
     // 使う字の書体を読み終えるまで待ち、Gothic の 3 書体と (日本語があれば) Noto Sans JP が読めて、題の字が豆腐でないことを確かめる
     const problem = await page.evaluate(async (c) => {
+      // unicode-range で分けた書体は、使う字の分だけ後から読むので、カードの字を明示して読ませてから待つ
+      await Promise.all([...document.querySelectorAll('.og [data-og], .og .brand b, .og .st')].map((el) => document.fonts.load(getComputedStyle(el).font, el.textContent || ' ')));
       await document.fonts.ready;
+      // 読み終えた書体で描き直されるのを待つ (描いた書体を聞く前に)
+      await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
       const og = document.querySelector('.og');
       const fams = (f) => [...document.fonts].filter((x) => x.family.replace(/['"]/g, '') === f);
       const loaded = (f) => fams(f).some((x) => x.status === 'loaded');
@@ -131,6 +148,15 @@ try {
       return null;
     }, card);
     if (problem) throw new Error(`og-images: ${card.path}: ${problem}`);
+    // 実際に描いた書体を Chromium に聞き、端末の書体 (isCustomFont でないもの) を 1 つでも使っていれば止める
+    const { root } = await cdp.send('DOM.getDocument', { depth: -1 });
+    const { nodeIds } = await cdp.send('DOM.querySelectorAll', { nodeId: root.nodeId, selector: '.og [data-og], .og .brand b, .og .st' });
+    for (const nodeId of nodeIds) {
+      const { fonts } = await cdp.send('CSS.getPlatformFontsForNode', { nodeId });
+      const system = fonts.filter((f) => !f.isCustomFont);
+      if (system.length) throw new Error(`og-images: ${card.path}: 端末の書体で描いた字があります (${system.map((f) => `${f.familyName} ${f.glyphCount} 字`).join(', ')})`);
+      usedFonts.add(...fonts.map((f) => f.familyName));
+    }
     const out = path.join(DIST, card.path, 'og.png');
     if (!out.startsWith(DIST)) throw new Error(`og-images: 道の形が違います (${card.path})`);
     await page.locator('.og').screenshot({ path: out });
@@ -140,4 +166,5 @@ try {
 } finally {
   await browser.close();
 }
+console.log(`og-images: 描いた書体 ${[...usedFonts].sort().join('・')} (どれも同梱の Web の書体)`);
 console.log(`og-images: ${cards.list.length} 枚 (合計 ${(bytes / 1024).toFixed(0)} KB) を ${((Date.now() - started) / 1000).toFixed(1)} 秒で書きました`);
