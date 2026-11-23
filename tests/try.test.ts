@@ -16,6 +16,7 @@ import {
   MAX_BODY_CHARS,
 } from '../src/lib/tryApi';
 import Try, { emptyBodyText } from '../src/screens/Try';
+import { TRY_TERMS } from '../src/screens/Glossary';
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -91,6 +92,9 @@ describe('用語集から開くときの選び (?preset=)', () => {
       expect(ids.has(id), id).toBe(true);
       expect(() => buildRequest(r), id).not.toThrow();
     }
+  });
+  it('用語集の「試す」のリンクを付ける語は、始めの選びの鍵と同じ', () => {
+    expect([...TRY_TERMS].sort()).toEqual(Object.keys(PRESETS).sort());
   });
   it('知らない値は既定 (GET /get)', () => {
     expect(initialRequest('?preset=404-not-found')).toMatchObject({ endpoint: 'status', code: 404 });

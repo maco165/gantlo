@@ -1,5 +1,3 @@
-import { Button } from '@astryxdesign/core/Button';
-import { CodeBlock } from '@astryxdesign/core/CodeBlock';
 import { Link } from '@astryxdesign/core/Link';
 import { Text } from '@astryxdesign/core/Text';
 import { useRef, useState } from 'react';
@@ -25,7 +23,6 @@ import {
   type TryMethod,
   type TryRequest,
 } from '../lib/tryApi';
-import { WIDE_QUERY, useMediaQuery } from '../lib/useMediaQuery';
 
 type Result =
   | { ok: true; request: string; status: Status; headers: ReturnType<typeof readableHeaders>; body: ReturnType<typeof bodyText> | null; ms: number }
@@ -46,6 +43,21 @@ export function emptyBodyText(method: string, code: number): string {
   return '相手は本文を返しませんでした (空の本文)。';
 }
 
+/**
+ * 要求と本文を見せる箱。Astryx の CodeBlock と Button はこの画面では使わない (使うと rolldown がそれらを共有の小さなチャンクに切り出し、
+ * レッスン・設定・用語集などのページが最初に読む JS の本数が増えるため)。ボタンは自前の .btn
+ */
+function CodeView({ title, code }: { title: string; code: string }) {
+  return (
+    <figure className="try__code">
+      <figcaption>{title}</figcaption>
+      <pre>
+        <code>{code}</code>
+      </pre>
+    </figure>
+  );
+}
+
 const ABOUT: Status = { code: 200, reason: 'OK', ja: '外のサービスに要求を送り、本物の応答を見る画面です。送るのはボタンを押したときだけです' };
 
 /**
@@ -54,7 +66,6 @@ const ABOUT: Status = { code: 200, reason: 'OK', ja: '外のサービスに要�
  * 自動では送らない。Cookie や認証は送らない (credentials: 'omit')。失敗したときは何が起きたかを説明する
  */
 export default function Try() {
-  const isWide = useMediaQuery(WIDE_QUERY);
   const [req, setReq] = useState<TryRequest>(() => initialRequest(window.location.search));
   const [result, setResult] = useState<Result | null>(null);
   const [sending, setSending] = useState(false);
@@ -178,14 +189,16 @@ export default function Try() {
             </label>
           ))}
         </fieldset>
-        <CodeBlock code={requestText(req)} language="http" hasLanguageLabel={false} title="送る要求" width="100%" size="sm" hasCopyButton={false} />
+        <CodeView title="送る要求" code={requestText(req)} />
         {built.preflight && (
           <Text type="supporting">
             この要求は CORS の safelist に無いヘッダー (本文の Content-Type: application/json も) か、GET・HEAD・POST 以外のメソッドを使うので、ブラウザは本番の前に OPTIONS の preflight を送り、相手が許すかを確かめます。
           </Text>
         )}
         <p className="settings__row">
-          <Button variant="primary" label="送る (外のサービスへ)" onClick={send} isDisabled={sending} width={isWide ? undefined : '100%'} size={isWide ? 'md' : 'lg'} />
+          <button type="button" className="btn btn--primary try__send" onClick={send} disabled={sending}>
+            送る (外のサービスへ)
+          </button>
         </p>
       </section>
 
@@ -220,7 +233,7 @@ export default function Try() {
             <h3 className="try__sub">本文</h3>
             {result.body ? (
               <>
-                <CodeBlock code={result.body.text} language={result.body.json ? 'json' : 'text'} hasLanguageLabel={false} title={result.body.json ? '本文 (JSON)' : '本文'} width="100%" size="sm" hasCopyButton={false} />
+                <CodeView title={result.body.json ? '本文 (JSON)' : '本文'} code={result.body.text} />
                 {result.body.clipped && <Text type="supporting">長いので、頭の 8 KB だけを出しています。</Text>}
               </>
             ) : (

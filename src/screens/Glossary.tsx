@@ -8,8 +8,13 @@ import { SORTED, TERMS } from '../content/glossary';
 import { findLessonMeta as findLesson } from '../content/catalog';
 import { searchTerms, STANDARD_COUNT, type GlossaryTerm } from '../lib/glossary';
 import { COURSES, lessonHref, pageHref } from '../lib/route';
-import { PRESETS } from '../lib/tryApi';
 import { glossaryStatus } from '../lib/status';
+
+/**
+ * 「試す」のリンクを付ける語。試す画面の始めの選び (lib/tryApi.ts の PRESETS) と同じ鍵 (tests/try.test.ts が比べる)。
+ * tryApi.ts を読むと、rolldown がそれを用語集と試す画面の共有の小さなチャンクに切り出すので、ここに名前だけを持つ
+ */
+export const TRY_TERMS: ReadonlySet<string> = new Set(['http', 'https', 'method', 'get', 'head', 'post', 'put', 'delete', 'status-code', 'status-line', '200-ok', '201-created', '202-accepted', '204-no-content', '400-bad-request', '404-not-found', '409-conflict', '415-unsupported-media-type', 'header', 'request-line', 'accept', 'content-type', 'content-length', 'retry-after', 'json', 'rest']);
 
 const courseTitle = (id: string) => COURSES.find((c) => c.id === id)?.title ?? id;
 
@@ -46,7 +51,7 @@ function Entry({ t }: { t: GlossaryTerm }) {
           ))}
         </p>
       )}
-      {Object.hasOwn(PRESETS, t.id) && (
+      {TRY_TERMS.has(t.id) && (
         <p className="gloss__meta tap-links">
           <Link href={`${pageHref('try')}?preset=${encodeURIComponent(t.id)}`}>{`試す: ${t.term} を本物の API で`}</Link>
         </p>
