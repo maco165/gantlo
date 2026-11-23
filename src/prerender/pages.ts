@@ -2,11 +2,13 @@
 // scripts/prerender.mjs が npm run build のあとに読み、dist/<道>/index.html を書く。tests/meta.test.ts も同じものを見る。
 // 画面の JS には入らない (src/main.tsx からは読まない)。
 import { SORTED } from '../content/glossary';
+import { HANDBOOK } from '../content/handbook-all';
+import { HANDBOOK_HOWTO, HANDBOOK_LEAD, topicSources, topicsForLesson, topicsForTerm, type HandbookTopic } from '../lib/handbook';
 import { LESSONS, findLesson } from '../content/index';
 import type { Lesson } from '../content/types';
 import type { GlossaryTerm } from '../lib/glossary';
-import { documentTitle, lessonDocumentTitle, PAGE_TITLES } from '../lib/pageMeta';
-import { BASE, COURSES, courseHref, homeHref, lessonHref, pageHref, parseRoute, type PageName } from '../lib/route';
+import { documentTitle, HANDBOOK_TITLE, lessonDocumentTitle, PAGE_TITLES } from '../lib/pageMeta';
+import { BASE, COURSES, courseHref, handbookHref, homeHref, lessonHref, pageHref, parseRoute, type PageName } from '../lib/route';
 import { COURSE_EMPTY, COURSE_LEADS, LESSON_LIST_HEADING } from '../lib/courses';
 import { ABOUT_ISSUE, ABOUT_LEAD, ABOUT_NOTES, ABOUT_SOURCE, LICENSE_NAME } from '../lib/about';
 import { NEW_ISSUE_URL, ORIGIN, REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
@@ -163,6 +165,50 @@ function termLessons(t: GlossaryTerm): string {
   return ls.length ? ` 出てくるレッスン: ${ls.map((l) => a(lessonHref(l.id), `${courseTitle(l.course)} ${l.title}`)).join('・')}` : '';
 }
 
+/** 語が出てくるハンドブックの項目へのリンク (ハンドブックの「用語集」の逆向き) */
+function termHandbook(t: GlossaryTerm, topics: readonly HandbookTopic[]): string {
+  const ts = topicsForTerm(topics, t.id);
+  return ts.length ? ` ハンドブック: ${ts.map((x) => a(handbookHref(x.id), x.title)).join('・')}` : '';
+}
+
+/** レッスンに関係するハンドブックの項目 (ハンドブックの「関係するレッスン」の逆向き) */
+export function lessonHandbookHtml(lessonId: string, topics: readonly HandbookTopic[] = HANDBOOK): string[] {
+  const ts = topicsForLesson(topics, lessonId);
+  return ts.length ? ['<h2>ハンドブック</h2>', `<ul>${ts.map((t) => `<li>${a(handbookHref(t.id), t.title)}</li>`).join('')}</ul>`] : [];
+}
+
+/** ハンドブックの一覧の本文 */
+export function handbookIndexBody(topics: readonly HandbookTopic[] = HANDBOOK): string[] {
+  // 項目ごとに要約と節の見出しを書く (JS なしでも、どの項目で何を読めるかが分かるように)
+  return [
+    `<p>${esc(HANDBOOK_LEAD)}</p>`,
+    `<p>${esc(HANDBOOK_HOWTO)}</p>`,
+    ...topics.flatMap((t) => [`<h2>${a(handbookHref(t.id), t.title)}</h2>`, `<p>${esc(t.summary)}</p>`, `<ol>${t.sections.map((s, i) => `<li>${a(`${handbookHref(t.id)}#s${i + 1}`, s.heading)}</li>`).join('')}</ol>`]),
+  ];
+}
+
+/** ハンドブックの項目の本文 (画面と同じ節・コマンド・出力・出典と、関係するレッスンと用語) */
+export function handbookTopicBody(t: HandbookTopic, lessons: readonly Lesson[] = LESSONS, terms: readonly GlossaryTerm[] = [...SORTED.standards, ...SORTED.others]): string[] {
+  const pre = (title: string, text: string) => `<p>${esc(title)}:</p><pre><code>${esc(text)}</code></pre>`;
+  const ls = t.lessons.map((id) => lessons.find((l) => l.id === id)).filter((l) => l !== undefined);
+  const courseTitle = (id: string) => COURSES.find((c) => c.id === id)?.title ?? id;
+  const termName = (id: string) => terms.find((x) => x.id === id)?.term ?? id;
+  return [
+    `<p>${esc(t.summary)}</p>`,
+    ...t.sections.flatMap((s, i) => [
+      `<h2 id="s${i + 1}">${esc(s.heading)}</h2>`,
+      ...s.text.map((p) => `<p>${esc(p)}</p>`),
+      ...(s.code ? [pre('試すコマンド', s.code.text)] : []),
+      ...(s.output ? [pre('出力の例', s.output)] : []),
+      ...(s.note ? [`<p>${esc(s.note)}</p>`] : []),
+      `<p>出典: ${s.sources.map((x) => a(x.url, x.label)).join('・')}</p>`,
+    ]),
+    '<h2>関係するレッスンと用語</h2>',
+    ...(ls.length ? [`<ul>${ls.map((l) => `<li>${a(lessonHref(l.id), `${courseTitle(l.course)} ${l.title}`)}</li>`).join('')}</ul>`] : []),
+    `<p>用語集: ${t.terms.map((id) => a(`${pageHref('glossary')}#term-${id}`, termName(id))).join('・')}</p>`,
+  ];
+}
+
 /** レッスンに出てくる用語 (用語集の語の「出てくるレッスン」の逆向き)。用語集の一覧の語の位置へリンクする */
 export function lessonTermsHtml(lessonId: string, sorted: { standards: readonly GlossaryTerm[]; others: readonly GlossaryTerm[] } = SORTED): string[] {
   const ts = [...sorted.standards, ...sorted.others].filter((t) => t.lessons.includes(lessonId));
@@ -175,7 +221,7 @@ export function glossaryBody(sorted: { standards: readonly GlossaryTerm[]; other
     `<dl>${terms
       .map(
         (t) =>
-          `<dt id="term-${t.id}">${esc(t.term)}${t.aliases?.length ? ` (${esc(t.aliases.join(' · '))})` : ''}</dt><dd>${esc(t.description)} 出典: ${t.sources.map((s) => a(s.url, s.label)).join('・')}${termLessons(t)}</dd>`,
+          `<dt id="term-${t.id}">${esc(t.term)}${t.aliases?.length ? ` (${esc(t.aliases.join(' · '))})` : ''}</dt><dd>${esc(t.description)} 出典: ${t.sources.map((s) => a(s.url, s.label)).join('・')}${termLessons(t)}${termHandbook(t, HANDBOOK)}</dd>`,
       )
       .join('')}</dl>`;
   return ['<h2>11 の規格</h2>', dl(sorted.standards), '<h2>問題に出る用語</h2>', dl(sorted.others)];
@@ -228,7 +274,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
       '<h2>コース</h2>',
       `<ul>${COURSES.map((c) => `<li>${a(courseHref(c.id), c.title)}: ${esc(COURSE_LEADS[c.id])}</li>`).join('')}</ul>`,
       '<h2>画面</h2>',
-      `<ul>${(Object.keys(PAGE_TITLES) as PageName[]).map((p) => `<li>${a(pageHref(p), PAGE_TITLES[p])}</li>`).join('')}</ul>`,
+      `<ul><li>${a(handbookHref(), HANDBOOK_TITLE)}</li>${(Object.keys(PAGE_TITLES) as PageName[]).map((p) => `<li>${a(pageHref(p), PAGE_TITLES[p])}</li>`).join('')}</ul>`,
       '<p>進み具合はブラウザの localStorage にだけ残り、サーバーには送りません。表示には JavaScript を使います。</p>',
       `<p>${aExternal(REPO_URL, 'GitHub のリポジトリ')}</p>`,
     ].join('\n'),
@@ -260,6 +306,41 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
       body: [crumbsHtml(crumbs), `<h1>${esc(PAGE_TITLES[p])}</h1>`, `<p>${esc(PAGE_DESCRIPTIONS[p])}</p>`, ...(p === 'glossary' ? glossaryBody() : []), ...(p === 'about' ? aboutBody() : []), ...(p === 'exam' ? examBody(lessons) : []), ...(p === 'try' ? tryBody() : []), back].join('\n'),
       noindex: PERSONAL_PAGES.includes(p),
     });
+  }
+
+  {
+    const crumbs = breadcrumbs({ name: 'handbook' })!;
+    const description = clip(`API と HTTP の基礎の規格を、curl の実例と出力で流れから説明する gantlo のハンドブック。${HANDBOOK_LEAD}`);
+    pages.push({
+      path: rel(handbookHref()),
+      title: titleOfPath(handbookHref()),
+      description,
+      jsonLd: [breadcrumbLd(crumbs), { '@type': 'CollectionPage', name: HANDBOOK_TITLE, description, url: absUrl(handbookHref()), inLanguage: 'ja', hasPart: HANDBOOK.map((t) => ({ '@type': 'TechArticle', name: t.title, url: absUrl(handbookHref(t.id)) })) }],
+      body: [crumbsHtml(crumbs), `<h1>${esc(HANDBOOK_TITLE)}</h1>`, ...handbookIndexBody(), back].join('\n'),
+    });
+    for (const t of HANDBOOK) {
+      const tc = breadcrumbs({ name: 'handbook', topic: t.id })!;
+      const td = clip(`${t.title} (gantlo のハンドブック)。${t.summary}`);
+      pages.push({
+        path: rel(handbookHref(t.id)),
+        title: titleOfPath(handbookHref(t.id)),
+        description: td,
+        jsonLd: [
+          breadcrumbLd(tc),
+          {
+            '@type': 'TechArticle',
+            headline: t.title,
+            description: td,
+            url: absUrl(handbookHref(t.id)),
+            inLanguage: 'ja',
+            isAccessibleForFree: true,
+            publisher: PROVIDER,
+            citation: topicSources(t).map((s) => s.url),
+          },
+        ],
+        body: [crumbsHtml(tc), `<h1>${esc(t.title)}</h1>`, ...handbookTopicBody(t, lessons), back].join('\n'),
+      });
+    }
   }
 
   for (const c of COURSES) {
@@ -333,6 +414,7 @@ export function sitePages(lessons: readonly Lesson[] = LESSONS): SitePage[] {
         '<h2>問題</h2>',
         `<ol>${l.questions.map(questionHtml).join('')}</ol>`,
         ...lessonTermsHtml(l.id),
+        ...lessonHandbookHtml(l.id),
         ...neighbors(l, lessons),
         back,
       ].join('\n'),

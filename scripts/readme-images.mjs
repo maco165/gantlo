@@ -283,6 +283,15 @@ try {
   });
   await shoot('glossary-phone', phone, 'glossary/', (page) => page.locator('article.gloss').first().waitFor());
   await shoot('about-phone', phone, 'about/');
+  await shoot('handbook-phone', phone, 'handbook/', (page) => page.locator('.hb-card').first().waitFor());
+  await shoot('handbook-http-phone', phone, 'handbook/http/', async (page) => {
+    // 最初の節の試すコマンドと出力の例が見える位置まで送る
+    await page.locator('#s1').waitFor();
+    await page.evaluate(() => {
+      document.getElementById('s1').scrollIntoView({ block: 'start' });
+      document.getElementById('astryx-app-shell-main')?.scrollBy(0, -(document.querySelector('.mobile-bar')?.getBoundingClientRect().height ?? 0) - 16);
+    });
+  });
   // 試す画面: 外へ送ることの断りと、選ぶ所 (README の画像では外へ送らない。応答の形は e2e が差し替えで見る)
   await shoot('try-phone', phone, 'try/', (page) => page.getByTestId('try-notice').waitFor());
   await shoot('menu-phone', phone, '', async (page) => {

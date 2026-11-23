@@ -3,7 +3,7 @@
   <img alt="gantlo: API と HTTP の基礎。HTTP・DNS・TLS・REST・OAuth を、問題を解いて学ぶ。計画はガントチャートで、進捗はブラウザの中だけに" src="docs/images/banner.png">
 </picture>
 
-**gantlo** は、API と HTTP の基礎 (HTTP・URI・JSON・DNS・TLS・REST・OAuth) を、curl や HTTP の穴埋め・4 択・並べ替えの問題で学ぶ学習サイト。学ぶコースと順を選ぶとガントチャートで計画を引き、画面を見るたびに HTTP のステータスコードとヘッダーに触れる。間違えた問題は日をおいて復習に出し、本編 4 週の総まとめに模擬試験 (40 問・60 分・合格の目安 75%) を置き、問題に出る語は一次情報の出典つきの用語集にまとめる。進捗はブラウザの localStorage にだけ残し、サーバーは持たない。名前は、ガントチャート (Gantt) と、1969 年に ARPANET で最初に届いた 2 文字「lo」から取った。
+**gantlo** は、API と HTTP の基礎 (HTTP・URI・JSON・DNS・TLS・REST・OAuth) を、curl や HTTP の穴埋め・4 択・並べ替えの問題で学ぶ学習サイト。学ぶコースと順を選ぶとガントチャートで計画を引き、画面を見るたびに HTTP のステータスコードとヘッダーに触れる。間違えた問題は日をおいて復習に出し、本編 4 週の総まとめに模擬試験 (40 問・60 分・合格の目安 75%) を置き、問題に出る語は一次情報の出典つきの用語集にまとめる。規格の流れは、curl の実例と出力で読むハンドブックで説明する。進捗はブラウザの localStorage にだけ残し、サーバーは持たない。名前は、ガントチャート (Gantt) と、1969 年に ARPANET で最初に届いた 2 文字「lo」から取った。
 
 | | |
 |---|---|
@@ -47,6 +47,17 @@
 
 <table>
   <tr>
+    <td width="50%"><img alt="ハンドブックの一覧: GET /handbook の 200 と、項目のカード" src="docs/images/handbook-phone.png"></td>
+    <td width="50%"><img alt="ハンドブックの HTTP の項目: 試すコマンドと出力の例と出典" src="docs/images/handbook-http-phone.png"></td>
+  </tr>
+  <tr>
+    <td>ハンドブック。規格ごとに、curl で実際のやり取りを見ながら流れを読む</td>
+    <td>項目の節は、説明・試すコマンド・出力の例・出典 (RFC の節) の順</td>
+  </tr>
+</table>
+
+<table>
+  <tr>
     <td width="25%"><img alt="スマホのメニュー: 左から開き、下端に「このサイトについて」と「GitHub のリポジトリ」" src="docs/images/menu-phone.png"></td>
     <td width="25%"><img alt="このサイトについて: GET /about の 200、ソースコードと Issue のボタン" src="docs/images/about-phone.png"></td>
     <td width="25%"><img alt="コース: GET /course/main の 206、次のレッスンへのボタンと、そのコースの Network の表" src="docs/images/course-phone.png"></td>
@@ -83,6 +94,7 @@
 | 進捗 (`/gantlo/progress/`) | `GET /me/stats` への応答。ステータスはホームと同じ旅の段の進み具合 (`202` / `206` / `200`)。正答率 (レッスンと復習で答えた回数のうち正解の割合)・この 7 日の XP (日ごとの棒)・連続日数、ホームと同じ `X-Streak-Freeze` と `X-Weekly-Target` の行、過去 26 週の学んだ日のマス (列が週、学んだ日 (終えた日) に答えた問題の数で 5 段に塗る。表 (role=grid。行が曜日・列が週) 全体で 1 つのフォーカスを持ち (aria-activedescendant。キーの働きは aria-describedby の文)、矢印のキー (上下で 1 日・左右で 1 週)・Home・End で日を移り、マスを押しても選べる。マスは 390 幅で 12px ほどなので、触る端末のために 44px の「前の週」「前の日」「次の日」「次の週」のボタンを下に置く。選んだ日の日付と数をマスの下に字で出す。マスごとに aria-label と title も持つ)、この先 14 日の復習の件数 (今日には過ぎた予定も入れる)、問題ごとの到達 (まだ・間違えた・1 回正解・2 回続けて の数と割合をコースごと)、学習のまとめのカード (解いた問題は、答えたことのある問題の数。`GET /me/summary.png` で 1080×1350 の PNG を保存。画像の共有に対応した端末では共有も)、コースごとの済んだレッスンの数と正答率、旅の 8 段の学習状況 (ウォーターフォール) を出す |
 | 用語集 (`/gantlo/glossary/`) | `GET /glossary?q=<探す語>` への応答。当たれば `200 OK` と語の数、無ければ `204 No Content`。探す語は URL の形 (パーセントエンコーディング) で見せる。11 の規格を学ぶ順に、問題に出る用語を読みの順に並べ、どの語にも短い説明・一次情報の出典 (RFC は節まで)・出てくるレッスンへのリンクを付ける。探しているときは当たりのよい順の 1 つの一覧 |
 | 試す (`/gantlo/try/`) | `GET /try` の `200`。CORS を許している公開の API (httpbin.org の `/get`・`/status/<コード>`・`/headers`・`/anything`・`/response-headers?Retry-After=120` と、api.github.com の `/zen`・`/repos/maco165/gantlo`。2026-11-23 に curl で CORS の応答ヘッダーを確かめた) に、選んだメソッド・道・ヘッダー (`Accept` と、safelist に無いので preflight になる `X-Gantlo-Try`) で fetch を送り、本物のステータス (HTTP/2 は理由句が無いので名前を添える)・ブラウザが読める応答ヘッダー (CORS の safelist の 7 つか `Access-Control-Expose-Headers` で公開されたものかを添え、読めないヘッダーがあることも書く)・本文を、このサイトの応答の形で出す。送る前に「この要求は、あなたのブラウザから外のサービスに送られます」と書き、送るのは押したときだけ。Cookie と認証は送らず (`credentials: 'omit'`)、Referer も送らない。本文が空のとき、「本文を持たない」と書くのは HEAD への応答と 1xx・204・304 だけ (RFC 9110) で、ほかは「相手は本文を返しませんでした」。読み上げ (aria-live) は結果の要約の 1 行だけ (長い本文を読み上げない)。読めなかったときは Fetch Standard の network error (ステータス `0`) として、オフライン・10 秒の時間切れ・それ以外 (CORS で弾かれたか届かない。ブラウザは理由を JS に教えない) を説明する。用語集の語の「試す」から、その語に合う選び (`?preset=<語の id>`) で開く |
+| ハンドブック (`/gantlo/handbook/`・`/gantlo/handbook/<id>/`) | `GET /handbook` と `GET /handbook/<id>` への応答 (`200 OK`)。一覧は項目のカード、項目は節の目次と、節ごとに説明・試すコマンド・出力の例・添え書き・出典 (RFC は節まで)。最後に関係するレッスンと、本文に出てくる用語集の語 (`#term-<id>`) へのリンク。知らない項目は `404 Not Found`。項目の本文は開いたときに読む |
 | このサイトについて (`/gantlo/about/`) | `GET /about` への応答 (`200 OK`)。サイトの説明・ソースコード (GitHub)・Issue を書く・記録の置き場所・AI に聞く・問題の出典・ライセンス。文の正本は `src/lib/about.ts` |
 | まだ無い画面 | `501 Not Implemented` |
 | 知らない URL | `404 Not Found` |
@@ -104,6 +116,9 @@ flowchart LR
   examlib["lib/exam.ts<br/>週ごとに 10 問・まとめて採点"] --> exam
   exam -->|間違えた問題| sched
   app --> settings["screens/Settings.tsx<br/>目標・書き出し・読み込み・消す"]
+  app --> hb["screens/Handbook.tsx<br/>ハンドブック (GET /handbook)"]
+  hbmeta["content/handbook/topics.json<br/>目録 (題・要約・つながり)"] --> hb
+  hbsec["content/handbook/sections/#lt;id#gt;.json<br/>節 (開いたときに読む)"] --> hb
   app --> stats["screens/ProgressScreen.tsx<br/>進捗 (GET /me/stats)"]
   app --> gloss["screens/Glossary.tsx<br/>用語集 (GET /glossary)"]
   statslib["lib/stats.ts<br/>正答率・7 日の XP・コースごと"] --> stats
@@ -160,6 +175,7 @@ flowchart LR
   json["content/courses/#lt;course#gt;/*.json<br/>問題データ"] --> check["scripts/check-content.mjs<br/>npm run check:content"]
   stages["content/stages.ts<br/>段の id"] --> check
   courses["lib/route.ts<br/>コースの id"] --> check
+  hbdata["content/handbook/<br/>目録と項目の本文"] --> check
   json --> index["content/index.ts<br/>LESSONS・findQuestion"]
   json -->|?catalog| catalog["content/catalog.ts<br/>目録 (id・題・段・問題の id)"]
   catalog --> index
@@ -197,6 +213,7 @@ flowchart LR
   meta["lib/pageMeta.ts<br/>題の正本"] --> pages
   meta --> app["src/App.tsx<br/>document.title"]
   glossary["content/glossary.ts<br/>用語集の語"] --> pages
+  handbook["content/handbook-all.ts<br/>ハンドブックの全部の節"] --> pages
   crumbs["lib/breadcrumbs.ts<br/>パンくずの正本"] --> pages
   crumbs --> app2["components/Breadcrumbs.tsx<br/>画面のパンくず"]
   tpl --> html["src/prerender/html.ts<br/>head と #root を置き換え・JSON-LD"]
@@ -217,7 +234,7 @@ flowchart LR
 
 | ファイル | 役目 |
 |---|---|
-| `src/lib/route.ts` | URL の道から画面を決める。サイトの中のリンクで移るときは、道と `?` の後ろ (試す画面の `?preset=` など) を残す。# は使わない (検索エンジンが # の後ろを別のページとして扱わないため)。今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) は奪わず、画面を移ったことにしない (解いている途中のレッスンが 1 問目に戻らないように)。`useRoute` は画面をやり直す合図 `nav` と、スマホのメニューを閉じる合図 `close` を分けて返す (# だけが変わる戻る・進むでは `close` だけが増える) |
+| `src/lib/route.ts` | URL の道から画面を決める。サイトの中のリンクで移るときは、道と `?` の後ろ (試す画面の `?preset=` など) と、別のページの `#` (ハンドブックから用語集の `#term-<id>` へなど) を残し、移った先で要素が出るまで待ってその位置へ送る (`scrollToHash`。`#` 付きの URL を直に開いたときと、戻る・進むで別のページの `#` へ移ったときも同じ)。ページの道に # は使わない (検索エンジンが # の後ろを別のページとして扱わないため)。今と同じ道で # だけが違うリンク (本文へ飛ぶリンクなど) は奪わず、画面を移ったことにしない (解いている途中のレッスンが 1 問目に戻らないように)。`useRoute` は画面をやり直す合図 `nav` と、スマホのメニューを閉じる合図 `close` を分けて返す (# だけが変わる戻る・進むでは `close` だけが増える) |
 | `src/content/stages.ts` | 旅の 8 段の正本 (名前・役目・主な公式文書・何週目か・帯の長さの比) |
 | `src/lib/status.ts` | 進み具合と答えの結果を HTTP のステータスにする (答え: 正解 200・不正解 400・メディアタイプの誤り 415・並べ替えの順の誤り 409・完了 201。コース: まだ 202・途中 206・全部済み 200・レッスンが無ければ 204)。どのステータスにも日本語の説明を付ける |
 | `src/lib/plan.ts` | 計画と学習管理の計算。上下の並べ替え・保存 (順・開始日・直した目安の日数)・今ここ (計画の順で最初の未完了のレッスン)。期限は持たない |
@@ -235,7 +252,7 @@ flowchart LR
 | `src/content/lesson.ts` | レッスンの画面 (`screens/LessonPage.tsx`) が読む問題データ。全部のデータではなく、そのレッスンを持つファイル (目録の `LESSON_FILE` で引く) だけを `import.meta.glob` で開いたときに読み、React の `use` で待つ。同じレッスンは同じ Promise を返す |
 | `src/content/catalog.ts`・`catalog-fields.ts` | レッスンの目録 (id・題・短い題・コース・段と問題の id。実習には `lab`)。進捗の画面も目録だけで正答率・到達・まとめのカードを数え、問題の本文を読まない (`isGraded`)。ホーム (Network の表・ウォーターフォール・今日の復習の数)・題・パンくずと、`lib/plan.ts`・`journey.ts`・`schedule.ts` の既定のデータはこれを使い、最初の JS に問題の本文を入れない。目録は `vite.config.ts` の `lessonCatalog` が同じ JSON (`?catalog` 付きの読み込み) から作るので、データと食い違わない (`tests/content-index.test.ts` が全部のデータと比べる) |
 | `src/App.tsx` | 経路から画面を選ぶ。画面はホームも含めて `React.lazy` で開いたときに読む (上の帯と「読み込んでいます。」を先に描き、画面の描画は Suspense の読み直しとして React が手を離しながら描くので、1 つの長い仕事にならない。書き出した HTML がその画面の JS を modulepreload する) (読み込み中は「読み込んでいます。」だけを出し、見出しは画面と一緒に出す)。画面の JS を読めないとき (新しい版を出したあとの開いたままのタブなど) は、`src/lib/chunkReload.ts` が `vite:preloadError` で 1 回だけ読み直し (10 秒の中の 2 度目は読み直さない。sessionStorage に時刻を残す)、それでも読めなければ `components/ChunkErrorBoundary.tsx` が白紙にせず「読み込めませんでした」と読み直すボタンを出す (`scripts/e2e-course.mjs` の 7)。トップが最初に読む JS (script と modulepreload を gzip -9 した合計) は 300 KB 以下 (`tests/meta.test.ts` が build のあとに確かめる) |
-| `scripts/check-content.mjs` | 問題データの検査 (`npm run check:content`)。必須の欄・正解と選択肢や項目の食い違い・id の重なり・旅の段・https の出典を見る。全レッスンの要点 (3 行・字数・図・出典・答えの文字列を書かない) と、穴埋めの誤答 (問題ごとに 2〜4 個・正解と同じでない) も見る。CI でも走る |
+| `scripts/check-content.mjs` | 問題データの検査 (`npm run check:content`)。必須の欄・正解と選択肢や項目の食い違い・id の重なり・旅の段・https の出典を見る。全レッスンの要点 (3 行・字数・図・出典・答えの文字列を書かない) と、穴埋めの誤答 (問題ごとに 2〜4 個・正解と同じでない) も見る。ファイルを指定しないときは、ハンドブック (`src/content/handbook/`。場所は `GANTLO_HANDBOOK_DIR` で差し替えられる) も見る (`checkHandbook`: 目録と本文のファイルの対応・必須の欄と知らない欄・規格・レッスン・用語の実在・見出しや段落や出典の重なり・どの節にも https の出典があり RFC は節まで指すこと)。CI でも走る |
 | `src/lib/grade.ts` | 採点。前後の空白は無視し、大文字と小文字は区別する。HTTP のヘッダー名とメディアタイプだけは区別しない |
 | `src/lib/progress.ts` | 進捗。読み直し (`normalizeProgress`) は、この版が知らない一番外の欄を捨てずに残す (新しい版が足した欄を、古い版のタブが保存して消さないように。`__proto__`・`constructor`・`prototype` は写さない。形が違って落とした知っている欄は戻さない)。一番外の欄の並びは読んだ記録のまま。最後に学んだ日が今日より後 (時刻帯を西へ移って日付が戻った) なら同じ日とみなし、連続日数と札の数えを動かさない。学んだ日は、レッスン・復習・模擬試験を終えて連続日数を進めた日 (`xp.byDay` に日付がある日。`studiedDays`) の 1 つに決め、休みの札・週の目標・カレンダーで同じものを使う。休みの札 (`freeze`: 数・次の札までの日・使った日) は学んだ日が 7 日たまるごとに 1 個 (2 個まで。2 個のときは足さずに数え直す)。最後に学んだ日との間に学ばなかった日があれば、次に学んだとき (`addActivity`) にその日数分を使って連続を保ち、足りなければ札は使わずに 1 に戻す。札で埋められる空きのうちは `currentStreak` も切らない (`pendingFreezes`)。欄の無い古い記録は学んだ日の数から数える (`freezeState`)。日ごとに答えた問題の数 (`answered`) は `recordAnswer` が数え、模擬試験で答えなかった問題は数えない。問題ごとの続けて正解した数 (`inRow`、9 まで) も `recordAnswer` が残し、欄の無い古い記録は回数と復習の段階から推す (`inRowOf`: 間違えていなければ正解の回数・正解していなければ 0・卒業していれば 2・復習の途中は段階。段階 0 は直近が誤りとみなす)。週の目標 (`profile.weeklyGoalDays`) は 1〜7 の整数だけ残す。どの欄も optional で `v` は 1 のまま。localStorage の `gantlo.v1` に JSON で置き、サーバーには送らない。壊れた中身は初期値で読み直す。復習の予定 (`recordAnswer`): 間違えると翌日、予定日以降の正解で 3 日後・7 日後、7 日後も正解で卒業、予定日より前の正解は据え置き。日付は端末の時刻の日付 (`dayKey`) で数え、時差で 1 日ずれない。読み込み (`parseImport`) は 1 MB まで、`v` が 1 で `streak`・`xp`・`lessons`・`answers` がオブジェクトのものだけを読み、読めない理由を返す。目標と計画は、読み込んだ側に無いときだけ今の端末から引き継ぐ。計画の開始日と目安の日数も、読み直し・書き出し・読み込み・記録を消すときに写して残す (壊れた値は読むときに落として既定で補う)。模擬試験の回の記録 (`exams`: 終えた時刻・正答数・問題の数・時間切れか) は、形の合う回だけを 20 回まで読む (正答数が問題の数を超える回は落とす)。記録を消すと回の記録も消える |
 | `src/lib/useProgress.ts` | 進捗を読み、変えるたびに保存する React のフック |
@@ -272,6 +289,9 @@ flowchart LR
 | `src/screens/ProgressScreen.tsx`・`src/lib/stats.ts` | 進捗の画面と、その計算。正答率は問題ごとの記録 (`answers`) の正解と不正解の回数を、問題データにある問題だけ足して出す (採点しない実習は入らない)。7 日の XP は今日を含む 7 日を端末の時刻の日付で数える。コースごとに済んだレッスンの数・レッスンの数・正答率を出し、レッスンの無いコースは「準備中」 |
 | `src/content/glossary.json`・`src/content/glossary.ts` | 用語集の語 (`id`・`term`・`aliases`・11 の規格なら `standard`・`description`・`sources`・`lessons`)。様式と、問題を足したとき (問題の PR が入ったあと) に「出てくるレッスン」へのリンクを足す手順は [docs/content-format.md](docs/content-format.md) |
 | `src/lib/glossary.ts` | 用語集の検索と検査。探す語と語の名前・別名・説明を NFKC でそろえ (全角英数・半角カナ)、大文字小文字・ひらがなとカタカナ・中黒の違いを無くして比べ、名前に当たる語を先に出す。ハイフン・「/」・「.」は英数字に挟まれたときだけ消し (`HTTP/2` と `http2`、`Content-Type` と `contenttype`)、語の頭のハイフン (`-I`) は残す。名前は空白を抜いた形でも比べる (`TLS 1.3` を `TLS1.3` で、`OAuth 2.0` を `OAuth2` で引ける)。出典の URL に空白・`"`・`<`・`>` が無いことも見る。`validateGlossary` は id の形と重なり、名前と別名の重なり (そろえた形で比べる)、https の出典、RFC が節まで指すこと、レッスンが実在すること、11 の規格がそろうことを見る (`tests/glossary.test.ts`) |
+| `src/content/handbook/`・`src/content/handbook.ts`・`src/content/handbook-all.ts`・`src/lib/handbook.ts` | ハンドブックのデータと型。目録 `topics.json` (項目の `id`・扱う規格 `standard`・`title`・`summary`・関係する `lessons`・本文に出てくる用語集の `terms`) は題・メニュー・パンくず・リンクのためにすぐ読み、項目の本文 `sections/<id>.json` は画面を開いたときに読む (`loadSections`。最初の JS に入れない)。書き出しは `handbook-all.ts` で全部の本文を読む。様式は [docs/content-format.md](docs/content-format.md)、検査は `npm run check:content` |
+| `src/screens/Handbook.tsx` | ハンドブックの画面。一覧と項目。節は `#s<番号>` を持ち、目次から飛べる。試すコマンドと出力の例は折り返す `<pre>` (Astryx の CodeBlock は、この画面で使うとテーマの処理が入口の JS に引き上げられて予算を超えるので使わない)、出典は新しいタブで開く。関係するレッスンと用語集の語へのリンクを置き、用語集とレッスンの書き出す HTML にも逆向きのリンクを書く |
+| `scripts/e2e-handbook.mjs` | `scripts/e2e.mjs` から呼ぶ、ハンドブックの通しの検査 (B-028)。390 幅と 1280 幅で、メニューから一覧が開いて 200 と全項目のリンクが出ること (PC は選ばれた印)、項目の節の数がデータと同じでどの節にも出典の外部リンクがあること、用語集の語へのリンクで # が残り語が画面の上半分に見えること、戻って進んでもその位置へ送ること、節の # 付きの URL (`#s<番号>`) を直に開くとその節が見えること、知らない項目が 404 であること、横にはみ出さないことを見る |
 | `src/screens/Glossary.tsx` | 用語集の画面。語ごとに `#term-<id>` を持つ。出てくるレッスンは目録 (`content/catalog.ts`) で引き、問題データを読まない。語の箱は `content-visibility: auto` (描くまでの高さは `contain-intrinsic-size: auto 14rem`) で、画面の外の語の配置と描画を後回しにする。画面とデータ (`glossary.json`) は、ほかの画面と同じく `src/App.tsx` の `React.lazy` で開いたときに読み、最初の JS に入れない (書き出した HTML には全部の語がある)。出典は新しいタブで開き、出てくるレッスンはサイトの中で開く。「・」の区切りは後ろのリンクと同じ箱に入れ、狭い画面で区切りだけが 1 行を占めないようにする |
 | `scripts/e2e-progress-glossary.mjs` | `scripts/e2e.mjs` から呼ぶ、進捗の画面と用語集の通しの検査。390 幅と 1280 幅で、空の記録と記録を入れたときの正答率・7 日の XP・コースの済み・旅の段・ステータス、用語集の全部の語・出典 (https)・11 の規格の順、全角 (ＨＴＴＰ) と半角カナ (ﾘｿｰｽ) で探せること、当たらないと `204`、レッスンへのリンクで開くこと、placeholder が欄に収まること、390 幅で探す欄・消すボタン・リンクが 44px 以上であることを見る |
 | `src/screens/Try.tsx`・`src/lib/tryApi.ts` | 試す画面と、その決まりごと。画面の説明のステータス (`TRY_ABOUT`) と記録の置き場所の名前 (`STORAGE_KEY`) は status.ts・progress.ts の正本から読む (読まないと、rolldown が共有のチャンクを切り直して progress.ts と status.ts を入口の JS へ移し、入口が 5 KB 重くなってレッスンのページの LCP が落ちた。入口の JS は gzip で 172 KB 以下を `tests/meta.test.ts` が見る)。画面は Astryx の `CodeBlock`・`Button` を使わず、自前の箱 (`CodeView`) と `.btn` にする (使うと rolldown がそれらを共有の小さなチャンクに切り出し、ほかのページが最初に読む JS の本数が増えるため)。用語集は `tryApi.ts` を読まず、「試す」を付ける語の名前だけ (`TRY_TERMS`) を持つ (`PRESETS` と同じ鍵であることを `tests/try.test.ts` が比べる)。送り先は `ENDPOINTS` の一覧だけで、任意の URL は送らない (知らない道・その道に無いメソッドは組み立てで止める)。`/status/` のコードは `STATUS_CODES` だけ (1xx は応答が終わらず、3xx は fetch が転送先を追うので入れない)。`buildRequest` はどの要求も `credentials: 'omit'`・`referrerPolicy: 'no-referrer'`・`cache: 'no-store'`・`mode: 'cors'` にし、safelist に無いヘッダー・JSON の本文・GET/HEAD/POST 以外のメソッドを preflight と見る。読めた応答ヘッダーは `readableHeaders` で safelist と公開に分け、本文は JSON を整えて 8 KB で切る。`explainFailure` はオフライン (`navigator.onLine`)・時間切れ (10 秒の `AbortController`)・それ以外を分け、api.github.com に `X-Gantlo-Try` を付けたときは preflight の `Access-Control-Allow-Headers` に無いことを書く。用語集の語の id から始めの選びを決める `PRESETS` (`Object.hasOwn` で引き、`__proto__` などでは既定にする)。画面は `React.lazy` で開いたときに読む |
@@ -284,7 +304,7 @@ flowchart LR
 | `scripts/e2e-about.mjs` | `scripts/e2e.mjs` から呼ぶ、メニューの下端の 2 つ・上の帯の GitHub のボタン・このサイトについての検査。390 幅と 1280 幅で、ホーム・計画・レッスン・用語集・404・このサイトについての画面ごとに、2 つが一覧の最後のコースより下で画面の下端から 120px 以内にあること、上の帯の右端 (24px 以内) に新しいタブで開く GitHub のボタンがあること、メニューから about が開き 200 と題とボタンが出て選ばれた印になること、コースに「準備中」が付かないこと、390 幅で 44px 以上であること、390x500 (メニューがスクロールする高さ) で Tab で進んだ手元の行が下端の 2 つの下に隠れないことを見る |
 | `scripts/readme-images.mjs` | README の画像を撮る (`npm run readme:images`)。帯の画像と、URL を共有したときのサイト共通のカードの画像 (`public/og.png`、1200×630。ホーム・記録の画面・404 の head の `og:image` と `twitter:image` が指す。ほかのページは build がページごとに撮る。`scripts/og-images.mjs`) は、組み立てたサイトから Gothic のトークンと字体を読んで描く。iOS のホーム画面の画像 (`public/apple-touch-icon.png`、180×180。全ページの head の `apple-touch-icon` が指す) は `favicon.svg` の図柄を不透明の地に描く。画面は見本の進捗を入れて 390 幅 (と PC のホームを 1280 幅) で撮る。番号は `README_IMAGES_PORT` (既定 4331、`--strictPort`) |
 | `src/lib/pageMeta.ts` | 画面の題の正本。サイトの中で移ったときの `document.title` と、書き出す HTML の `<title>` が同じ関数を使う。`<title>` は 35 字まで (検索の結果で切られない長さ)。長いレッスンの題はレッスンの `shortTitle` をタブと `<title>`・`og:title` に使い、見出し (h1) は題のまま |
-| `src/prerender/pages.ts` | 書き出すページの一覧 (ホーム・メニューの画面・全コース・全レッスン) と、ページごとの題・説明・本文。コースのページは画面と同じ見出し (題と `Network`) の下にレッスンへのリンクを画面と同じ順に書く。画面と同じデータ (経路・コース・レッスン・用語集) から作る。用語集のページは全部の語・説明・出典を本文に書く (検索に載せる)。リンクの href も文字と同じく escape する。レッスンの見出しは題で、本文は紹介 (問題の数と種類・旅の段・週)、要点 (`src/prerender/intro.ts`。画面と同じ見出しで `section#intro` に包む。誤答の説明は書かない)、答える前に見えるもの (問題文・空欄を伏せたコード・4 択の選択肢・並べる項目・実習の手順) と前後のレッスンまで (答え・解説・出典・実習で観察できることは書かない。選択肢と項目はデータの順が正しい順や正解の位置を漏らすので、文字の順に並べる。並べ替えで文字の順がたまたま正しい順と同じなら、1 つずらす)。コースのページはレッスンごとに問題の種類と最初の問題文を、模擬試験のページは形式 (問題の数・時間・合格の線) と週ごとの範囲を書く。索引に載せる全ページで、本文は空白を除いて 400 字以上 (tests/meta.test.ts)。ホーム以外の本文の頭にパンくずを書く。構造化データ (JSON-LD) は、ホームが `WebSite`、ほかが `BreadcrumbList` で、コースは `Course` (提供者・レッスンの一覧)、レッスンは `LearningResource` (属するコース)、用語集は `DefinedTermSet` (語ごとに `DefinedTerm`。本文の `#term-<id>` を指す)。一人ひとりの記録の画面 (計画・復習・進捗・設定) は noindex にして sitemap から外す。画面の JS には入らない 用語集の語には出てくるレッスンへのリンクを、レッスンのページには出てくる用語 (用語集の `#term-<id>`) へのリンクを書き、両向きにつなぐ (壊れたリンクが無いことと両向きを `tests/meta.test.ts` が見る) |
+| `src/prerender/pages.ts` | 書き出すページの一覧 (ホーム・メニューの画面・全コース・全レッスン) と、ページごとの題・説明・本文。コースのページは画面と同じ見出し (題と `Network`) の下にレッスンへのリンクを画面と同じ順に書く。画面と同じデータ (経路・コース・レッスン・用語集) から作る。用語集のページは全部の語・説明・出典を本文に書く (検索に載せる)。リンクの href も文字と同じく escape する。レッスンの見出しは題で、本文は紹介 (問題の数と種類・旅の段・週)、要点 (`src/prerender/intro.ts`。画面と同じ見出しで `section#intro` に包む。誤答の説明は書かない)、答える前に見えるもの (問題文・空欄を伏せたコード・4 択の選択肢・並べる項目・実習の手順) と前後のレッスンまで (答え・解説・出典・実習で観察できることは書かない。選択肢と項目はデータの順が正しい順や正解の位置を漏らすので、文字の順に並べる。並べ替えで文字の順がたまたま正しい順と同じなら、1 つずらす)。コースのページはレッスンごとに問題の種類と最初の問題文を、模擬試験のページは形式 (問題の数・時間・合格の線) と週ごとの範囲を書く。索引に載せる全ページで、本文は空白を除いて 400 字以上 (tests/meta.test.ts)。ホーム以外の本文の頭にパンくずを書く。構造化データ (JSON-LD) は、ホームが `WebSite`、ほかが `BreadcrumbList` で、コースは `Course` (提供者・レッスンの一覧)、レッスンは `LearningResource` (属するコース)、用語集は `DefinedTermSet` (語ごとに `DefinedTerm`。本文の `#term-<id>` を指す)。一人ひとりの記録の画面 (計画・復習・進捗・設定) は noindex にして sitemap から外す。画面の JS には入らない 用語集の語には出てくるレッスンへのリンクを、レッスンのページには出てくる用語 (用語集の `#term-<id>`) へのリンクを書き、両向きにつなぐ (壊れたリンクが無いことと両向きを `tests/meta.test.ts` が見る)。ハンドブックは一覧 (項目の要約と節の見出し) と項目 (節・コマンド・出力の例・出典) を書き、一覧は `CollectionPage`、項目は `TechArticle` (出典を `citation`)。用語集の語とレッスンのページには、関係するハンドブックの項目へのリンクを書く |
 | `src/prerender/html.ts` | `dist/index.html` を型にして、title・description・canonical・og (`og:image`・`og:image:alt`・`twitter:image` も) と `#root` の中身をページのものに置き換える。置き換える場所が型に無ければ止める。`sitemap.xml` も作る (検索に載せるページだけ。lastmod は付けない)。ページの JSON-LD を head の 1 つの `script` に入れる (`< > &` は `\u003c` などにして、データの文字で script が閉じないようにする。404.html には入れない) |
 | `src/prerender/og.ts` | ページごとの共有の画像。検索に載るページのうちホームを除くもの (`hasOwnOgImage`) は、`og:image`・`twitter:image` を `<ページの URL>og.png` に、`og:image:alt` を「gantlo: <題> (<種類>)」にする。ホーム・記録の画面・404 はサイト共通の `public/og.png` のまま。カードの中身 (`ogCard`) は `<title>` からサイト名を外した題 (長いレッスンは短い題)・ページの種類・`GET /<道>` と `200 OK`・URL |
 | `scripts/og-images.mjs` | `npm run build` の最後の段 (prerender のあと)。組み立てた dist を Playwright の Chromium で開き (ポートは開かず `page.route` で dist のファイルを返す。外へは取りに行かない)、サイトと同じ Gothic のトークンと書体 (Fustat・JetBrains Mono・Manufacturing Consent) で `dist/<道>/og.png` (1200×630) を撮る。日本語はサイトの書体に無いので、build のためだけに Noto Sans JP (devDependency の `@fontsource-variable/noto-sans-jp`。dist には入れない) を読ませる。カードの書体の並びはテーマの書体のすぐ後ろに Noto Sans JP を置き、端末の書体 (sans-serif など) を並べない。撮る前に、3 書体と (日本語があれば) Noto Sans JP が読めていること、描いた書体を Chromium (CDP の `CSS.getPlatformFontsForNode`) に聞いて端末の書体を 1 つも使っていないこと、題の字を 1 つずつ canvas に描いて .notdef (豆腐) と同じ絵でないこと、横にはみ出さないことを確かめ、だめなら build を止める。63 枚で合計約 2.2 MB (1 枚 25〜50 KB)、手元で約 12 秒。CI (`.github/workflows/deploy.yml`) は build の前に `playwright install --with-deps chromium` を入れ、build のあとに日本語の書体を見せない設定 (`scripts/og-fonts-no-ja.conf`、DejaVu だけ) でもう一度撮る |

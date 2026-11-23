@@ -35,6 +35,7 @@ import { runAbout } from './e2e-about.mjs';
 import { runContrast } from './e2e-contrast.mjs';
 import { runCourse } from './e2e-course.mjs';
 import { runExam } from './e2e-exam.mjs';
+import { runHandbook } from './e2e-handbook.mjs';
 import { runHabits } from './e2e-habits.mjs';
 import { runHomeAndPlan } from './e2e-home-plan.mjs';
 import {
@@ -685,6 +686,8 @@ try {
   await runProgressAndGlossary(browser, { base: BASE, check, noHorizontalOverflow });
   // メニューの下端の 2 つ・上の帯の GitHub のボタン・このサイトについて (B-023)
   await runAbout(browser, { base: BASE, check, noHorizontalOverflow });
+  // ハンドブック (B-028)
+  await runHandbook(browser, { base: BASE, check, noHorizontalOverflow });
   // コースの画面 (B-024)
   await runCourse(browser, { base: BASE, check, noHorizontalOverflow });
   // 模擬試験 (B-027)

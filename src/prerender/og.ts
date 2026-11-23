@@ -18,7 +18,7 @@ export const hasOwnOgImage = (page: Pick<SitePage, 'path' | 'noindex' | 'canonic
 export const ogImageUrl = (page: Pick<SitePage, 'path' | 'noindex' | 'canonical'>): string => (hasOwnOgImage(page) ? `${pageUrl(page.path)}${OG_FILE}` : SITE_OG_IMAGE);
 
 /** 道の頭から、カードの上に出すページの種類 (試す画面 try は #60 で足す画面。先に名前だけ置く) */
-const KINDS: Record<string, string> = { lesson: 'レッスン', course: 'コース', glossary: '用語集', exam: '模擬試験', about: 'このサイトについて', try: '試す' };
+const KINDS: Record<string, string> = { lesson: 'レッスン', course: 'コース', glossary: '用語集', exam: '模擬試験', about: 'このサイトについて', try: '試す', handbook: 'ハンドブック' };
 
 export type OgCard = {
   /** 道 (BASE からの相対。dist/<path>og.png に書く) */

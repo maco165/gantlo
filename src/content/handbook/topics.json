@@ -1,0 +1,40 @@
+{
+  "topics": [
+    {
+      "id": "http",
+      "standard": "http",
+      "title": "HTTP の要求と応答",
+      "summary": "HTTP は、クライアントの要求とサーバーの応答の 1 往復でできた、状態を持たないプロトコルです。curl -v で実際のやり取りを見ながら、要求行・状態行・メソッド・ヘッダー・転送・条件付きの要求・版の違いを順にたどります。",
+      "lessons": [
+        "main-w1-l1",
+        "main-w1-l3",
+        "main-w1-l5",
+        "tech-history-l6"
+      ],
+      "terms": [
+        "http",
+        "stateless",
+        "curl",
+        "request-line",
+        "status-line",
+        "host",
+        "method",
+        "get",
+        "head",
+        "post",
+        "put",
+        "delete",
+        "status-code",
+        "200-ok",
+        "404-not-found",
+        "header",
+        "content-type",
+        "content-length",
+        "accept",
+        "media-type",
+        "location",
+        "quic"
+      ]
+    }
+  ]
+}

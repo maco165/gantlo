@@ -25,6 +25,7 @@ const About = lazy(() => import('./screens/About'));
 const CourseScreen = lazy(() => import('./screens/CourseScreen'));
 const Exam = lazy(() => import('./screens/Exam'));
 const Glossary = lazy(() => import('./screens/Glossary'));
+const Handbook = lazy(() => import('./screens/Handbook'));
 const LessonPage = lazy(() => import('./screens/LessonPage'));
 const Plan = lazy(() => import('./screens/Plan'));
 const ProgressScreen = lazy(() => import('./screens/ProgressScreen'));
@@ -52,6 +53,7 @@ export default function App() {
   else if (route.name === 'page' && route.page === 'about') screen = <About />;
   else if (route.name === 'page' && route.page === 'try') screen = <Try key={nav} />;
   else if (route.name === 'page') screen = <StatusPage title={PAGE_TITLES[route.page]} request={`GET /${route.page}`} status={NOT_IMPLEMENTED} />;
+  else if (route.name === 'handbook') screen = <Handbook topic={route.topic} />;
   else if (route.name === 'course') screen = <CourseScreen key={route.course} course={route.course} progress={progress} />;
   else if (route.name === 'lesson') {
     // あるかは目録で見る (問題の本文はレッスンの画面と一緒に読む)

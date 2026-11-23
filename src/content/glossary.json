@@ -713,6 +713,7 @@
       "id": "status-line",
       "term": "ステータス行",
       "aliases": [
+        "状態行",
         "status-line"
       ],
       "description": "応答の最初の行です。HTTP の版・ステータスコード・理由の句 (OK など。省ける) を空白で区切って並べます。例: HTTP/1.1 200 OK",
@@ -732,6 +733,7 @@
       "term": "リクエスト行",
       "aliases": [
         "要求の行",
+        "要求行",
         "request-line"
       ],
       "description": "要求の最初の行です。メソッド・対象 (request-target)・HTTP の版を空白で区切って並べます。例: GET / HTTP/1.1",

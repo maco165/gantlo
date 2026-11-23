@@ -1,0 +1,265 @@
+{
+  "sections": [
+    {
+      "heading": "1 往復の要求と応答",
+      "text": [
+        "HTTP は、クライアントが要求 (リクエスト) を送り、サーバーが応答 (レスポンス) を返すやり取りでできています。クライアントはサーバーへ接続を作り、その上で 1 つ以上の要求を送ります。",
+        "HTTP は状態を持たない (stateless) プロトコルです。どの要求も、それだけを読めば意味が分かるように作られていて、同じ接続の前の要求に意味が左右されません。curl に -v を付けると、送った要求のヘッダーの行頭に >、受け取った応答のヘッダーの行頭に < を付けて見せます。"
+      ],
+      "code": {
+        "language": "bash",
+        "text": "curl -sv --http1.1 https://example.com/ -o /dev/null"
+      },
+      "output": "> GET / HTTP/1.1\n> Host: example.com\n> User-Agent: curl/8.18.0\n> Accept: */*\n>\n< HTTP/1.1 200 OK\n< Date: Sun, 22 Nov 2026 17:33:58 GMT\n< Content-Type: text/html; charset=utf-8\n< Transfer-Encoding: chunked\n< Connection: keep-alive\n< allow: GET, HEAD\n<",
+      "note": "* で始まる接続の行と、{ や } で始まるデータの行と、応答のヘッダーの一部を省いています。日付やヘッダーは、試す日と経路で変わります。",
+      "sources": [
+        {
+          "label": "RFC 9110 3.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-3.3"
+        },
+        {
+          "label": "RFC 9112 2.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9112#section-2.1"
+        }
+      ]
+    },
+    {
+      "heading": "要求の形: 要求行とヘッダー",
+      "text": [
+        "HTTP/1.1 の要求は、1 行目の要求行 (request-line) と、それに続くヘッダーの行と、空行と、あれば本文でできています。要求行は「メソッド 要求の対象 版」の 3 つを空白で区切ったものです。上の例では GET がメソッド、/ が要求の対象、HTTP/1.1 が版です。",
+        "HTTP/1.1 のクライアントは、すべての要求に Host ヘッダーを付けなければなりません (MUST)。1 つの IP アドレスで複数のサイトを置くサーバーは、Host を見てどのサイトへの要求かを決めます。URL の https://example.com/ のうち、example.com が Host に、/ が要求行に入ります。"
+      ],
+      "sources": [
+        {
+          "label": "RFC 9112 3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9112#section-3"
+        },
+        {
+          "label": "RFC 9112 3.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9112#section-3.2"
+        },
+        {
+          "label": "RFC 9110 7.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-7.2"
+        }
+      ]
+    },
+    {
+      "heading": "応答の形: 状態行とステータスコード",
+      "text": [
+        "応答は、1 行目の状態行 (status-line) と、ヘッダーと、空行と、あれば本文 (content) でできています。HEAD への応答や 304 には本文がありません。状態行は「版 ステータスコード 理由の句」です。HTTP/1.1 200 OK なら、200 がコードで、OK は人が読むための添え書きです。理由の句は省くことができ、HTTP/2 にはありません。",
+        "ステータスコードは 3 桁で、1 桁目が種類を表します。1xx は途中経過、2xx は成功、3xx は要求を終えるのにクライアント側でもう一手要ること (別の場所への転送 (リダイレクト) や、304 の「手元の写しを使ってよい」など)、4xx はクライアント側の誤り、5xx はサーバー側の誤りです。curl の -w '%{http_code}' で、コードだけを取り出せます。"
+      ],
+      "code": {
+        "language": "bash",
+        "text": "curl -s -o /dev/null -w '%{http_code}\\n' https://example.com/no-such-page"
+      },
+      "output": "404",
+      "sources": [
+        {
+          "label": "RFC 9112 4",
+          "url": "https://www.rfc-editor.org/rfc/rfc9112#section-4"
+        },
+        {
+          "label": "RFC 9110 15",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15"
+        },
+        {
+          "label": "RFC 9110 15.5.5",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.5"
+        },
+        {
+          "label": "RFC 9113 8.3.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9113#section-8.3.2"
+        }
+      ]
+    },
+    {
+      "heading": "メソッド: 安全と冪等",
+      "text": [
+        "メソッドは、要求で何をしたいかを表します。GET は表現を取ってくる、HEAD は GET と同じ応答のヘッダーだけを受け取る、POST は送った内容を対象に処理させる、PUT は送った内容で対象の状態を作るか置き換える、DELETE は対象を消す、です。",
+        "安全 (safe) なメソッドは、サーバーの状態を変えることを求めない読み取りのためのもので、GET・HEAD・OPTIONS・TRACE がこれに当たります。冪等 (idempotent) なメソッドは、同じ要求を何回送ってもサーバーに及ぼす効果が 1 回と同じになることを意図するもので (返る応答は違ってよく、DELETE の 2 回目は 404 になりえます)、安全なメソッドに PUT と DELETE を加えたものです。POST はどちらでもないので、クライアントは、その要求が実は冪等だと分かるか、元の要求が処理されていないと確かめられる手立てが無い限り、通信が切れたときに自動で送り直すべきではありません (SHOULD NOT)。",
+        "curl の -I は HEAD で要求します。サーバーが知っていても、その対象では使えないメソッドを送ると、405 Method Not Allowed が返ります (サーバーが知らないメソッドなら 501 Not Implemented)。"
+      ],
+      "code": {
+        "language": "bash",
+        "text": "curl -s -o /dev/null -D - -X POST https://example.com/"
+      },
+      "output": "HTTP/2 405\ndate: Sun, 22 Nov 2026 18:31:34 GMT\ncontent-type: text/html",
+      "note": "応答のヘッダーの一部を省いています。RFC 9110 15.5.6 では 405 の応答に使えるメソッドを並べた Allow ヘッダーが要る (MUST) のですが、この応答には付いていません。",
+      "sources": [
+        {
+          "label": "RFC 9110 9.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.1"
+        },
+        {
+          "label": "RFC 9110 9.2.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.2.1"
+        },
+        {
+          "label": "RFC 9110 9.2.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.2.2"
+        },
+        {
+          "label": "RFC 9110 9.3.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-9.3.2"
+        },
+        {
+          "label": "RFC 9110 15.5.6",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.5.6"
+        },
+        {
+          "label": "RFC 9110 15.6.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.6.2"
+        }
+      ]
+    },
+    {
+      "heading": "ヘッダー: 本文の形を伝える・頼む",
+      "text": [
+        "Content-Type は、本文がどの形かをメディアタイプ (text/html や application/json) で伝えます。Accept は、クライアントがどの形の応答を受け取りたいかを伝えます。",
+        "curl の --json は、本文を送る POST にし、Content-Type と Accept の両方を application/json にします。受け取った要求の中身を JSON にまとめて返す httpbin.org に送ると、サーバーに届いたヘッダーが見えます。"
+      ],
+      "code": {
+        "language": "bash",
+        "text": "curl -s --json '{\"title\":\"gantlo\"}' https://httpbin.org/post"
+      },
+      "output": "{\n  \"args\": {},\n  \"headers\": {\n    \"Accept\": \"application/json\",\n    \"Content-Length\": \"18\",\n    \"Content-Type\": \"application/json\",\n    \"Host\": \"httpbin.org\",\n    \"User-Agent\": \"curl/8.18.0\"\n  },\n  \"method\": \"POST\",\n  \"url\": \"https://httpbin.org/post\",\n  \"data\": \"{\\\"title\\\":\\\"gantlo\\\"}\",\n  \"json\": {\n    \"title\": \"gantlo\"\n  }\n}",
+      "note": "応答の一部 (送り元の IP アドレスなど) を省いています。Content-Length の 18 は、送った本文のバイト数です。",
+      "sources": [
+        {
+          "label": "RFC 9110 8.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-8.3"
+        },
+        {
+          "label": "RFC 9110 8.6",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-8.6"
+        },
+        {
+          "label": "RFC 9110 12.5.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-12.5.1"
+        },
+        {
+          "label": "curl の --json",
+          "url": "https://curl.se/docs/manpage.html#--json"
+        }
+      ]
+    },
+    {
+      "heading": "転送: 3xx と Location",
+      "text": [
+        "301・302・307・308 の応答は、目当ての表現が別の場所にあることを伝え、Location ヘッダーで行き先の URL を示します。301 と 308 は恒久的な移転、302 と 307 は一時的な移転です。",
+        "301 と 302 では、昔からクライアントが POST を GET に変えて送り直すことがあります。メソッドを変えさせたくないときは 307 か 308 を使います。curl は既定では転送をたどらず、-L を付けると Location の先へ要求し直します。"
+      ],
+      "code": {
+        "language": "bash",
+        "text": "curl -sI http://github.com/"
+      },
+      "output": "HTTP/1.1 301 Moved Permanently\nContent-Length: 0\nLocation: https://github.com/",
+      "sources": [
+        {
+          "label": "RFC 9110 15.4",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.4"
+        },
+        {
+          "label": "RFC 9110 10.2.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-10.2.2"
+        },
+        {
+          "label": "RFC 9110 15.4.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.2"
+        },
+        {
+          "label": "RFC 9110 15.4.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.3"
+        },
+        {
+          "label": "RFC 9110 15.4.8",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.8"
+        },
+        {
+          "label": "RFC 9110 15.4.9",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.9"
+        },
+        {
+          "label": "curl の -L",
+          "url": "https://curl.se/docs/manpage.html#-L"
+        }
+      ]
+    },
+    {
+      "heading": "条件付きの要求と 304",
+      "text": [
+        "一度受け取った表現が今も新しいかは、条件付きの要求で確かめられます。GET か HEAD の要求に、応答の ETag (表現の版を表す札) を If-None-Match に、または Last-Modified の日時を If-Modified-Since に入れて送り (両方あれば If-None-Match が優先)、変わっていなければ、サーバーは本文を付けずに 304 Not Modified を返します。",
+        "ETag の頭の W/ は弱い (weak) 札で、中身がバイト単位で同じとまでは約束しない印です。If-None-Match は弱い比べ方をするので、弱い札でも 304 になります。"
+      ],
+      "code": {
+        "language": "bash",
+        "text": "curl -sI -H 'If-None-Match: W/\"0d9f5fb8eb38d3c08b055f9b0671d68b\"' https://www.rfc-editor.org/rfc/rfc9110.html"
+      },
+      "output": "HTTP/2 304\ndate: Sun, 22 Nov 2026 18:31:34 GMT\netag: \"0d9f5fb8eb38d3c08b055f9b0671d68b\"",
+      "note": "応答のヘッダーの一部を省いています。ETag の値は、先に curl -sI で同じ URL を取ったときの etag ヘッダーです。304 でも、200 なら付けたはずの ETag は付けて返します (この例では、200 では W/ 付きの値が 304 では W/ 無しで返っていて、厳密には同じ形になっていません)。文書が更新されると値が変わり、古い値では 200 が返ります。",
+      "sources": [
+        {
+          "label": "RFC 9110 8.8.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-8.8.1"
+        },
+        {
+          "label": "RFC 9110 8.8.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-8.8.3"
+        },
+        {
+          "label": "RFC 9110 13.1.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-13.1.2"
+        },
+        {
+          "label": "RFC 9110 13.1.3",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-13.1.3"
+        },
+        {
+          "label": "RFC 9110 15.4.5",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-15.4.5"
+        }
+      ]
+    },
+    {
+      "heading": "版: HTTP/1.1 と HTTP/2",
+      "text": [
+        "メソッド・ステータスコード・ヘッダーの意味は RFC 9110 が版に依らず決め、それをどう運ぶかを版ごとの RFC が決めます。HTTP/1.1 (RFC 9112) は文字の行で、HTTP/2 (RFC 9113) は 2 進のフレームで、HTTP/3 (RFC 9114) は QUIC の上で運びます。",
+        "ヘッダーの名前は大文字と小文字を区別しません。HTTP/1.1 では書き方を送り手が決めるので、最初の節の出力のように Content-Type と allow が混ざります。HTTP/2 では、名前を必ず小文字にして送らなければなりません (MUST)。また、要求行と Host の代わりに :method・:scheme・:path と :authority (Host に当たる)、状態行の代わりに :status という擬似ヘッダーを使います。"
+      ],
+      "code": {
+        "language": "bash",
+        "text": "curl -sI --http2 https://example.com/"
+      },
+      "output": "HTTP/2 200\ndate: Sun, 22 Nov 2026 17:33:58 GMT\ncontent-type: text/html; charset=utf-8\nlast-modified: Thu, 19 Nov 2026 22:10:26 GMT\nallow: GET, HEAD\naccept-ranges: bytes",
+      "note": "応答のヘッダーの一部を省いています。1 行目の HTTP/2 200 は、:status を curl が読みやすく書き直したものです。",
+      "sources": [
+        {
+          "label": "RFC 9110 1.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-1.2"
+        },
+        {
+          "label": "RFC 9110 5.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9110#section-5.1"
+        },
+        {
+          "label": "RFC 9113 8.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9113#section-8.2"
+        },
+        {
+          "label": "RFC 9113 8.3.1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9113#section-8.3.1"
+        },
+        {
+          "label": "RFC 9113 8.3.2",
+          "url": "https://www.rfc-editor.org/rfc/rfc9113#section-8.3.2"
+        },
+        {
+          "label": "RFC 9114 1",
+          "url": "https://www.rfc-editor.org/rfc/rfc9114#section-1"
+        }
+      ]
+    }
+  ]
+}

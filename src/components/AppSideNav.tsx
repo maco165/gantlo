@@ -1,8 +1,8 @@
 import { MobileNav } from '@astryxdesign/core/MobileNav';
 import { SideNav, SideNavHeading, SideNavItem, SideNavSection } from '@astryxdesign/core/SideNav';
-import { AdjustmentsHorizontalIcon, ArrowPathIcon, BookOpenIcon, ChartBarIcon, ClipboardDocumentCheckIcon, InformationCircleIcon, QueueListIcon, TableCellsIcon } from '@heroicons/react/24/outline';
+import { AdjustmentsHorizontalIcon, ArrowPathIcon, BookOpenIcon, ChartBarIcon, ClipboardDocumentCheckIcon, DocumentTextIcon, InformationCircleIcon, QueueListIcon, TableCellsIcon } from '@heroicons/react/24/outline';
 import { useLayoutEffect, useRef } from 'react';
-import { COURSES, courseHref, homeHref, pageHref, type Route } from '../lib/route';
+import { COURSES, courseHref, handbookHref, homeHref, pageHref, type Route } from '../lib/route';
 import { REPO_URL, SITE_NAME, SITE_TAGLINE } from '../lib/site';
 import { ExternalAnchor, GitHubMark } from './RepoLink';
 
@@ -20,6 +20,7 @@ function NavItems({ route }: { route: Route }) {
         <SideNavItem label="復習" icon={ArrowPathIcon} href={pageHref('review')} isSelected={isPage('review')} />
         <SideNavItem label="模擬試験" icon={ClipboardDocumentCheckIcon} href={pageHref('exam')} isSelected={isPage('exam')} />
         <SideNavItem label="進捗" icon={ChartBarIcon} href={pageHref('progress')} isSelected={isPage('progress')} />
+        <SideNavItem label="ハンドブック" icon={DocumentTextIcon} href={handbookHref()} isSelected={route.name === 'handbook'} />
         <SideNavItem label="用語集" icon={BookOpenIcon} href={pageHref('glossary')} isSelected={isPage('glossary')} />
         <SideNavItem label="設定" icon={AdjustmentsHorizontalIcon} href={pageHref('settings')} isSelected={isPage('settings')} />
       </SideNavSection>

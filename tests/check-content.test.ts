@@ -355,3 +355,57 @@ describe('check-content', { timeout: 30_000 }, () => {
     expect(mod.readIds('src/lib/route.ts', 'COURSES')).toEqual(COURSES.map((c) => c.id));
   });
 });
+
+// ハンドブックの検査 (checkHandbook)。本物の目録と HTTP の本文の写しを一時フォルダに置いて壊し、NG になることを見る
+describe('check-content のハンドブック', { timeout: 30_000 }, () => {
+  const REAL = join(__dirname, '../src/content/handbook');
+  const glossary = JSON.parse(readFileSync(join(__dirname, '../src/content/glossary.json'), 'utf8')).terms as { id: string; standard?: number }[];
+  const opts = {
+    lessonIds: ['main-w1-l1', 'main-w1-l3', 'main-w1-l5', 'tech-history-l6'],
+    termIds: glossary.map((t) => t.id),
+    standardIds: glossary.filter((t) => t.standard !== undefined).map((t) => t.id),
+  };
+  /** 本物の写しを置き、目録 (topics) と http の本文 (sections) を変える */
+  function copy(fn: (topics: any, sections: any) => void = () => {}): string {
+    const topics = JSON.parse(readFileSync(join(REAL, 'topics.json'), 'utf8'));
+    const sections = JSON.parse(readFileSync(join(REAL, 'sections/http.json'), 'utf8'));
+    fn(topics, sections);
+    const dir = mkdtempSync(join(tmpdir(), 'gantlo-handbook-'));
+    mkdirSync(join(dir, 'sections'));
+    writeFileSync(join(dir, 'topics.json'), JSON.stringify(topics));
+    writeFileSync(join(dir, 'sections/http.json'), JSON.stringify(sections));
+    return dir;
+  }
+  const check = async (dir: string) => (await import(pathToFileURL(SCRIPT).href)).checkHandbook(dir, opts) as { ok: boolean; lines: string[] };
+
+  it('本物の写しは OK', async () => {
+    const r = await check(copy());
+    expect(r.lines.filter((l) => l.startsWith('NG'))).toEqual([]);
+    expect(r.ok).toBe(true);
+  });
+
+  it('壊した写しは、理由を添えて NG', async () => {
+    const cases: [string, (t: any, s: any) => void, RegExp][] = [
+      ['出典の url が無い', (_, s) => delete s.sections[0].sources[0].url, /https の URL ではありません/],
+      ['出典が空', (_, s) => (s.sections[0].sources = []), /sources \(出典\) がありません/],
+      ['RFC が節を指さない', (_, s) => (s.sections[0].sources[0].url = 'https://www.rfc-editor.org/rfc/rfc9110'), /節まで指します/],
+      ['url に空白', (_, s) => (s.sections[0].sources[0].url = 'https://example.com/a b'), /空白/],
+      ['出典の URL が重なる', (_, s) => s.sections[0].sources.push({ ...s.sections[0].sources[0] }), /同じ URL/],
+      ['見出しが重なる', (_, s) => (s.sections[1].heading = s.sections[0].heading), /見出しが重なっています/],
+      ['段落が重なる', (_, s) => s.sections[0].text.push(s.sections[0].text[0]), /同じ段落/],
+      ['output だけで code が無い', (_, s) => delete s.sections[0].code, /output は code のある節/],
+      ['知らない欄', (_, s) => (s.sections[0].Sources = []), /知らない欄 Sources/],
+      ['目録の知らない最上位の欄', (t) => (t.extra = 1), /知らない欄 extra/],
+      ['知らない規格', (t) => (t.topics[0].standard = 'no-such'), /規格の語にありません/],
+      ['知らないレッスン', (t) => t.topics[0].lessons.push('no-such'), /問題データにありません/],
+      ['知らない用語', (t) => t.topics[0].terms.push('no-such'), /用語集にありません/],
+      ['用語が重なる', (t) => t.topics[0].terms.push(t.topics[0].terms[0]), /同じ語が重なっています/],
+      ['本文のファイルが無い', (t) => (t.topics[0].id = 'other'), /本文のファイルがありません/],
+    ];
+    for (const [name, fn, re] of cases) {
+      const r = await check(copy(fn));
+      expect(r.ok, name).toBe(false);
+      expect(r.lines.join('\n'), name).toMatch(re);
+    }
+  });
+});
