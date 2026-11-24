@@ -244,3 +244,19 @@ flowchart LR
 | `src/fonts.css`・`public/fonts/` | 書体。テーマの `fonts.css` は CSS の中で Google Fonts を `@import` し、HTML → CSS → 書体の CSS → 書体の直列になって描画を止めるので (2026-11-23 の Lighthouse で 808ms)、Google Fonts が返す woff2 と `@font-face` (書体・太さ・`unicode-range`) をそのまま写して自前で配る。どれも `font-display: swap`。最初の画面で使う 3 つ (Fustat・JetBrains Mono・Manufacturing Consent の latin) は `index.html` で preload する。ライセンスは `public/fonts/*-OFL.txt` (SIL OFL 1.1)。外の書体の置き場を見ないこと・4 書体がそろうこと・preload の先があることは `tests/fonts.test.ts` が見る |
 | `public/robots.txt` | sitemap の場所。検索エンジンが読むのはドメインの直下 (`maco165.github.io` のリポジトリ) の robots.txt だけなので、そちらにも同じ行を置く |
 | `tests/meta.test.ts` | 検索に届く形の検査。ページごとの title・description・canonical が重ならないこと、canonical が # の無い URL であること、見出しが JS なしの HTML にあること、題と問題文が escape されること、記録の画面だけが noindex で、sitemap が検索に載せる全ページを持つこと。`<title>` が 35 字以内で og:title と同じこと、apple-touch-icon、JSON-LD が JSON として読めて url が canonical と合い、`BreadcrumbList` が本文の見えるパンくずと同じ並びであること。後半は build のあとの `dist` を見る (CI は build のあとに `npm test`) |
+
+## 開発のコマンド
+
+```bash
+npm ci
+npm run dev     # 手元で開く
+npm test        # vitest
+npm run check:content  # 問題データの検査
+npm run build   # dist に書き出す (ページごとの HTML と sitemap.xml、共有の画像まで。画像を撮るので Playwright の Chromium が要る)
+npm run e2e     # 書き出してから、Playwright の Chromium で通しの操作を確かめる
+npm run readme:images  # README の画像 (docs/images/) と共有用の画像 (public/og.png)・apple-touch-icon を撮り直す
+```
+
+`npm run e2e` は Chromium を使います。手元に無ければ先に `npx playwright install chromium` を打ちます。
+
+`main` にマージすると、GitHub Actions が GitHub Pages に配ります (`.github/workflows/deploy.yml`)。
